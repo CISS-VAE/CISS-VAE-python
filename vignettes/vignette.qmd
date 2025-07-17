@@ -1,7 +1,16 @@
 ---
-title: "CISS-VAE Vignette"
-format: html
+title: "How to use CISS-VAE"
+format: 
+  html:
+    toc: true
+    toc-depth: 3
+    toc-expand: true
+    css: styles.css  # path to your stylesheet
+    theme: 
+      - default
+      - brand: _brand.yml  # path to your .brand yaml
 ---
+
 
 # Overview
 
@@ -25,14 +34,25 @@ The CISS-VAE package is currently available for python, with an R package to be 
 pip install ciss-vae
 
 # From GitHub (latest development version)
-pip install git+https://github.com/your-repo/ciss-vae.git
+pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 ```
+
+<div class="callout-note"> If you want run_cissvae to handle clustering, please install the clustering dependencies scikit-learn and hdbscan with pip. 
+```{.bash}
+pip install scikit-learn hdbscan
+
+OR
+
+pip install ciss-vae[clustering]
+``` 
+
+</div>
 # Quickstart 
 
-If you already know what parameters you want for your model (or do not want to use the `autotune` function), you can use the `run_cissvae` function. 
+If you already know what parameters you want for your model (or do not want to use the `autotune` function), you can use the `run_cissvae` function for your imputation.
 
-Your dataset should be one of the following:
+Your input dataset should be one of the following:
 
     - A Pandas DataFrame  
 
@@ -42,7 +62,8 @@ Your dataset should be one of the following:
 
 Missing values should be represented using np.nan or None.
 
-```{python}
+
+```{.python}
 import pandas as pd
 from ciss_vae.utils.run_cissvae import run_cissvae
 
@@ -127,7 +148,7 @@ Before fitting the model, the dataset is clustered based on its missingness patt
 
 You can use the built-in function:  
 
-```{python}
+```{.python}
 from ciss_vae.utils import cluster_on_missing
 
 clusters = cluster_on_missing(data, cols_ignore=None, n_clusters=None, seed=42)
@@ -147,7 +168,7 @@ You should store your cluster labels separately for input into the model constru
 Once you've computed the cluster labels, you'll convert your dataset into a `ClusterDataset`.
 
 
-```{python}
+```{.python}
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.training.autotune import SearchSpace, autotune
 
@@ -170,7 +191,7 @@ Types of parameters:
     - x -> set param as non-tunable
 
 
-```{python}
+```{.python}
 ## These are the default parameters. Please note these parameters may not be best for all datasets depending on size and complexity.
 
 searchspace = SearchSpace(
@@ -196,7 +217,7 @@ searchspace = SearchSpace(
 
 Once the search space is set, the autotune function can be run. 
 
-```{python}
+```{.python}
 
 best_imputed_df,  best_model, study, results_df = autotune(
     search_space = searchspace,
@@ -219,7 +240,7 @@ You can use optuna dashboard (https://optuna-dashboard.readthedocs.io/en/stable/
 
 To use optuna dashboard, set your database in the autotune function. You can have multiple autotune 'studies' in the same database and compare them. 
 
-```{python}
+```{.python}
 best_imputed_df,  best_model, study, results_df = autotune(
     search_space = searchspace,
     train_dataset = dataset,                   # ClusterDataset object
@@ -242,7 +263,7 @@ best_imputed_df,  best_model, study, results_df = autotune(
 If you want to save your model and load it later, there are two options. 
 
 To save the model weights after training:
-```{python}
+```{.python}
 ## assuming your trained model is called 'model'
 import torch
 
@@ -253,7 +274,7 @@ torch.save(model.state_dict(), "trained_vae.pt")
 If you want to save the entire model (not usually recommended):
 
 
-```{python}
+```{.python}
 torch.save(model, "trained_vae_full.pt")
 ```
 
@@ -264,7 +285,7 @@ To reload the model for imputation or further training:
 2. Load the saved weights  
 
 
-```{python}
+```{.python}
 from ciss_vae.classes.vae import CISSVAE
 
 # 1. Define the architecture (must match the saved model!)
