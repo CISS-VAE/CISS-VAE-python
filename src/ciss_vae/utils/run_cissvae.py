@@ -9,9 +9,7 @@ from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.training.train_initial import train_vae_initial
 from ciss_vae.training.train_refit import impute_and_refit_loop
 #from ciss_vae.utils.helpers import plot_vae_architecture
-from sklearn.cluster import KMeans
-from sklearn.metrics import pairwise_distances
-import hdbscan
+
 
 # -------------------
 # Func 1: Cluster on missingness
@@ -21,6 +19,16 @@ import hdbscan
 def cluster_on_missing(data, cols_ignore = None, 
  n_clusters = None, seed = None, min_cluster_size = None, 
  cluster_selection_epsilon = 0.25):
+    try:
+        from sklearn.cluster import KMeans
+        from sklearn.metrics import pairwise_distances
+        from sklearn.preprocessing import StandardScaler
+        import hdbscan
+    except ImportError as e:
+        raise ImportError(
+            "This function requires optional dependencies (scikit-learn and hdbscan). "
+            "Install them with: pip install ciss_vae[clustering]"
+        ) from e
 
     # -----------------
     # Step 1: Get mask matrix (1=missing, 0=observed)
