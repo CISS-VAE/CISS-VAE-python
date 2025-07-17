@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "CISS-VAE"
+version = "0.1.2"
+description = "Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) for imputation of missing data"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+
+authors = [
+{ name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" },
+  { name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" }
+]
+dependencies = [
+  "numpy>=1.22",
+  "pandas>=2.0",
+  "torch>=2.0",
+  "optuna>=4.3",
+  "tqdm>=4.67",
+  "matplotlib",
+  "scikit-learn",
+  "hdbscan"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "mypy"]
+docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]
+
+[project.urls]
+Homepage = "https://github.com/daniv-20/CISS_VAE_new"
+Documentation = "https://github.com/daniv-20/CISS_VAE_new"
+Source = "https://github.com/daniv-20/CISS_VAE_new"
+
+
+[tool.black]
+line-length = 88
+target-version = ["py38"]
+
+[tool.setuptools.packages.find]
+where = ["./src"]
+include = ["ciss_vae*"]
+
