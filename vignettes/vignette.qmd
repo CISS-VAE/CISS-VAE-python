@@ -5,16 +5,18 @@ format:
     toc: true
     toc-depth: 3
     toc-expand: true
-    css: styles.css  # path to your stylesheet
+    css: styles.css
+    code-copy: true   
     theme: 
       - default
-      - brand: _brand.yml  # path to your .brand yaml
+      - _brand.yml  # path to your .brand YAML
 ---
+
 
 
 # Overview
 
-The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep learning model for missing data imputation, especially useful when the missingness mechanism may depend on unobserved or latent variables—also known as Missing Not At Random (MNAR).
+The <b>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</b> is a flexible deep learning model for missing data imputation, especially useful when the missingness mechanism may depend on unobserved or latent variables—also known as Missing Not At Random (MNAR).
 
 Unlike traditional imputation models that assume data are Missing Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:   
 - Learns patterns of missingness via unsupervised clustering.  
@@ -27,7 +29,7 @@ There are two ways to run the CISS-VAE process. If you know what model parameter
 
 # Installation
 
-The CISS-VAE package is currently available for python, with an R package to be released soon. It can be installed from either github or PyPI. 
+The CISS-VAE package is currently available for python, with an R package to be released soon. It can be installed from either [github](https://github.com/CISS-VAE) or PyPI. 
 
 ```{.bash}
 # From PyPI
@@ -52,7 +54,7 @@ pip install ciss-vae[clustering]
 
 If you already know what parameters you want for your model (or do not want to use the `autotune` function), you can use the `run_cissvae` function for your imputation.
 
-Your input dataset should be one of the following:
+Your input dataset should be one of the following:  
 
     - A Pandas DataFrame  
 
@@ -77,7 +79,7 @@ data = data.drop(columns = ["clusters", "Unnamed: 0"])
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
-    val_percent = 0.1, ## Explain! Frac hold out for validation
+    val_percent = 0.1, ## Fraction of non-missing data held out for validation
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
@@ -130,8 +132,8 @@ The `autotune` function lets you tune the model's hyperparameters with optuna to
 
 ## Dataset Preparation
 
-Your dataset should be one of the following:
-
+Your dataset should be one of the following:  
+ 
     - A Pandas DataFrame  
 
     - A NumPy array  
@@ -156,16 +158,16 @@ clusters = cluster_on_missing(data, cols_ignore=None, n_clusters=None, seed=42)
 
 This function uses HDBSCAN clustering to detect structure in binary missingness masks, and will automatically determine the number of clusters if not specified. If n_clusters is specified, uses KMeans.
 
-<b>Options:</b>
-- cols_ignore: list of columns to exclude when computing the missingness pattern.
+<b>Options:</b>  
+- cols_ignore: list of columns to exclude when computing the missingness pattern.  
 
-- n_clusters: set this to use K-Means instead of nonparametric clustering.
+- n_clusters: set this to use K-Means instead of nonparametric clustering.  
 
-You should store your cluster labels separately for input into the model constructor.
+You should store your cluster labels separately for input into the model constructor.  
 
-# Creating a `ClusterDataset` object
+# Creating a `ClusterDataset` object  
 
-Once you've computed the cluster labels, you'll convert your dataset into a `ClusterDataset`.
+Once you've computed the cluster labels, you'll convert your dataset into a `ClusterDataset`.  
 
 
 ```{.python}
@@ -236,14 +238,14 @@ best_imputed_df,  best_model, study, results_df = autotune(
 
 ## (optional) Using Optuna Dashboard
 
-You can use optuna dashboard (https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html) to visualize the importance of your tuning parameters. If you use VSCode or Positron there is an extension for viewing optuna dashboards in your development environment. 
+You can use [optuna dashboard](https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html) to visualize the importance of your tuning parameters. If you use VSCode or [Positron](https://positron.posit.co/download.html) there is an extension for viewing optuna dashboards in your development environment. 
 
 To use optuna dashboard, set your database in the autotune function. You can have multiple autotune 'studies' in the same database and compare them. 
 
 ```{.python}
 best_imputed_df,  best_model, study, results_df = autotune(
     search_space = searchspace,
-    train_dataset = dataset,                   # ClusterDataset object
+    train_dataset = dataset,                   # 'ClusterDataset' object
     save_model_path=None,
     save_search_space_path=None,
     n_trials=20,

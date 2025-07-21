@@ -41,9 +41,10 @@ class CISSVAE(nn.Module):
 
         in_features = input_dim
         for idx, (out_features, layer_type) in enumerate(zip(hidden_dims, layer_order_enc)):
-            if layer_type.lower() in  ["shared", "s"]: ## if shared add to .encoder_layers
+            layer_type_lower = layer_type.lower()  # Case-insensitive check
+            if layer_type_lower in  ["shared", "s"]: ## if shared add to .encoder_layers
                 self.encoder_layers.append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
-            elif layer_type.lower() in ["unshared", "u"]: ## if unshared add to .cluster_encoder_layers
+            elif layer_type_lower in ["unshared", "u"]: ## if unshared add to .cluster_encoder_layers
                 for c in range(num_clusters): ## .cluster_encoder_layers has layer list for each cluster
                     self.cluster_encoder_layers[str(c)].append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
             else:
