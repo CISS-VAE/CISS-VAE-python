@@ -45,6 +45,3 @@ target-version = ["py38"]
 where = ["./src"]
 include = ["ciss_vae*"]
 
-[build-system]
-requires = ["setuptools>=61", "wheel"]
-build-backend = "setuptools.build_meta"
