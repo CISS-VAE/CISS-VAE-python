@@ -16,11 +16,7 @@ python:
   install:
     - method: pip
       path: .  # install your package
-    - method: pip
       requirements: docs/requirements.txt
-    - method: pip
-      packages:
-        - sphinx_rtd_theme
 
 # Sphinx configuration path
 sphinx:
