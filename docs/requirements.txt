@@ -3,4 +3,4 @@ sphinx_rtd_theme
 sphinx_autodoc_typehints
 myst_parser  # only if you're using .md or .qmd files
 
--e ..
+
