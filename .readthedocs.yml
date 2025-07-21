@@ -14,7 +14,6 @@ build:
 # Python dependencies required to build the documentation
 python:
   install:
-    - method: pip
       path: .   # install your local package
       requirements: docs/requirements.txt  # install doc dependencies
 
