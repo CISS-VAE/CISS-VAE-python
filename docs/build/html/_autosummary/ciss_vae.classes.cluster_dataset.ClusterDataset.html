@@ -9,6 +9,7 @@
   <title>ciss_vae.classes.cluster_dataset.ClusterDataset &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
@@ -101,15 +102,18 @@
 <dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
 <dd><p>Dataset that handles cluster-wise masking and normalization for VAE training.</p>
-<p>Parameters:
-- data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
-- cluster_labels (array-like): Cluster assignment per sample.
-- val_percent (float): Fraction of non-missing data per cluster to mask for validation.
-- replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
-- columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)</p>
-<blockquote>
-<div><p>to exclude from validation masking.</p>
-</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>-</em>) – Input matrix with potential missing values.</p></li>
+<li><p><strong>cluster_labels</strong> (<em>-</em>) – Cluster assignment per sample.</p></li>
+<li><p><strong>val_percent</strong> (<em>-</em>) – Fraction of non-missing data per cluster to mask for validation.</p></li>
+<li><p><strong>replacement_value</strong> (<em>-</em>) – Value to fill in missing entries after masking (e.g., 0.0).</p></li>
+<li><p><strong>columns_ignore</strong> (<em>-</em>) – Optional list of column names (if data is a DataFrame) or indices (if array)
+to exclude from validation masking.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Methods</p>

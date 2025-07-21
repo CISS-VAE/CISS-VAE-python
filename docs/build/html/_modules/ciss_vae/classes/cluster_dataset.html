@@ -8,6 +8,7 @@
   <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -91,12 +92,12 @@
 <span class="sd">        Dataset that handles cluster-wise masking and normalization for VAE training.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">        - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.</span>
-<span class="sd">        - cluster_labels (array-like): Cluster assignment per sample.</span>
-<span class="sd">        - val_percent (float): Fraction of non-missing data per cluster to mask for validation.</span>
-<span class="sd">        - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).</span>
-<span class="sd">        - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)</span>
-<span class="sd">                                 to exclude from validation masking.</span>
+<span class="sd">            - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.</span>
+<span class="sd">            - cluster_labels (array-like): Cluster assignment per sample.</span>
+<span class="sd">            - val_percent (float): Fraction of non-missing data per cluster to mask for validation.</span>
+<span class="sd">            - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).</span>
+<span class="sd">            - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)</span>
+<span class="sd">                                    to exclude from validation masking.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set columns ignore </span>

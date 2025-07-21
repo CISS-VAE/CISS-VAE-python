@@ -10,12 +10,12 @@ class ClusterDataset(Dataset):
         Dataset that handles cluster-wise masking and normalization for VAE training.
 
         Parameters:
-        - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
-        - cluster_labels (array-like): Cluster assignment per sample.
-        - val_percent (float): Fraction of non-missing data per cluster to mask for validation.
-        - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
-        - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)
-                                 to exclude from validation masking.
+            - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
+            - cluster_labels (array-like): Cluster assignment per sample.
+            - val_percent (float): Fraction of non-missing data per cluster to mask for validation.
+            - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
+            - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)
+                                    to exclude from validation masking.
         """
 
         ## set columns ignore 
