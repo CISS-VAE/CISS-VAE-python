@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.run_cissvae &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.run_cissvae</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.utils.run_cissvae</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_initial</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_vae_initial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_refit</span><span class="w"> </span><span class="kn">import</span> <span class="n">impute_and_refit_loop</span>
+<span class="c1">#from ciss_vae.utils.helpers import plot_vae_architecture</span>
+
+
+<span class="c1"># -------------------</span>
+<span class="c1"># Func 1: Cluster on missingness</span>
+<span class="c1"># -------------------</span>
+<span class="c1">## hdbscan if no k specified</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">cluster_on_missing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cols_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+ <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_cluster_size</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+ <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">pairwise_distances</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">hdbscan</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;This function requires optional dependencies (scikit-learn and hdbscan). &quot;</span>
+            <span class="s2">&quot;Install them with: pip install ciss_vae[clustering]&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="c1"># -----------------</span>
+    <span class="c1"># Step 1: Get mask matrix (1=missing, 0=observed)</span>
+    <span class="c1"># -----------------</span>
+    <span class="k">if</span> <span class="n">cols_ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mask_matrix</span> <span class="o">=</span>  <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">cols_ignore</span><span class="p">)</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mask_matrix</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">min_cluster_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">min_cluster_size</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">25</span> 
+    
+
+    <span class="k">if</span> <span class="n">n_clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;hdbscan&quot;</span>
+
+        <span class="c1"># Create mask matrix (1 = missing, 0 = observed), drop ignored columns</span>
+        <span class="n">mask_matrix</span> <span class="o">=</span> <span class="n">mask_matrix</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+        <span class="c1"># Jaccard requires boolean/binary NumPy array</span>
+        <span class="n">dists</span> <span class="o">=</span> <span class="n">pairwise_distances</span><span class="p">(</span><span class="n">mask_matrix</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;jaccard&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Run HDBSCAN with precomputed distance matrix</span>
+        <span class="n">clusterer</span> <span class="o">=</span> <span class="n">hdbscan</span><span class="o">.</span><span class="n">HDBSCAN</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s1">&#39;precomputed&#39;</span><span class="p">,</span> <span class="n">min_cluster_size</span><span class="o">=</span><span class="n">min_cluster_size</span><span class="p">,</span>
+        <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="n">cluster_selection_epsilon</span><span class="p">)</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusterer</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> 
+        <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;kmeans&quot;</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_clusters</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">mask_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">labels_</span>
+
+
+    <span class="k">return</span> <span class="n">clusters</span>
+
+<span class="c1"># --------------------</span>
+<span class="c1"># Func 2: Make dataset &amp; run VAE</span>
+<span class="c1"># --------------------</span>
+
+<div class="viewcode-block" id="run_cissvae">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_cissvae</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">val_percent</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## dataset params</span>
+<span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="c1">## clustering params</span>
+<span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span>
+<span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span> <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+<span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span><span class="c1">## model params</span>
+<span class="n">epochs</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## initial training params</span>
+<span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## refit params</span>
+<span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">):</span>
+    <span class="c1"># ------------</span>
+    <span class="c1"># Set params</span>
+    <span class="c1"># ------------</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">epochs_per_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="n">epochs</span>
+    
+    <span class="k">if</span> <span class="n">decay_factor_refit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="n">decay_factor</span>
+
+    <span class="k">if</span> <span class="n">beta_refit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
+        <span class="n">beta_refit</span> <span class="o">=</span> <span class="n">beta</span>
+
+
+    <span class="c1"># ------------</span>
+    <span class="c1"># Cluster if needed</span>
+    <span class="c1"># ------------</span>
+    <span class="k">if</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="n">cluster_on_missing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cols_ignore</span> <span class="o">=</span> <span class="n">columns_ignore</span><span class="p">,</span> <span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_clusters</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span> <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="n">cluster_selection_epsilon</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span> 
+                            <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span> 
+                            <span class="n">val_percent</span> <span class="o">=</span> <span class="n">val_percent</span><span class="p">,</span>
+                            <span class="n">replacement_value</span> <span class="o">=</span> <span class="n">replacement_value</span><span class="p">,</span> 
+                            <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">columns_ignore</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">print_dataset</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cluster dataset:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+    
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">vae</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">hidden_dims</span> <span class="o">=</span> <span class="n">hidden_dims</span><span class="p">,</span>
+        <span class="n">latent_dim</span> <span class="o">=</span> <span class="n">latent_dim</span><span class="p">,</span>
+        <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">layer_order_enc</span><span class="p">,</span>
+        <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">layer_order_dec</span><span class="p">,</span>
+        <span class="n">latent_shared</span> <span class="o">=</span> <span class="n">latent_shared</span><span class="p">,</span>
+        <span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span><span class="p">,</span>
+        <span class="n">num_clusters</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">n_clusters</span><span class="p">,</span>
+        <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="n">vae</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+    <span class="p">)</span>
+
+    <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">max_loops</span><span class="o">=</span><span class="n">max_loops</span><span class="p">,</span>
+        <span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span>
+        <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr_refit</span><span class="p">,</span> <span class="c1">## should start from last learning rate</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor_refit</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta_refit</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_model</span><span class="p">:</span> 
+        <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">imputed_dataset</span></div>
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
