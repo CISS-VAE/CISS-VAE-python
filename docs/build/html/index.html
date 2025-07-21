@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="api.html" /> 
+    <link rel="next" title="Overview" href="vignette.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -43,6 +43,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -72,12 +78,30 @@
              
   <section id="ciss-vae-documentation">
 <h1>CISS-VAE documentation<a class="headerlink" href="#ciss-vae-documentation" title="Link to this heading"></a></h1>
-<p>Add your content using <code class="docutils literal notranslate"><span class="pre">reStructuredText</span></code> syntax. See the
-<a class="reference external" href="https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html">reStructuredText</a>
-documentation for details.</p>
+<p>Documentation for the <strong>CISS-VAE</strong> package.</p>
+<p>The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep learning model for missing data imputation.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#dataset-preparation">Dataset Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#clustering-on-missingness-pattern">Clustering on missingness pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#create-a-searchspace-object">Create a SearchSpace object:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#run-the-autotune-function">Run the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#optional-using-optuna-dashboard">(optional) Using Optuna Dashboard</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#saving">Saving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#loading-a-model">Loading a Model</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
 <li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
@@ -89,9 +113,21 @@ documentation for details.</p>
 </li>
 </ul>
 </div>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
-<p>The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep learning model for missing data imputation.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
+</pre></div>
+</div>
+</section>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Cluster-specific VAE architecture</p></li>
+<li><p>Compatible with real-world missing data</p></li>
+<li><p>Optuna-based hyperparameter tuning</p></li>
+<li><p>Clean API for training and imputation</p></li>
+</ul>
+<p>Need help? See the <a class="reference external" href="vignette.html">vignette</a> or the full <a class="reference external" href="api.html">API reference</a>.</p>
 </section>
 </section>
 
@@ -99,7 +135,7 @@ documentation for details.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vignette.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
