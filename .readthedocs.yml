@@ -16,7 +16,6 @@ python:
   install:
     - method: pip
       path: .   # install your local package
-      editable: false  # Do not use editable install unless you have a setup.py
     - method: pip
       requirements: docs/requirements.txt  # install doc dependencies
 
