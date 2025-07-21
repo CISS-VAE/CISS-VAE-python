@@ -15,8 +15,9 @@ build:
 python:
   install:
     - method: pip
-      path: .  # install your package
-      requirements: docs/requirements.txt
+      path: .   # install your local package
+    - method: pip
+      requirements: docs/requirements.txt  # install doc dependencies
 
 # Sphinx configuration path
 sphinx:
