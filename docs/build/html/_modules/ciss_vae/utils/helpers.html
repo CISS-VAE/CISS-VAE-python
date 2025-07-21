@@ -1,0 +1,498 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.helpers &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.helpers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.utils.helpers</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">matplotlib.patches</span><span class="w"> </span><span class="kn">import</span> <span class="n">Rectangle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+<div class="viewcode-block" id="plot_vae_architecture">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html#ciss_vae.utils.helpers.plot_vae_architecture">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> 
+<span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+<span class="n">color_shared</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span><span class="p">,</span> 
+<span class="n">color_unshared</span> <span class="o">=</span><span class="s2">&quot;lightcoral&quot;</span><span class="p">,</span>
+<span class="n">color_latent</span> <span class="o">=</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span>
+<span class="n">color_input</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+<span class="n">color_output</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+<span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    - model: An instance of CISSVAE.</span>
+<span class="sd">    - title: Title of plot</span>
+<span class="sd">    - color_shared: Color of shared hidden layers</span>
+<span class="sd">    - color_unshared: Color of unshared hidden layers</span>
+<span class="sd">    - color_input: Color of input layer</span>
+<span class="sd">    - color_output: Color of output layer</span>
+<span class="sd">    - figsize: Tuple, size of the matplotlib figure.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+
+    <span class="n">box_width</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">box_height</span> <span class="o">=</span> <span class="mf">0.8</span>
+    <span class="n">n_clusters</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">num_clusters</span>
+    <span class="n">cluster_gap</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">box_height_shared</span> <span class="o">=</span> <span class="n">box_height</span> <span class="o">*</span> <span class="n">n_clusters</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cluster_gap</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># starting x-coordinate</span>
+    <span class="n">x_gap</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">y_base</span> <span class="o">=</span> <span class="mi">0</span>
+    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">draw_box</span><span class="p">(</span><span class="n">center</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_shared</span><span class="p">,</span> <span class="n">color_override</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="n">center</span>
+        <span class="n">alpha</span> <span class="o">=</span> <span class="mf">0.95</span> <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span> <span class="k">else</span> <span class="mf">0.75</span>
+        <span class="k">if</span> <span class="n">color_override</span><span class="p">:</span>
+            <span class="n">facecolor</span> <span class="o">=</span> <span class="n">color</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">facecolor</span> <span class="o">=</span> <span class="n">color</span> <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span> <span class="k">else</span> <span class="n">color_unshared</span>
+        <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span><span class="p">:</span> 
+            <span class="n">box</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">((</span><span class="n">x0</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y0</span> <span class="o">-</span> <span class="n">box_height_shared</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="n">box_width</span><span class="p">,</span> <span class="n">box_height_shared</span><span class="p">,</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+                <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">box</span> <span class="o">=</span> <span class="n">Rectangle</span><span class="p">((</span><span class="n">x0</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y0</span> <span class="o">-</span> <span class="n">box_height</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="n">box_width</span><span class="p">,</span> <span class="n">box_height</span><span class="p">,</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;black&#39;</span><span class="p">,</span>
+                <span class="n">facecolor</span><span class="o">=</span><span class="n">facecolor</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">draw_arrow</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">annotate</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">xy</span><span class="o">=</span><span class="n">end</span><span class="p">,</span> <span class="n">xytext</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                    <span class="n">arrowprops</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">arrowstyle</span><span class="o">=</span><span class="s2">&quot;-&gt;&quot;</span><span class="p">,</span> <span class="n">lw</span><span class="o">=</span><span class="mf">1.5</span><span class="p">))</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">draw_section_box</span><span class="p">(</span><span class="n">x_start</span><span class="p">,</span> <span class="n">x_end</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">add_patch</span><span class="p">(</span><span class="n">Rectangle</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">x_start</span> <span class="o">-</span> <span class="n">x_gap</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">*</span> <span class="n">cluster_gap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span>
+            <span class="n">x_end</span> <span class="o">-</span> <span class="n">x_start</span> <span class="o">+</span> <span class="n">x_gap</span><span class="p">,</span>
+            <span class="n">n_clusters</span> <span class="o">*</span> <span class="n">cluster_gap</span> <span class="o">+</span> <span class="mf">2.0</span><span class="p">,</span>
+            <span class="n">edgecolor</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.2</span>
+        <span class="p">))</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">text</span><span class="p">((</span><span class="n">x_start</span> <span class="o">+</span> <span class="n">x_end</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">*</span> <span class="n">cluster_gap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mf">1.2</span><span class="p">,</span>
+                <span class="n">label</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">11</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Input Layer</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Input</span><span class="se">\n</span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_input</span><span class="p">)</span>
+
+    <span class="n">encoder_start</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x_gap</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">encoder_start</span> 
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Encoder layers</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">shared_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">unshared_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layer_order_enc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">layer_type</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">encoder_layers</span><span class="p">[</span><span class="n">shared_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Enc </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span><span class="p">))</span>
+            <span class="n">shared_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">cluster_encoder_layers</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="n">unshared_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_clusters</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cluster_gap</span>
+                <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Enc </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2">C</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;unshared&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+            <span class="n">unshared_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="n">x_gap</span>
+    <span class="n">encoder_end</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">x_gap</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Latent layer</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">fc_mu</span><span class="o">.</span><span class="n">out_features</span> <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">latent_shared</span>
+        <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">cluster_fc_mu</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+    <span class="p">)</span>
+    <span class="n">style</span> <span class="o">=</span> <span class="s2">&quot;shared&quot;</span> <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">latent_shared</span> <span class="k">else</span> <span class="s2">&quot;unshared&quot;</span>
+
+    <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span><span class="p">:</span>
+        <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Latent</span><span class="se">\n</span><span class="s2">μ/σ²</span><span class="se">\n</span><span class="si">{</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_latent</span><span class="p">)</span>
+        <span class="c1"># Arrow from last encoder layer</span>
+        <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_gap</span> <span class="o">+</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_clusters</span><span class="p">):</span>
+            <span class="n">y_c</span> <span class="o">=</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cluster_gap</span>
+            <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_c</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Latent</span><span class="se">\n</span><span class="s2">C</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="s2">μ/σ²</span><span class="se">\n</span><span class="si">{</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="n">style</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_latent</span><span class="p">)</span>
+            <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">-</span> <span class="n">x_gap</span> <span class="o">+</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_c</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_c</span><span class="p">))</span>
+    <span class="n">x</span> <span class="o">+=</span> <span class="n">x_gap</span>
+
+    <span class="n">decoder_start</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Decoder layers</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">shared_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">unshared_idx</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">layer_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">layer_order_dec</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">layer_type</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder_layers</span><span class="p">[</span><span class="n">shared_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Dec </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2"> </span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">)</span>
+            <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span><span class="p">))</span>
+            <span class="n">shared_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">cluster_decoder_layers</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">][</span><span class="n">unshared_idx</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_clusters</span><span class="p">):</span>
+                <span class="n">y</span> <span class="o">=</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cluster_gap</span>
+                <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Dec </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="se">\n</span><span class="s2">C</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;unshared&quot;</span><span class="p">)</span>
+                <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+            <span class="n">unshared_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">x</span> <span class="o">+=</span> <span class="n">x_gap</span>
+    <span class="n">decoder_end</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">x_gap</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Final output layer</span>
+    <span class="c1"># --------------------------</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Shared final layer</span>
+        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">final_layer</span><span class="o">.</span><span class="n">out_features</span>
+        <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Output</span><span class="se">\n</span><span class="si">{</span><span class="n">out_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_output</span><span class="p">)</span>
+        <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y_base</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="c1"># Unshared final layers</span>
+        <span class="n">out_dim</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">cluster_final_layer</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">out_features</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_clusters</span><span class="p">):</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">c</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">cluster_gap</span>
+            <span class="n">draw_box</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Output</span><span class="se">\n</span><span class="s2">C</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">out_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color_output</span><span class="p">,</span> <span class="n">color_override</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">draw_arrow</span><span class="p">((</span><span class="n">x</span> <span class="o">+</span> <span class="n">box_width</span><span class="o">/</span><span class="mi">2</span> <span class="o">-</span> <span class="n">x_gap</span><span class="p">,</span> <span class="n">y</span><span class="p">),</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">box_width</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Annotations</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">draw_section_box</span><span class="p">(</span><span class="n">encoder_start</span><span class="p">,</span> <span class="n">encoder_end</span><span class="p">,</span> <span class="s2">&quot;Encoder&quot;</span><span class="p">)</span>
+    <span class="n">draw_section_box</span><span class="p">(</span><span class="n">decoder_start</span><span class="p">,</span> <span class="n">decoder_end</span><span class="p">,</span> <span class="s2">&quot;Decoder&quot;</span><span class="p">)</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">y_base</span> <span class="o">-</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">*</span> <span class="n">cluster_gap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="n">y_base</span> <span class="o">+</span> <span class="p">(</span><span class="n">n_clusters</span> <span class="o">*</span> <span class="n">cluster_gap</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s2">&quot;off&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">title</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="s1">&#39;bold&#39;</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+
+
+
+<div class="viewcode-block" id="get_imputed_df">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.helpers.get_imputed_df.html#ciss_vae.utils.helpers.get_imputed_df">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_df</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">CISSVAE</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Given trained model and cluster dataset object, get imputed dataset.</span>
+<span class="sd">    Args:</span>
+<span class="sd">        model: Trained CISSVAE model (should be in eval() mode)</span>
+<span class="sd">        data_loader: DataLoader for the original ClusterDataset </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        imputed_df: pandas DataFrame of imputed (unscaled) data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span>
+    <span class="c1"># -------------------------------</span>
+    <span class="c1"># Get scaled impued data</span>
+    <span class="c1"># -------------------------------</span>
+    <span class="n">imputed</span> <span class="o">=</span> <span class="n">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="n">x_all</span> <span class="o">=</span> <span class="n">imputed</span><span class="o">.</span><span class="n">data</span>
+
+
+    <span class="c1"># -------------------------------</span>
+    <span class="c1"># Unscale the imputed data</span>
+    <span class="c1"># -------------------------------</span>
+        
+    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># Denormalize imputed values</span>
+    <span class="n">x_all_denorm</span> <span class="o">=</span> <span class="n">x_all</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>
+
+    <span class="c1"># -------------------------------------</span>
+    <span class="c1"># Replace validation-masked entries with true values</span>
+    <span class="c1"># -------------------------------------</span>
+
+     <span class="c1"># Ensure val_data and val_mask are on the same device as x_all_denorm</span>
+    <span class="n">val_data_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data_tensor</span><span class="p">)</span>
+
+    <span class="c1"># Overwrite imputed values with ground truth at validation positions</span>
+    <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_data_tensor</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span>
+
+    <span class="n">x_all_denorm_np</span> <span class="o">=</span> <span class="n">x_all_denorm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>  <span class="c1"># Now safe to convert</span>
+
+
+    <span class="c1"># -------------------------------------</span>
+    <span class="c1"># Create final DataFrame</span>
+    <span class="c1"># -------------------------------------</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;feature_names&quot;</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_all</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+
+    <span class="c1"># The imputed dataset should be in the right order os this should be unecessary</span>
+    <span class="c1"># # Recover original index from dataset.indices</span>
+    <span class="c1"># if hasattr(dataset, &quot;indices&quot;):</span>
+    <span class="c1">#     base_index = dataset.indices</span>
+    <span class="c1">#     if isinstance(base_index, torch.Tensor):</span>
+    <span class="c1">#         base_index = base_index.cpu().numpy()</span>
+    <span class="c1">#     full_index = base_index[idx_all_np]</span>
+    <span class="c1"># else:</span>
+    <span class="c1">#     full_index = idx_all_np</span>
+
+    <span class="c1"># Build DataFrame and sort to match original row order</span>
+    <span class="n">df_unsorted</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">x_all_denorm_np</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">feature_names</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+    <span class="n">imputed_df</span> <span class="o">=</span> <span class="n">df_unsorted</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">imputed_df</span></div>
+
+
+    
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a ClusterDataset where originally missing values have been replaced</span>
+<span class="sd">    with the model&#39;s reconstructed outputs. Validation-masked values are also filled.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    - model: trained VAE model</span>
+<span class="sd">    - data_loader: DataLoader for the original ClusterDataset</span>
+<span class="sd">    - device: torch device (&quot;cpu&quot; or &quot;cuda&quot;)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - ClusterDataset with reconstructed values filled in</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span>
+
+    <span class="c1"># Collect all batches</span>
+    <span class="n">all_recon</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_masks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_indices</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
+            <span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">mask_batch</span><span class="p">,</span> <span class="n">idx_batch</span> <span class="o">=</span> <span class="n">batch</span>
+
+            <span class="n">x_batch</span> <span class="o">=</span> <span class="n">x_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">cluster_batch</span> <span class="o">=</span> <span class="n">cluster_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="c1"># Predict full reconstruction</span>
+            <span class="n">recon_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">)</span>
+
+            <span class="n">all_recon</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">recon_batch</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+            <span class="n">all_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask_batch</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
+            <span class="n">all_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx_batch</span><span class="p">)</span>
+
+    <span class="c1"># Concatenate all batches</span>
+    <span class="n">recon_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_recon</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">mask_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_masks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">idx_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_indices</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># Restore correct row order</span>
+    <span class="n">recon_sorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="n">recon_sorted</span><span class="p">[</span><span class="n">idx_all</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_all</span>
+
+    <span class="c1"># Replace only missing values in a clone of the original data</span>
+    <span class="n">new_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">missing_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">dataset</span><span class="o">.</span><span class="n">masks</span>  <span class="c1"># True where values were missing</span>
+    <span class="n">new_data</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span>
+
+    <span class="c1"># Create new dataset object</span>
+    <span class="n">new_dataset</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">new_dataset</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">new_data</span>
+    <span class="n">new_dataset</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">indices</span>  <span class="c1"># keep full index</span>
+    <span class="k">return</span> <span class="n">new_dataset</span>
+
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute MSE on validation-masked entries using consistent model predictions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+    <span class="c1"># Get normalized inputs and val data</span>
+    <span class="n">full_x</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                       <span class="c1"># (N, D), normalized</span>
+    <span class="n">full_cluster</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>       <span class="c1"># (N,)</span>
+    <span class="n">val_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                 <span class="c1"># (N, D), not normalized</span>
+    <span class="n">val_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>                      <span class="c1"># (N, D)</span>
+
+    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
+        <span class="n">recon_x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">)</span>        <span class="c1"># normalized output</span>
+
+    <span class="c1"># Retrieve per-feature stats</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Denormalize model output</span>
+    <span class="n">recon_x_denorm</span> <span class="o">=</span> <span class="n">recon_x</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>
+
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[DEBUG] recon_x_denorm (first 2 rows):&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">recon_x_denorm</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+
+    <span class="c1"># Only compute error on masked validation entries</span>
+    <span class="n">squared_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">recon_x_denorm</span> <span class="o">-</span> <span class="n">val_data</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+    <span class="n">masked_error</span> <span class="o">=</span> <span class="n">squared_error</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] squared_error (first 2 rows): </span><span class="si">{</span><span class="n">squared_error</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] val_mask (first 2 rows): </span><span class="si">{</span><span class="n">val_mask</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] masked_error stats: count=</span><span class="si">{</span><span class="n">masked_error</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">masked_error</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">masked_error</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No validation entries found. Increase `val_percent` in ClusterDataset.&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">masked_error</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    
+
+
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">mean_squared_error</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_imputation</span><span class="p">(</span><span class="n">imputed_df</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">df_missing</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compare imputed values to true values at originally missing positions.</span>
+
+<span class="sd">    Parameters:</span>
+<span class="sd">    - imputed_df: DataFrame with imputed values (same shape as df_complete)</span>
+<span class="sd">    - df_complete: DataFrame with true values (ground truth, no NaNs)</span>
+<span class="sd">    - df_missing: DataFrame with NaNs at original missing locations</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">    - mse: Mean squared error at imputed (originally missing) positions</span>
+<span class="sd">    - comparison_df: DataFrame with row, column, true, imputed, and squared error</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Boolean DataFrame: True where value was originally missing</span>
+    <span class="n">missing_mask</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
+
+    <span class="c1"># Get row, col indices of missing entries</span>
+    <span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">missing_mask</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="c1"># Lookup corresponding values</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">row_idx</span><span class="p">]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
+
+    <span class="n">true_vals</span> <span class="o">=</span> <span class="n">df_complete</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span>
+    <span class="n">imputed_vals</span> <span class="o">=</span> <span class="n">imputed_df</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">true_vals</span> <span class="o">-</span> <span class="n">imputed_vals</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+    <span class="n">comparison_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+        <span class="s2">&quot;row&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+        <span class="s2">&quot;col&quot;</span><span class="p">:</span> <span class="n">cols</span><span class="p">,</span>
+        <span class="s2">&quot;true&quot;</span><span class="p">:</span> <span class="n">true_vals</span><span class="p">,</span>
+        <span class="s2">&quot;imputed&quot;</span><span class="p">:</span> <span class="n">imputed_vals</span><span class="p">,</span>
+        <span class="s2">&quot;squared_error&quot;</span><span class="p">:</span> <span class="n">errors</span>
+    <span class="p">})</span>
+
+    <span class="n">mse</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] MSE on originally missing entries: </span><span class="si">{</span><span class="n">mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mse</span><span class="p">,</span> <span class="n">comparison_df</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
