@@ -51,3 +51,6 @@ html_static_path = ['_static']
 html_css_files = [
     'styles.css',
 ]
+
+
+autodoc_mock_imports = ["torch", "sklearn"]  # add libs you don't need at doc-build time
