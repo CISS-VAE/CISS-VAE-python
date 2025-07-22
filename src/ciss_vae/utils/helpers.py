@@ -18,7 +18,7 @@ figsize=(16, 8)):
     Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.
 
     Parameters:
-    - model: An instance of CISSVAE.
+    - model: ()An instance of CISSVAE.
     - title: Title of plot
     - color_shared: Color of shared hidden layers
     - color_unshared: Color of unshared hidden layers

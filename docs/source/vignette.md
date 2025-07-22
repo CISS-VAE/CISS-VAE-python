@@ -192,7 +192,7 @@ columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entrie
 ## Create a SearchSpace object:
 
 In the SearchSpace object, define the search space for each
-hyperparameter. Each of the parameters in `ciss_vae.training.autotune.SearchSpace` can be set as
+hyperparameter. Each of the parameters in {py:class}`ciss_vae.training.autotune.SearchSpace` can be set as
 either tunable or non-tunable.
 
 Types of parameters:\

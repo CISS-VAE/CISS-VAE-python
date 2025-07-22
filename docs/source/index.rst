@@ -14,7 +14,7 @@ The model uses unsupervised clustering to capture distinct patterns of missingne
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation 
 accuracy compared to traditional training approaches.  
  
-The CISS-VAE package offers an :py:func:`ciss_vae.training.autotune.autotune` function that will select the best hyperparameters
+The CISS-VAE package also offers an :py:func:`ciss_vae.training.autotune.autotune` function that will select the best hyperparameters for your model within a user-defined search space, and compatibility with Optuna Dashboard for viewing hyperparameter importance trends. 
 
 .. toctree::
    :maxdepth: 2
