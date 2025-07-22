@@ -19,9 +19,30 @@ from ciss_vae.training.train_refit import impute_and_refit_loop
 def cluster_on_missing(data, cols_ignore = None, 
  n_clusters = None, seed = None, min_cluster_size = None, 
  cluster_selection_epsilon = 0.25):
+    """
+    Given pandas dataframe with missing data, clusters on missingness pattern and returns cluster labels.
+        Parameters:
+            - data : (pd.DataFrame) : 
+                The original dataset
+            - cols_ignore : (list[str]) : 
+                List of columns to ignore when clustering. Default is None
+            - n_clusters : (int) : 
+                Set n_clusters to perform KMeans clustering with n_clusters clusters. If none, will use hdbscan for clustering.
+            - seed : (int) : 
+                Set seed. Default is None
+            - min_cluster_size : (int) : 
+                Set min_cluster_size for hdbscan. Default is None.
+            - cluster_selection_epsilon : (float) : 
+                Set cluster_selection_epsilon for hdbscan. Default is 0.25
+
+        Returns:
+            - clusters : cluster labels
+            - silhouette : silhouette score
+    """
+
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import pairwise_distances
+        from sklearn.metrics import pairwise_distances, silhouette_score
         from sklearn.preprocessing import StandardScaler
         import hdbscan
     except ImportError as e:
@@ -40,27 +61,44 @@ def cluster_on_missing(data, cols_ignore = None,
 
     if min_cluster_size is None:
         min_cluster_size = data.shape[0] // 25 
+
+    ## Get number of samples
+    n_samples = mask_matrix.shape[0]
     
 
     if n_clusters is None:
         method = "hdbscan"
 
-        # Create mask matrix (1 = missing, 0 = observed), drop ignored columns
+        ## Create mask matrix (1 = missing, 0 = observed), drop ignored columns
         mask_matrix = mask_matrix.astype(bool).values
 
-        # Jaccard requires boolean/binary NumPy array
+        ## Jaccard requires boolean/binary NumPy array
         dists = pairwise_distances(mask_matrix, metric="jaccard")
 
-        # Run HDBSCAN with precomputed distance matrix
+        ## Run HDBSCAN with precomputed distance matrix
         clusterer = hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=min_cluster_size,
         cluster_selection_epsilon = cluster_selection_epsilon)
         clusters = clusterer.fit_predict(dists)
+
+        ## Get silhouette 
+        sil_metric = "precomputed"
+        x_for_sil = dists
+
     else: 
         method = "kmeans"
         clusters = KMeans(n_clusters = n_clusters, random_state=seed).fit(mask_matrix).labels_
+        sil_metric = "jaccard"
+        x_for_sil = mask_matrix
+
+    # Compute silhouette score if possible
+    unique_labels = set(clusters)
+    if len(unique_labels) > 1 and all(list(clusters).count(l) > 1 for l in unique_labels):
+        silhouette = silhouette_score(x_for_sil, clusters, metric=sil_metric)
+    else:
+        silhouette = None  # cannot compute silhouette with a single cluster or singleton clusters
 
 
-    return clusters
+    return clusters, silhouette
 
 # --------------------
 # Func 2: Make dataset & run VAE
@@ -75,6 +113,78 @@ epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = Non
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
 verbose = False
 ):
+    """
+    End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).
+
+    This function handles data preparation, optional clustering, initial VAE training,
+    and iterative refitting loops until convergence, returning the final reconstructed data and (optionally) the trained model.
+
+    Parameters
+    ----------
+    data : pd.DataFrame | np.ndarray | torch.Tensor
+        Input data matrix (samples × features), may contain missing values.
+    val_percent : float, default=0.1
+        Fraction of non-missing entries per cluster to mask for validation.
+    replacement_value : float, default=0.0
+        Value used to fill in masked entries (e.g., zero imputation).
+    columns_ignore : list[int|str] or None, default=None
+        Column names or indices to exclude from masking for valiation.
+    print_dataset : bool, default=True
+        If True, prints dataset summary.
+
+    clusters : array-like or None, default=None
+        Precomputed cluster labels per sample. If None, clustering will be performed.
+    n_clusters : int or None, default=None
+        Number of clusters to form with KMeans clustering if `clusters` is None. If None and clusters is None, will perform hdbscan clustering.
+    cluster_selection_epsilon : float, default=0.25
+        cluster_selection_epsilon for hdbscan clustering. 
+    seed : int, default=42
+        Random seed for reproducibility.
+
+    hidden_dims : list of int, default=[150, 120, 60]
+        Sizes of hidden layers in encoder/decoder (excluding latent layer).
+    latent_dim : int, default=15
+        Dimensionality of the VAE latent space.
+    layer_order_enc : list of {"shared","unshared"}, default=["unshared","unshared","unshared"]
+        Specify whether each encoder layer is shared across clusters or unique per cluster.
+    layer_order_dec : list of {"shared","unshared"}, default=["shared","shared","shared"]
+        Specify whether each decoder layer is shared or unique per cluster.
+    latent_shared : bool, default=False
+        If True, latent layer weights are shared across clusters.
+    output_shared : bool, default=False
+        If True, final output layer weights are shared across clusters.
+    batch_size : int, default=4000
+        Number of samples per training batch.
+    return_model : bool, default=True
+        If True, returns the trained VAE model; otherwise returns only reconstructed data.
+
+    epochs : int, default=500
+        Number of epochs for initial training.
+    initial_lr : float, default=0.01
+        Initial learning rate for the optimizer.
+    decay_factor : float, default=0.999
+        Multiplicative factor to decay the learning rate each epoch.
+    beta : float, default=0.001
+        Weight of the KL-divergence term in the VAE loss.
+    device : str or torch.device or None, default=None
+        Device for computation ("cpu" or "cuda"). If None, auto-selects.
+
+    max_loops : int, default=100
+        Maximum number of refitting loops after initial training.
+    patience : int, default=2
+        Number of loops with no improvement before early stopping.
+    epochs_per_loop : int or None, default=None
+        Number of epochs per refit loop; if None, uses `epochs`.
+    initial_lr_refit : float or None, default=None
+        Learning rate for refit loops; if None, uses `initial_lr`.
+    decay_factor_refit : float or None, default=None
+        LR decay for refit; if None, uses `decay_factor`.
+    beta_refit : float or None, default=None
+        KL weight for refit; if None, uses `beta`.
+    verbose : bool, default=False
+        If True, prints progress messages during training and refitting.
+    """
+
     # ------------
     # Set params
     # ------------

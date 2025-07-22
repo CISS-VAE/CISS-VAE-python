@@ -71,21 +71,23 @@ def autotune(
     optuna_dashboard_db=None,
     load_if_exists=True,
     seed = 42,
+    verbose = False,
 ):
     """
     Optuna-based hyperparameter search for VAE model.
         Parameters:
-            search_space: SearchSpace, The hyperparameter search space for the tuning
-            train_dataset: ClusterDataset,  A ClusterDataset object                 
-            save_model_path: [optional], Where to save the best model
-            save_search_space_path: [optional], Where to save the search space
-            n_trials: int, Number of trials to run
-            study_name: str, Name for the optuna study, default is "vae_autotune",
-            device_preference: str, Preferred device, default is "cuda",
-            show_progress: bool, Set as "True" to show progress bar, default is "False",
-            optuna_dashboard_db: str, Path to optuna dashboard db file. Default is None,
-            load_if_exists: bool, If study by 'study_name' exists in optuna dashboard db, load that study. Default is "True".
-            seed: int, Seed for selecting order of shared/unshared layers. Default is 42.
+            - search_space: SearchSpace, The hyperparameter search space for the tuning
+            - train_dataset: ClusterDataset,  A ClusterDataset object                 
+            - save_model_path: [optional], Where to save the best model
+            - save_search_space_path: [optional], Where to save the search space
+            - n_trials: int, Number of trials to run
+            - study_name: str, Name for the optuna study, default is "vae_autotune",
+            - device_preference: (str), Preferred device, default is "cuda",
+            - show_progress: (bool), Set as "True" to show progress bar, default is "False",
+            - optuna_dashboard_db: (str), Path to optuna dashboard db file. Default is None,
+            - load_if_exists: (bool), If study by 'study_name' exists in optuna dashboard db, load that study. Default is "True".
+            - seed: (int): Seed for selecting order of shared/unshared layers. Default is 42.
+            - verbose: (bool): Set to "True" to print diagnostic statements. Default is "False"
         Returns: 
             best_imputed_df: pandas dataframe, the imputed dataset from the best model
             best_model: CISSVAE model, the best model
