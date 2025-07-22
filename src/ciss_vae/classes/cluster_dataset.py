@@ -11,7 +11,7 @@ class ClusterDataset(Dataset):
 
         Parameters:
             - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
-            - cluster_labels (array-like): Cluster assignment per sample.
+            - cluster_labels (array-like): Cluster assignment per sample. If None, will assign all rows to same cluster.
             - val_percent (float): Fraction of non-missing data per cluster to mask for validation.
             - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
             - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)
@@ -28,6 +28,7 @@ class ClusterDataset(Dataset):
             else:
                 self.columns_ignore = list(columns_ignore)
 
+        ## set to one cluster as default
 
         # ----------------------------------------
         # Convert input data to numpy
@@ -57,16 +58,20 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         # Cluster labels to numpy
         # ----------------------------------------
-        if hasattr(cluster_labels, 'iloc'):
-            cluster_labels_np = cluster_labels.values
-        elif isinstance(cluster_labels, np.ndarray):
-            cluster_labels_np = cluster_labels
-        elif isinstance(cluster_labels, torch.Tensor):
-            cluster_labels_np = cluster_labels.cpu().numpy()
-        else:
-            raise TypeError("Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.")
+        if cluster_labels is None:
+            # create a LongTensor of zeros, one per sample
+            self.cluster_labels = torch.zeros(self.raw_data.shape[0], dtype=torch.long)
+        else: 
+            if hasattr(cluster_labels, 'iloc'):
+                cluster_labels_np = cluster_labels.values
+            elif isinstance(cluster_labels, np.ndarray):
+                cluster_labels_np = cluster_labels
+            elif isinstance(cluster_labels, torch.Tensor):
+                cluster_labels_np = cluster_labels.cpu().numpy()
+            else:
+                raise TypeError("Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.")
 
-        self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
+            self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
 
         self.n_clusters = len(np.unique(cluster_labels_np))
 
