@@ -8,6 +8,7 @@
   <title>ciss_vae.training.autotune &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -81,6 +82,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_initial</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_vae_initial</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_refit</span><span class="w"> </span><span class="kn">import</span> <span class="n">impute_and_refit_loop</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_val_mse</span>
@@ -97,7 +99,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 
 <span class="k">class</span><span class="w"> </span><span class="nc">SearchSpace</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines tunable and fixed hyperparameter ranges.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines tunable and fixed hyperparameter ranges. Input for &#39;autotune&#39; function.</span>
 <span class="sd">    [] -&gt; pick items from list.</span>
 <span class="sd">    () -&gt; tuple, creates a range (min, max, step).</span>
 <span class="sd">     x -&gt; use single value&quot;&quot;&quot;</span>
@@ -139,7 +141,7 @@
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">autotune</span><span class="p">(</span>
     <span class="n">search_space</span><span class="p">:</span> <span class="n">SearchSpace</span><span class="p">,</span>
-    <span class="n">train_dataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
+    <span class="n">train_dataset</span><span class="p">:</span> <span class="n">ClusterDataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
     <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
@@ -152,7 +154,23 @@
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Optuna-based hyperparameter search for VAE model.</span>
-<span class="sd">    Returns: best_imputed_df, best_model, study, results_df</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            search_space: SearchSpace, The hyperparameter search space for the tuning</span>
+<span class="sd">            train_dataset: ClusterDataset,  A ClusterDataset object                 </span>
+<span class="sd">            save_model_path: [optional], Where to save the best model</span>
+<span class="sd">            save_search_space_path: [optional], Where to save the search space</span>
+<span class="sd">            n_trials: int, Number of trials to run</span>
+<span class="sd">            study_name: str, Name for the optuna study, default is &quot;vae_autotune&quot;,</span>
+<span class="sd">            device_preference: str, Preferred device, default is &quot;cuda&quot;,</span>
+<span class="sd">            show_progress: bool, Set as &quot;True&quot; to show progress bar, default is &quot;False&quot;,</span>
+<span class="sd">            optuna_dashboard_db: str, Path to optuna dashboard db file. Default is None,</span>
+<span class="sd">            load_if_exists: bool, If study by &#39;study_name&#39; exists in optuna dashboard db, load that study. Default is &quot;True&quot;.</span>
+<span class="sd">            seed: int, Seed for selecting order of shared/unshared layers. Default is 42.</span>
+<span class="sd">        Returns: </span>
+<span class="sd">            best_imputed_df: pandas dataframe, the imputed dataset from the best model</span>
+<span class="sd">            best_model: CISSVAE model, the best model</span>
+<span class="sd">            study: optuna study</span>
+<span class="sd">            results_df: pandas dataframe containing the results of the autotuning</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
     <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">)</span>

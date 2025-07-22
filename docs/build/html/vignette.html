@@ -93,35 +93,36 @@
              
   <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">&lt;b&gt;</span></code>{=html}Clustering-Informed Shared-Structure Variational
-Autoencoder (CISS-VAE)<code class="docutils literal notranslate"><span class="pre">&lt;/b&gt;</span></code>{=html} is a flexible deep learning model
+<p>The <strong>Clustering-Informed Shared-Structure Variational
+Autoencoder (CISS-VAE)</strong> is a flexible deep learning model
 for missing data imputation, especially useful when the missingness
 mechanism may depend on unobserved or latent variables—also known as
 Missing Not At Random (MNAR).</p>
 <p>Unlike traditional imputation models that assume data are Missing
-Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:\</p>
+Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:</p>
 <ul class="simple">
-<li><p>Learns patterns of missingness via unsupervised clustering.\</p></li>
-<li><p>Builds a shared and cluster-specific encoder-decoder structure.\</p></li>
+<li><p>Learns patterns of missingness via unsupervised clustering.</p></li>
+<li><p>Builds a shared and cluster-specific encoder-decoder structure.</p></li>
 <li><p>Performs variational inference to model the joint distribution of
-observed and missing values.\</p></li>
+observed and missing values.</p></li>
 <li><p>Supports a validation-masked impute-refit loop for better
 generalization.</p></li>
 </ul>
 <p>There are two ways to run the CISS-VAE process. If you know what model
-parameters you want to use, you can use the <code class="docutils literal notranslate"><span class="pre">run_cissvae</span></code> function to
+parameters you want to use, you can use the <a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae" title="ciss_vae.utils.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.utils.run_cissvae.run_cissvae()</span></code></a> function to
 run the model once for the given set of parameters. If you want to tune
-the model instead, you can use <code class="docutils literal notranslate"><span class="pre">autotune</span></code>.</p>
+the model instead, you can use <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a>.</p>
 </section>
 <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <p>The CISS-VAE package is currently available for python, with an R
 package to be released soon. It can be installed from either
-<a class="reference external" href="https://github.com/CISS-VAE">github</a> or PyPI.</p>
+<a class="reference external" href="https://github.com/CISS-VAE/CISS-VAE-python">github</a> or PyPI.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From PyPI</span>
 pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
-
-<span class="c1"># From GitHub (latest development version)</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From GitHub (latest development version)</span>
 pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/CISS-VAE/CISS-VAE-python.git
 </pre></div>
 </div>
@@ -143,8 +144,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 <section id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
 <p>If you already know what parameters you want for your model (or do not
-want to use the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function), you can use the <code class="docutils literal notranslate"><span class="pre">run_cissvae</span></code>
-function for your imputation.</p>
+want to use the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function), you can use the <code class="docutils literal notranslate"><span class="pre">ciss_vae.utils.run_cissvae.run_cissvae</span></code> function for your imputation.</p>
 <p>Your input dataset should be one of the following:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- A Pandas DataFrame  
 
@@ -216,7 +216,7 @@ function for your imputation.</p>
 </section>
 <section id="hyperparameter-tuning-with-optuna">
 <h1>Hyperparameter Tuning with Optuna<a class="headerlink" href="#hyperparameter-tuning-with-optuna" title="Link to this heading"></a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function lets you tune the model’s hyperparameters with
+<p>The <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function lets you tune the model’s hyperparameters with
 optuna to get the best possible model.</p>
 <section id="dataset-preparation">
 <h2>Dataset Preparation<a class="headerlink" href="#dataset-preparation" title="Link to this heading"></a></h2>
@@ -246,7 +246,7 @@ observation).</p>
 <p>This function uses HDBSCAN clustering to detect structure in binary
 missingness masks, and will automatically determine the number of
 clusters if not specified. If n_clusters is specified, uses KMeans.</p>
-<p><code class="docutils literal notranslate"><span class="pre">&lt;b&gt;</span></code>{=html}Options:<code class="docutils literal notranslate"><span class="pre">&lt;/b&gt;</span></code>{=html}\</p>
+<p><strong>Options:</strong></p>
 <ul class="simple">
 <li><p>cols_ignore: list of columns to exclude when computing the missingness
 pattern.</p></li>
@@ -260,7 +260,7 @@ constructor.</p>
 <section id="creating-a-clusterdataset-object">
 <h1>Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object<a class="headerlink" href="#creating-a-clusterdataset-object" title="Link to this heading"></a></h1>
 <p>Once you’ve computed the cluster labels, you’ll convert your dataset
-into a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code>.</p>
+into a <a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ciss_vae.classes.cluster_dataset.ClusterDataset</span></code></a>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.autotune</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchSpace</span><span class="p">,</span> <span class="n">autotune</span>
 
@@ -275,7 +275,7 @@ into a <code class="docutils literal notranslate"><span class="pre">ClusterDatas
 <section id="create-a-searchspace-object">
 <h2>Create a SearchSpace object:<a class="headerlink" href="#create-a-searchspace-object" title="Link to this heading"></a></h2>
 <p>In the SearchSpace object, define the search space for each
-hyperparameter. Each of the parameters in <code class="docutils literal notranslate"><span class="pre">SearchSpace()</span></code> can be set as
+hyperparameter. Each of the parameters in <code class="docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.SearchSpace</span></code> can be set as
 either tunable or non-tunable.</p>
 <p>Types of parameters:\</p>
 <ul class="simple">
@@ -370,9 +370,11 @@ them.</p>
 </section>
 <section id="loading-a-model">
 <h2>Loading a Model<a class="headerlink" href="#loading-a-model" title="Link to this heading"></a></h2>
-<p>To reload the model for imputation or further training: 1. Re-create the
-model architecture with the same settings used during training<br />
-2. Load the saved weights</p>
+<p>To reload the model for imputation or further training:</p>
+<ol class="arabic simple">
+<li><p>Re-create the model architecture with the same settings used during training</p></li>
+<li><p>Load the saved weights</p></li>
+</ol>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
 
 <span class="c1"># 1. Define the architecture (must match the saved model!)</span>

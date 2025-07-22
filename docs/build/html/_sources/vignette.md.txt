@@ -5,36 +5,39 @@ toc-title: Table of contents
 
 # Overview
 
-The `<b>`{=html}Clustering-Informed Shared-Structure Variational
-Autoencoder (CISS-VAE)`</b>`{=html} is a flexible deep learning model
+The **Clustering-Informed Shared-Structure Variational
+Autoencoder (CISS-VAE)** is a flexible deep learning model
 for missing data imputation, especially useful when the missingness
 mechanism may depend on unobserved or latent variables---also known as
 Missing Not At Random (MNAR).
 
 Unlike traditional imputation models that assume data are Missing
-Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:\
-- Learns patterns of missingness via unsupervised clustering.\
-- Builds a shared and cluster-specific encoder-decoder structure.\
+Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:  
+- Learns patterns of missingness via unsupervised clustering.  
+- Builds a shared and cluster-specific encoder-decoder structure.  
 - Performs variational inference to model the joint distribution of
-observed and missing values.\
+observed and missing values.  
 - Supports a validation-masked impute-refit loop for better
-generalization.
+generalization.  
 
 There are two ways to run the CISS-VAE process. If you know what model
-parameters you want to use, you can use the `run_cissvae` function to
+parameters you want to use, you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function to
 run the model once for the given set of parameters. If you want to tune
-the model instead, you can use `autotune`.
+the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
 
 # Installation
 
 The CISS-VAE package is currently available for python, with an R
 package to be released soon. It can be installed from either
-[github](https://github.com/CISS-VAE) or PyPI.
+[github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
 # From PyPI
 pip install ciss-vae
 
+```
+
+``` bash
 # From GitHub (latest development version)
 pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 ```
@@ -59,8 +62,7 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 # Quickstart
 
 If you already know what parameters you want for your model (or do not
-want to use the `autotune` function), you can use the `run_cissvae`
-function for your imputation.
+want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the `ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
 
 Your input dataset should be one of the following:
 
@@ -134,7 +136,7 @@ plot_vae_architecture(model = vae,
 
 # Hyperparameter Tuning with Optuna
 
-The `autotune` function lets you tune the model's hyperparameters with
+The {py:func}`ciss_vae.training.autotune.autotune` function lets you tune the model's hyperparameters with
 optuna to get the best possible model.
 
 ## Dataset Preparation
@@ -170,12 +172,11 @@ This function uses HDBSCAN clustering to detect structure in binary
 missingness masks, and will automatically determine the number of
 clusters if not specified. If n_clusters is specified, uses KMeans.
 
-`<b>`{=html}Options:`</b>`{=html}\
+**Options:**  
 - cols_ignore: list of columns to exclude when computing the missingness
-pattern.
-
--   n_clusters: set this to use K-Means instead of nonparametric
-    clustering.
+pattern.  
+- n_clusters: set this to use K-Means instead of nonparametric
+    clustering.  
 
 You should store your cluster labels separately for input into the model
 constructor.
@@ -183,7 +184,7 @@ constructor.
 # Creating a `ClusterDataset` object
 
 Once you've computed the cluster labels, you'll convert your dataset
-into a `ClusterDataset`.
+into a {py:class}`ciss_vae.classes.cluster_dataset.ClusterDataset`.
 
 ``` python
 from ciss_vae.classes.cluster_dataset import ClusterDataset
@@ -200,7 +201,7 @@ columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entrie
 ## Create a SearchSpace object:
 
 In the SearchSpace object, define the search space for each
-hyperparameter. Each of the parameters in `SearchSpace()` can be set as
+hyperparameter. Each of the parameters in `ciss_vae.training.autotune.SearchSpace` can be set as
 either tunable or non-tunable.
 
 Types of parameters:\
@@ -301,9 +302,9 @@ torch.save(model, "trained_vae_full.pt")
 
 ## Loading a Model
 
-To reload the model for imputation or further training: 1. Re-create the
-model architecture with the same settings used during training\
-2. Load the saved weights
+To reload the model for imputation or further training:   
+1. Re-create the model architecture with the same settings used during training  
+2. Load the saved weights  
 
 ``` python
 from ciss_vae.classes.vae import CISSVAE

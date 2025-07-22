@@ -91,6 +91,7 @@ class CISSVAE(nn.Module):
         self.final_lr = final_lr
 
     def get_final_lr(self):
+        """Returns the learning rate stored with self.set_final_lr/"""
         return(self.final_lr)
 
     def route_through_layers(self, x, cluster_labels, layer_type_list, shared_layers, unshared_layers):

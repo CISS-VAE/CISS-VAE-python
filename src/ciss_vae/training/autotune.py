@@ -4,6 +4,7 @@ import json
 import pandas as pd
 from torch.utils.data import DataLoader
 from ciss_vae.classes.vae import CISSVAE
+from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.training.train_initial import train_vae_initial
 from ciss_vae.training.train_refit import impute_and_refit_loop
 from ciss_vae.utils.helpers import compute_val_mse
@@ -20,7 +21,7 @@ class TQDMProgress:
         self.pbar.close()
 
 class SearchSpace:
-    """Defines tunable and fixed hyperparameter ranges.
+    """Defines tunable and fixed hyperparameter ranges. Input for 'autotune' function.
     [] -> pick items from list.
     () -> tuple, creates a range (min, max, step).
      x -> use single value"""
@@ -60,7 +61,7 @@ class SearchSpace:
 
 def autotune(
     search_space: SearchSpace,
-    train_dataset,                   # ClusterDataset object
+    train_dataset: ClusterDataset,                   # ClusterDataset object
     save_model_path=None,
     save_search_space_path=None,
     n_trials=20,
@@ -73,7 +74,23 @@ def autotune(
 ):
     """
     Optuna-based hyperparameter search for VAE model.
-    Returns: best_imputed_df, best_model, study, results_df
+        Parameters:
+            search_space: SearchSpace, The hyperparameter search space for the tuning
+            train_dataset: ClusterDataset,  A ClusterDataset object                 
+            save_model_path: [optional], Where to save the best model
+            save_search_space_path: [optional], Where to save the search space
+            n_trials: int, Number of trials to run
+            study_name: str, Name for the optuna study, default is "vae_autotune",
+            device_preference: str, Preferred device, default is "cuda",
+            show_progress: bool, Set as "True" to show progress bar, default is "False",
+            optuna_dashboard_db: str, Path to optuna dashboard db file. Default is None,
+            load_if_exists: bool, If study by 'study_name' exists in optuna dashboard db, load that study. Default is "True".
+            seed: int, Seed for selecting order of shared/unshared layers. Default is 42.
+        Returns: 
+            best_imputed_df: pandas dataframe, the imputed dataset from the best model
+            best_model: CISSVAE model, the best model
+            study: optuna study
+            results_df: pandas dataframe containing the results of the autotuning
     """
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)

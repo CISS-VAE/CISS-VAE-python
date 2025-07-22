@@ -125,9 +125,13 @@ class ClusterDataset(Dataset):
         self.shape = self.data.shape
 
     def __len__(self):
+        """ Returns length of the original dataframe.
+        """
         return len(self.data)
 
     def __getitem__(self, index):
+        """ Get the Values, cluster label and binary mask for a single data entry (row) by index.
+        """
         return (
             self.data[index],            # input with missing replaced
             self.cluster_labels[index], # cluster label
@@ -136,6 +140,9 @@ class ClusterDataset(Dataset):
         )
 
     def __repr__(self):
+        """ Displays the number of samples, features, and clusters, the percentage of missing data, 
+        and the percentage of non-missing data held out for validation.
+        """
         n, p = self.data.shape
         total_values = n * (p-len(self.columns_ignore))
 
@@ -162,8 +169,13 @@ class ClusterDataset(Dataset):
     # Added copy method
     # ----------------------------------------
     def copy(self):
+        """ Creates a deep copy of the ClusterDataset method containing all attributes. 
+        """
         return copy.deepcopy(self)
 
 
     def __str__(self):
+        """ Displays the number of samples, features, and clusters, the percentage of missing data, 
+        and the percentage of non-missing data held out for validation.
+        """
         return self.__repr__()
