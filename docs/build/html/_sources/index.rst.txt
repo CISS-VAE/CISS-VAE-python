@@ -6,9 +6,15 @@
 CISS-VAE documentation
 ======================
 
-Documentation for the **CISS-VAE** package. 
-
-The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep learning model for missing data imputation. 
+The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep 
+learning model for missing data imputation that is particularly well-suited to MNAR (Missing Not at Random) scenarios where missingness patterns are informative.
+It also functions effectively under MAR (Missing at Random) assumptions.
+ 
+The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder 
+and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation 
+accuracy compared to traditional training approaches.  
+ 
+The CISS-VAE package offers an :py:func:`ciss_vae.training.autotune.autotune` function that will select the best hyperparameters
 
 .. toctree::
    :maxdepth: 2

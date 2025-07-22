@@ -8,6 +8,7 @@
   <title>ciss_vae.utils.run_cissvae &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
@@ -96,9 +97,30 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">cluster_on_missing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cols_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
  <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_cluster_size</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
  <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given pandas dataframe with missing data, clusters on missingness pattern and returns cluster labels.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            - data : (pd.DataFrame) : </span>
+<span class="sd">                The original dataset</span>
+<span class="sd">            - cols_ignore : (list[str]) : </span>
+<span class="sd">                List of columns to ignore when clustering. Default is None</span>
+<span class="sd">            - n_clusters : (int) : </span>
+<span class="sd">                Set n_clusters to perform KMeans clustering with n_clusters clusters. If none, will use hdbscan for clustering.</span>
+<span class="sd">            - seed : (int) : </span>
+<span class="sd">                Set seed. Default is None</span>
+<span class="sd">            - min_cluster_size : (int) : </span>
+<span class="sd">                Set min_cluster_size for hdbscan. Default is None.</span>
+<span class="sd">            - cluster_selection_epsilon : (float) : </span>
+<span class="sd">                Set cluster_selection_epsilon for hdbscan. Default is 0.25</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            - clusters : cluster labels</span>
+<span class="sd">            - silhouette : silhouette score</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
-        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">pairwise_distances</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">pairwise_distances</span><span class="p">,</span> <span class="n">silhouette_score</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
         <span class="kn">import</span><span class="w"> </span><span class="nn">hdbscan</span>
     <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -117,27 +139,44 @@
 
     <span class="k">if</span> <span class="n">min_cluster_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">min_cluster_size</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">//</span> <span class="mi">25</span> 
+
+    <span class="c1">## Get number of samples</span>
+    <span class="n">n_samples</span> <span class="o">=</span> <span class="n">mask_matrix</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     
 
     <span class="k">if</span> <span class="n">n_clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;hdbscan&quot;</span>
 
-        <span class="c1"># Create mask matrix (1 = missing, 0 = observed), drop ignored columns</span>
+        <span class="c1">## Create mask matrix (1 = missing, 0 = observed), drop ignored columns</span>
         <span class="n">mask_matrix</span> <span class="o">=</span> <span class="n">mask_matrix</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
 
-        <span class="c1"># Jaccard requires boolean/binary NumPy array</span>
+        <span class="c1">## Jaccard requires boolean/binary NumPy array</span>
         <span class="n">dists</span> <span class="o">=</span> <span class="n">pairwise_distances</span><span class="p">(</span><span class="n">mask_matrix</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;jaccard&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Run HDBSCAN with precomputed distance matrix</span>
+        <span class="c1">## Run HDBSCAN with precomputed distance matrix</span>
         <span class="n">clusterer</span> <span class="o">=</span> <span class="n">hdbscan</span><span class="o">.</span><span class="n">HDBSCAN</span><span class="p">(</span><span class="n">metric</span><span class="o">=</span><span class="s1">&#39;precomputed&#39;</span><span class="p">,</span> <span class="n">min_cluster_size</span><span class="o">=</span><span class="n">min_cluster_size</span><span class="p">,</span>
         <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="n">cluster_selection_epsilon</span><span class="p">)</span>
         <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusterer</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span>
+
+        <span class="c1">## Get silhouette </span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="s2">&quot;precomputed&quot;</span>
+        <span class="n">x_for_sil</span> <span class="o">=</span> <span class="n">dists</span>
+
     <span class="k">else</span><span class="p">:</span> 
         <span class="n">method</span> <span class="o">=</span> <span class="s2">&quot;kmeans&quot;</span>
         <span class="n">clusters</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_clusters</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">mask_matrix</span><span class="p">)</span><span class="o">.</span><span class="n">labels_</span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="s2">&quot;jaccard&quot;</span>
+        <span class="n">x_for_sil</span> <span class="o">=</span> <span class="n">mask_matrix</span>
+
+    <span class="c1"># Compute silhouette score if possible</span>
+    <span class="n">unique_labels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_labels</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">unique_labels</span><span class="p">):</span>
+        <span class="n">silhouette</span> <span class="o">=</span> <span class="n">silhouette_score</span><span class="p">(</span><span class="n">x_for_sil</span><span class="p">,</span> <span class="n">clusters</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">sil_metric</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">silhouette</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># cannot compute silhouette with a single cluster or singleton clusters</span>
 
 
-    <span class="k">return</span> <span class="n">clusters</span>
+    <span class="k">return</span> <span class="n">clusters</span><span class="p">,</span> <span class="n">silhouette</span>
 
 <span class="c1"># --------------------</span>
 <span class="c1"># Func 2: Make dataset &amp; run VAE</span>
@@ -154,6 +193,78 @@
 <span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## refit params</span>
 <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</span>
+
+<span class="sd">    This function handles data preparation, optional clustering, initial VAE training,</span>
+<span class="sd">    and iterative refitting loops until convergence, returning the final reconstructed data and (optionally) the trained model.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    data : pd.DataFrame | np.ndarray | torch.Tensor</span>
+<span class="sd">        Input data matrix (samples × features), may contain missing values.</span>
+<span class="sd">    val_percent : float, default=0.1</span>
+<span class="sd">        Fraction of non-missing entries per cluster to mask for validation.</span>
+<span class="sd">    replacement_value : float, default=0.0</span>
+<span class="sd">        Value used to fill in masked entries (e.g., zero imputation).</span>
+<span class="sd">    columns_ignore : list[int|str] or None, default=None</span>
+<span class="sd">        Column names or indices to exclude from masking for valiation.</span>
+<span class="sd">    print_dataset : bool, default=True</span>
+<span class="sd">        If True, prints dataset summary.</span>
+
+<span class="sd">    clusters : array-like or None, default=None</span>
+<span class="sd">        Precomputed cluster labels per sample. If None, clustering will be performed.</span>
+<span class="sd">    n_clusters : int or None, default=None</span>
+<span class="sd">        Number of clusters to form with KMeans clustering if `clusters` is None. If None and clusters is None, will perform hdbscan clustering.</span>
+<span class="sd">    cluster_selection_epsilon : float, default=0.25</span>
+<span class="sd">        cluster_selection_epsilon for hdbscan clustering. </span>
+<span class="sd">    seed : int, default=42</span>
+<span class="sd">        Random seed for reproducibility.</span>
+
+<span class="sd">    hidden_dims : list of int, default=[150, 120, 60]</span>
+<span class="sd">        Sizes of hidden layers in encoder/decoder (excluding latent layer).</span>
+<span class="sd">    latent_dim : int, default=15</span>
+<span class="sd">        Dimensionality of the VAE latent space.</span>
+<span class="sd">    layer_order_enc : list of {&quot;shared&quot;,&quot;unshared&quot;}, default=[&quot;unshared&quot;,&quot;unshared&quot;,&quot;unshared&quot;]</span>
+<span class="sd">        Specify whether each encoder layer is shared across clusters or unique per cluster.</span>
+<span class="sd">    layer_order_dec : list of {&quot;shared&quot;,&quot;unshared&quot;}, default=[&quot;shared&quot;,&quot;shared&quot;,&quot;shared&quot;]</span>
+<span class="sd">        Specify whether each decoder layer is shared or unique per cluster.</span>
+<span class="sd">    latent_shared : bool, default=False</span>
+<span class="sd">        If True, latent layer weights are shared across clusters.</span>
+<span class="sd">    output_shared : bool, default=False</span>
+<span class="sd">        If True, final output layer weights are shared across clusters.</span>
+<span class="sd">    batch_size : int, default=4000</span>
+<span class="sd">        Number of samples per training batch.</span>
+<span class="sd">    return_model : bool, default=True</span>
+<span class="sd">        If True, returns the trained VAE model; otherwise returns only reconstructed data.</span>
+
+<span class="sd">    epochs : int, default=500</span>
+<span class="sd">        Number of epochs for initial training.</span>
+<span class="sd">    initial_lr : float, default=0.01</span>
+<span class="sd">        Initial learning rate for the optimizer.</span>
+<span class="sd">    decay_factor : float, default=0.999</span>
+<span class="sd">        Multiplicative factor to decay the learning rate each epoch.</span>
+<span class="sd">    beta : float, default=0.001</span>
+<span class="sd">        Weight of the KL-divergence term in the VAE loss.</span>
+<span class="sd">    device : str or torch.device or None, default=None</span>
+<span class="sd">        Device for computation (&quot;cpu&quot; or &quot;cuda&quot;). If None, auto-selects.</span>
+
+<span class="sd">    max_loops : int, default=100</span>
+<span class="sd">        Maximum number of refitting loops after initial training.</span>
+<span class="sd">    patience : int, default=2</span>
+<span class="sd">        Number of loops with no improvement before early stopping.</span>
+<span class="sd">    epochs_per_loop : int or None, default=None</span>
+<span class="sd">        Number of epochs per refit loop; if None, uses `epochs`.</span>
+<span class="sd">    initial_lr_refit : float or None, default=None</span>
+<span class="sd">        Learning rate for refit loops; if None, uses `initial_lr`.</span>
+<span class="sd">    decay_factor_refit : float or None, default=None</span>
+<span class="sd">        LR decay for refit; if None, uses `decay_factor`.</span>
+<span class="sd">    beta_refit : float or None, default=None</span>
+<span class="sd">        KL weight for refit; if None, uses `beta`.</span>
+<span class="sd">    verbose : bool, default=False</span>
+<span class="sd">        If True, prints progress messages during training and refitting.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># ------------</span>
     <span class="c1"># Set params</span>
     <span class="c1"># ------------</span>

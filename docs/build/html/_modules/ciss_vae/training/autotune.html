@@ -151,21 +151,23 @@
     <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Optuna-based hyperparameter search for VAE model.</span>
 <span class="sd">        Parameters:</span>
-<span class="sd">            search_space: SearchSpace, The hyperparameter search space for the tuning</span>
-<span class="sd">            train_dataset: ClusterDataset,  A ClusterDataset object                 </span>
-<span class="sd">            save_model_path: [optional], Where to save the best model</span>
-<span class="sd">            save_search_space_path: [optional], Where to save the search space</span>
-<span class="sd">            n_trials: int, Number of trials to run</span>
-<span class="sd">            study_name: str, Name for the optuna study, default is &quot;vae_autotune&quot;,</span>
-<span class="sd">            device_preference: str, Preferred device, default is &quot;cuda&quot;,</span>
-<span class="sd">            show_progress: bool, Set as &quot;True&quot; to show progress bar, default is &quot;False&quot;,</span>
-<span class="sd">            optuna_dashboard_db: str, Path to optuna dashboard db file. Default is None,</span>
-<span class="sd">            load_if_exists: bool, If study by &#39;study_name&#39; exists in optuna dashboard db, load that study. Default is &quot;True&quot;.</span>
-<span class="sd">            seed: int, Seed for selecting order of shared/unshared layers. Default is 42.</span>
+<span class="sd">            - search_space: SearchSpace, The hyperparameter search space for the tuning</span>
+<span class="sd">            - train_dataset: ClusterDataset,  A ClusterDataset object                 </span>
+<span class="sd">            - save_model_path: [optional], Where to save the best model</span>
+<span class="sd">            - save_search_space_path: [optional], Where to save the search space</span>
+<span class="sd">            - n_trials: int, Number of trials to run</span>
+<span class="sd">            - study_name: str, Name for the optuna study, default is &quot;vae_autotune&quot;,</span>
+<span class="sd">            - device_preference: (str), Preferred device, default is &quot;cuda&quot;,</span>
+<span class="sd">            - show_progress: (bool), Set as &quot;True&quot; to show progress bar, default is &quot;False&quot;,</span>
+<span class="sd">            - optuna_dashboard_db: (str), Path to optuna dashboard db file. Default is None,</span>
+<span class="sd">            - load_if_exists: (bool), If study by &#39;study_name&#39; exists in optuna dashboard db, load that study. Default is &quot;True&quot;.</span>
+<span class="sd">            - seed: (int): Seed for selecting order of shared/unshared layers. Default is 42.</span>
+<span class="sd">            - verbose: (bool): Set to &quot;True&quot; to print diagnostic statements. Default is &quot;False&quot;</span>
 <span class="sd">        Returns: </span>
 <span class="sd">            best_imputed_df: pandas dataframe, the imputed dataset from the best model</span>
 <span class="sd">            best_model: CISSVAE model, the best model</span>

@@ -93,21 +93,9 @@
              
   <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<p>The <strong>Clustering-Informed Shared-Structure Variational
-Autoencoder (CISS-VAE)</strong> is a flexible deep learning model
-for missing data imputation, especially useful when the missingness
-mechanism may depend on unobserved or latent variables—also known as
-Missing Not At Random (MNAR).</p>
-<p>Unlike traditional imputation models that assume data are Missing
-Completely At Random (MCAR) or Missing At Random (MAR), CISS-VAE:</p>
-<ul class="simple">
-<li><p>Learns patterns of missingness via unsupervised clustering.</p></li>
-<li><p>Builds a shared and cluster-specific encoder-decoder structure.</p></li>
-<li><p>Performs variational inference to model the joint distribution of
-observed and missing values.</p></li>
-<li><p>Supports a validation-masked impute-refit loop for better
-generalization.</p></li>
-</ul>
+<p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+<p>A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers, which allows knowledge transfer across clusters and enhance parameter stability, especially important when certain clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.</p>
+<p>Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.</p>
 <p>There are two ways to run the CISS-VAE process. If you know what model
 parameters you want to use, you can use the <a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae" title="ciss_vae.utils.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.utils.run_cissvae.run_cissvae()</span></code></a> function to
 run the model once for the given set of parameters. If you want to tune

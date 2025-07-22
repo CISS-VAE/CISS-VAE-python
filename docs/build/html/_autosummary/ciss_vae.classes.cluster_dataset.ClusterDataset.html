@@ -106,7 +106,7 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>data</strong> (<em>-</em>) – Input matrix with potential missing values.</p></li>
-<li><p><strong>cluster_labels</strong> (<em>-</em>) – Cluster assignment per sample.</p></li>
+<li><p><strong>cluster_labels</strong> (<em>-</em>) – Cluster assignment per sample. If None, will assign all rows to same cluster.</p></li>
 <li><p><strong>val_percent</strong> (<em>-</em>) – Fraction of non-missing data per cluster to mask for validation.</p></li>
 <li><p><strong>replacement_value</strong> (<em>-</em>) – Value to fill in missing entries after masking (e.g., 0.0).</p></li>
 <li><p><strong>columns_ignore</strong> (<em>-</em>) – Optional list of column names (if data is a DataFrame) or indices (if array)

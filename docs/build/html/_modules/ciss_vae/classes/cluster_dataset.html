@@ -93,7 +93,7 @@
 
 <span class="sd">        Parameters:</span>
 <span class="sd">            - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.</span>
-<span class="sd">            - cluster_labels (array-like): Cluster assignment per sample.</span>
+<span class="sd">            - cluster_labels (array-like): Cluster assignment per sample. If None, will assign all rows to same cluster.</span>
 <span class="sd">            - val_percent (float): Fraction of non-missing data per cluster to mask for validation.</span>
 <span class="sd">            - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).</span>
 <span class="sd">            - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)</span>
@@ -110,6 +110,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">columns_ignore</span><span class="p">)</span>
 
+        <span class="c1">## set to one cluster as default</span>
 
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Convert input data to numpy</span>
@@ -139,16 +140,20 @@
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Cluster labels to numpy</span>
         <span class="c1"># ----------------------------------------</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="s1">&#39;iloc&#39;</span><span class="p">):</span>
-            <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">values</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-            <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-            <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cluster_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># create a LongTensor of zeros, one per sample</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="s1">&#39;iloc&#39;</span><span class="p">):</span>
+                <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">values</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">))</span>
 
