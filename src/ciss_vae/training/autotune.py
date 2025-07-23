@@ -76,23 +76,39 @@ def autotune(
     """
     Optuna-based hyperparameter search for VAE model.
         Parameters:
-            - search_space: SearchSpace, The hyperparameter search space for the tuning
-            - train_dataset: ClusterDataset,  A ClusterDataset object                 
-            - save_model_path: [optional], Where to save the best model
-            - save_search_space_path: [optional], Where to save the search space
-            - n_trials: int, Number of trials to run
-            - study_name: str, Name for the optuna study, default is "vae_autotune",
-            - device_preference: (str), Preferred device, default is "cuda",
-            - show_progress: (bool), Set as "True" to show progress bar, default is "False",
-            - optuna_dashboard_db: (str), Path to optuna dashboard db file. Default is None,
-            - load_if_exists: (bool), If study by 'study_name' exists in optuna dashboard db, load that study. Default is "True".
-            - seed: (int): Seed for selecting order of shared/unshared layers. Default is 42.
-            - verbose: (bool): Set to "True" to print diagnostic statements. Default is "False"
+            - search_space : SearchSpace
+                The hyperparameter search space for the tuning
+            - train_dataset : ClusterDataset
+                A ClusterDataset object                 
+            - save_model_path : 
+                [optional], Where to save the best model
+            - save_search_space_path : 
+                [optional], Where to save the search space
+            - n_trials : int 
+                Number of trials to run
+            - study_name : str default="vae_autotune"
+                Name for the optuna study, default is "vae_autotune",
+            - device_preference : (str), 
+                Preferred device, default is "cuda",
+            - show_progress : (bool) default=False, 
+                Set as True to show progress bar, default is False,
+            - optuna_dashboard_db : (str), 
+                Path to optuna dashboard db file. Default is None,
+            - load_if_exists : (bool) default=True, 
+                If study by 'study_name' exists in optuna dashboard db, load that study. Default is True.
+            - seed : (int): 
+                Seed for selecting order of shared/unshared layers. Default is 42.
+            - verbose : (bool) default=False: 
+                Set to True to print diagnostic statements. Default is False
         Returns: 
-            best_imputed_df: pandas dataframe, the imputed dataset from the best model
-            best_model: CISSVAE model, the best model
-            study: optuna study
-            results_df: pandas dataframe containing the results of the autotuning
+            best_imputed_df : pd.DataFrame
+                The imputed dataset from the best model
+            best_model : CISSVAE 
+                The best model
+            study : 
+                Optuna study
+            results_df : pd.DataFrame
+                The results of the autotuning
     """
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)

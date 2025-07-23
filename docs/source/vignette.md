@@ -83,11 +83,13 @@ imputed_data, vae = run_cissvae(data = data,
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
+
 ## Cluster params
     clusters = None, ## Where your cluster list goes. If none, will do clustering for you  
     n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
-    cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN (link)
+    cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN 
     seed = 42,
+    
 ## VAE model params
     hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
     latent_dim = 15, ## Dimensions of latent embedding
@@ -97,12 +99,14 @@ imputed_data, vae = run_cissvae(data = data,
     output_shared=False, 
     batch_size = 4000, ## batch size for data loader
     return_model = True, ## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`
+
 ## Initial Training params
     epochs = 1000, ## default 
     initial_lr = 0.01, ## default
     decay_factor = 0.999, ## default, factor learning rate is multiplied by after each epoch, prevents overfitting
     beta= 0.001, ## default
-    device = None, ## If none, will use gpu if available, cpu if not. See torch.devices for info (link)
+    device = None, ## If none, will use gpu if available, cpu if not. See torch.devices for info 
+
 ## Impute-refit loop params
     max_loops = 100, ## max number of refit loops
     patience = 2, ## number of loops to check after best_dataset updated. Can increase to avoid local extrema
@@ -110,7 +114,10 @@ imputed_data, vae = run_cissvae(data = data,
     initial_lr_refit = None, ## If none, picks up from end of initial training
     decay_factor_refit = None, ## If none, same as decay_factor
     beta_refit = None, ## if none, same as beta
-    verbose = False
+
+## Other params
+    verbose = False, 
+    return_silhouettes = False, ## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return "None"
 )
 
 ## OPTIONAL - PLOT VAE ARCHITECTURE
@@ -125,6 +132,7 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
+
 
 # Hyperparameter Tuning with Optuna
 
@@ -196,9 +204,10 @@ In the SearchSpace object, define the search space for each
 hyperparameter. Each of the parameters in {py:class}`ciss_vae.training.autotune.SearchSpace` can be set as
 either tunable or non-tunable.
 
-Types of parameters:\
-- (min, max, step) -\> creates a range - \[a, b, c\] -\> select value
-from list - x -\> set param as non-tunable
+Types of parameters:  
+- (min, max, step) -\> creates a range   
+- \[a, b, c\] -\> select value from list
+- x -\> set param as non-tunable    
 
 ``` python
 ## These are the default parameters. Please note these parameters may not be best for all datasets depending on size and complexity.
