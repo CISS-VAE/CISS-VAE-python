@@ -32,9 +32,9 @@ dev = ["pytest", "black", "mypy"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]
 
 [project.urls]
-Homepage = "https://github.com/daniv-20/CISS_VAE_new"
-Documentation = "https://github.com/daniv-20/CISS_VAE_new"
-Source = "https://github.com/daniv-20/CISS_VAE_new"
+Homepage = "https://ciss-vae.readthedocs.io/en/latest/index.html"
+Documentation = "https://ciss-vae.readthedocs.io/en/latest/vignette.html"
+Source = "https://github.com/CISS-VAE/CISS-VAE"
 
 
 [tool.black]
