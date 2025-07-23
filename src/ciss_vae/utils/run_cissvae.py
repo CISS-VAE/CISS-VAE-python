@@ -24,16 +24,16 @@ def cluster_on_missing(data, cols_ignore = None,
         Parameters:
             - data : (pd.DataFrame) : 
                 The original dataset
-            - cols_ignore : (list[str]) : 
-                List of columns to ignore when clustering. Default is None
-            - n_clusters : (int) : 
+            - cols_ignore : (list[str]) default=None : 
+                List of columns to ignore when clustering.
+            - n_clusters : (int) default=None: 
                 Set n_clusters to perform KMeans clustering with n_clusters clusters. If none, will use hdbscan for clustering.
-            - seed : (int) : 
-                Set seed. Default is None
-            - min_cluster_size : (int) : 
-                Set min_cluster_size for hdbscan. Default is None.
-            - cluster_selection_epsilon : (float) : 
-                Set cluster_selection_epsilon for hdbscan. Default is 0.25
+            - seed : (int) default=None: 
+                Set seed. 
+            - min_cluster_size : (int) default=None: 
+                Set min_cluster_size for hdbscan. 
+            - cluster_selection_epsilon : (float) default=0.25: 
+                Set cluster_selection_epsilon for hdbscan. 
 
         Returns:
             - clusters : cluster labels
@@ -111,7 +111,8 @@ layer_order_dec=["shared", "shared",  "shared"], latent_shared=False, output_sha
 return_model = True,## model params
 epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = None, ## initial training params
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
-verbose = False
+verbose = False,
+return_silhouettes = False
 ):
     """
     End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).
@@ -181,8 +182,11 @@ verbose = False
         LR decay for refit; if None, uses `decay_factor`.
     beta_refit : float or None, default=None
         KL weight for refit; if None, uses `beta`.
+
     verbose : bool, default=False
         If True, prints progress messages during training and refitting.
+    return_silhouettes : bool, default=False
+        If True, returns silhouettes from clustering
     """
 
     # ------------
@@ -200,12 +204,14 @@ verbose = False
     if beta_refit is None: 
         beta_refit = beta
 
+    silh = None
+
 
     # ------------
     # Cluster if needed
     # ------------
     if clusters is None:
-        clusters = cluster_on_missing(data, cols_ignore = columns_ignore, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon = cluster_selection_epsilon)
+        clusters, silh = cluster_on_missing(data, cols_ignore = columns_ignore, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon = cluster_selection_epsilon)
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
@@ -256,7 +262,17 @@ verbose = False
     )
 
     if return_model: 
-        return imputed_dataset, vae
+        if return_silhouettes:
+            return imputed_dataset, vae, silh
+        else:
+            return imputed_dataset, vae
+        
     else:
-        return imputed_dataset
+        if return_silhouettes:
+            return imputed_dataset, silh
+        else:
+            return imputed_dataset
+
+    
+
 

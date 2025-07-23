@@ -53,7 +53,7 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 # Quickstart
 
 If you already know what parameters you want for your model (or do not
-want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the `ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
+want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
 
 Your input dataset should be one of the following:
 
@@ -122,7 +122,8 @@ plot_vae_architecture(model = vae,
                         color_latent = "gold", # xx fix
                         color_input = "lightgreen",
                         color_output = "lightgreen",
-                        figsize=(16, 8))
+                        figsize=(16, 8),
+                        return_fig = False)
 ```
 
 # Hyperparameter Tuning with Optuna

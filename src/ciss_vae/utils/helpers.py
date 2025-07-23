@@ -13,18 +13,20 @@ color_unshared ="lightcoral",
 color_latent = "gold",
 color_input = "lightgreen",
 color_output = "lightgreen",
-figsize=(16, 8)):
+figsize=(16, 8),
+return_fig = False):
     """
     Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.
 
-    Parameters:
-    - model: ()An instance of CISSVAE.
-    - title: Title of plot
-    - color_shared: Color of shared hidden layers
-    - color_unshared: Color of unshared hidden layers
-    - color_input: Color of input layer
-    - color_output: Color of output layer
-    - figsize: Tuple, size of the matplotlib figure.
+    Parameters:   
+        - model: An instance of CISSVAE  
+        - title: Title of plot   
+        - color_shared: Color of shared hidden layers    
+        - color_unshared: Color of unshared hidden layers    
+        - color_input: Color of input layer    
+        - color_output: Color of output layer     
+        - figsize: Tuple, size of the matplotlib figure
+        - return_fig : (bool) : Set as "True" to return the fig object. Default is False    
     """
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -172,8 +174,13 @@ figsize=(16, 8)):
     ax.set_ylim(y_base - (n_clusters * cluster_gap) / 2 - 2, y_base + (n_clusters * cluster_gap) / 2 + 2)
     ax.axis("off")
     ax.set_title(title, fontsize=15, weight='bold')
-    plt.tight_layout()
-    plt.show()
+
+    if return_fig:
+        return fig
+    else:
+        plt.tight_layout()
+        plt.show()
+
 
 
 
