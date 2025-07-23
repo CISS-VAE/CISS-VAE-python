@@ -1,4 +1,4 @@
-# pyCISS-VAE
+# CISS-VAE
 
 Python implementation of the Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE). 
 
