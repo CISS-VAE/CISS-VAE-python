@@ -1,4 +1,3 @@
-
 name: Test and Publish to TestPyPI
 
 on:
@@ -12,78 +11,67 @@ jobs:
   release-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
       - name: Build distributions
         run: |
           python -m pip install --upgrade pip build
           python -m build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
 
   install-check:
-    runs-on: ${{ matrix.os }}
     needs: release-build
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-
-      - name: Install and check import (Unix/macOS)
+      - name: Install and test import (POSIX)
         if: runner.os != 'Windows'
         run: |
           python -m venv venv
-          source venv/bin/activate
+          . venv/bin/activate
           python -m pip install --upgrade pip
           pip install dist/*.whl
           python -c "import ciss_vae"
 
-      - name: Install and check import (Windows)
+      - name: Install and test import (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           python -m venv venv
           .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
-          $whl = (Get-ChildItem dist\*.whl).Name
-          pip install "dist\$whl"
+          pip install dist/*.whl
           python -c "import ciss_vae"
 
   testpypi-publish:
-    runs-on: ubuntu-latest
     needs: install-check
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
     environment:
       name: testpypi
       url: https://test.pypi.org/project/ciss-vae/
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
