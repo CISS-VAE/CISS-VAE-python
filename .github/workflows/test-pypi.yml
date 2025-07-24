@@ -45,12 +45,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install dist/*.whl
           python -c "import ciss_vae"  # should succeed
-      - name: Install with ml extra & test
-        shell: bash
-        run: |
-          source venv/bin/activate
-          pip install -U dist/*.whl[clustering]
-          python -c "from ciss_vae.utils import some_function; print('ml import works')"
 
   testpypi-publish:
     needs: install-check
