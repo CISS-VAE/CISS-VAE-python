@@ -1,6 +1,6 @@
 # CISS-VAE
 
-Python implementation of the Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE). 
+## Python implementation of the Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)
 
 CISS-VAE is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.
 
@@ -41,7 +41,7 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 ## Quickstart Tutorial
 
-The full vignette can be found [here](https://ciss-vae-python.readthedocs.io/en/latest/vignette.html#).
+The full vignette can be found [here](https://ciss-vae.readthedocs.io/en/latest/vignette.html#).
 
 Your input dataset should be one of the following:
 
@@ -117,3 +117,4 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
+![Output of plot_vae_architecture](image-1.png)

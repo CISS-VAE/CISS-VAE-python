@@ -132,7 +132,7 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
-
+![Output of plot_vae_architecture](image-1.png)
 
 # Hyperparameter Tuning with Optuna
 
