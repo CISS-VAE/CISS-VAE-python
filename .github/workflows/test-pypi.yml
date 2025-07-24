@@ -14,8 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+        with: python-version: '3.x'
       - run: |
           python -m pip install --upgrade pip build
           python -m build
@@ -36,10 +35,9 @@ jobs:
           name: release-dists
           path: dist/
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+        with: python-version: '3.x'
 
-      - name: Install and check import (unix)
+      - name: Install and check import (Unix)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -47,17 +45,17 @@ jobs:
           source venv/bin/activate
           python -m pip install --upgrade pip
           pip install dist/*.whl
-          python -c "import ciss_vae"
+          python -c "import ciss_vae; print('✅ OK on Ubuntu/macOS')"
 
-      - name: Install and check import (windows)
+      - name: Install and check import (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           python -m venv venv
-          venv\Scripts\Activate.ps1
+          .\venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
-          pip install dist\*.whl
-          python -c "import ciss_vae"
+          pip install 'dist\*.whl'
+          python -c "import ciss_vae; Write-Host '✅ OK on Windows'"
 
   testpypi-publish:
     runs-on: ubuntu-latest
@@ -71,8 +69,7 @@ jobs:
           name: release-dists
           path: dist/
       - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
+        with: python-version: '3.x'
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
