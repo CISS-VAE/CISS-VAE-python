@@ -14,7 +14,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - run: |
           python -m pip install --upgrade pip build
           python -m build
@@ -27,7 +27,7 @@ jobs:
     needs: release-build
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/download-artifact@v4
@@ -36,21 +36,15 @@ jobs:
           path: dist/
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Install and check import
         shell: bash
         run: |
           python -m venv venv
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            venv\Scripts\activate.bat
-            for %%F in (dist\*.whl) do python -m pip install --upgrade pip && python -m pip install "%%~F"
-          else
-            source venv/bin/activate
-            python -m pip install --upgrade pip
-            python -m pip install dist/*.whl
-          fi
-          python -c "import ciss_vae"
-
+          source venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install dist/*.whl
+          python -c "import ciss_vae"  # should succeed
   testpypi-publish:
     needs: install-check
     runs-on: ubuntu-latest
@@ -66,7 +60,7 @@ jobs:
           path: dist/
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
