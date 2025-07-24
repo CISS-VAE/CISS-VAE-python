@@ -21,12 +21,12 @@ dependencies = [
   "optuna>=4.3",
   "tqdm>=4.67",
   "matplotlib",
+  "scikit-learn"
 ]
 
 [project.optional-dependencies]
 clustering = [
-  "scikit-learn",
-  "hdbscan"
+    "hdbscan"
 ]
 dev = ["pytest", "black", "mypy"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]

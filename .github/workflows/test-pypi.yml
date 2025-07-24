@@ -11,74 +11,63 @@ jobs:
   release-build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
-      - name: Build distributions
-        run: |
+      - run: |
           python -m pip install --upgrade pip build
           python -m build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
 
   install-check:
-    runs-on: ${{ matrix.os }}
     needs: release-build
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.x"
-
       - name: Install and check import
         shell: bash
         run: |
           python -m venv venv
-          if [[ "$RUNNER_OS" == "Windows" ]]; then
-            call venv\Scripts\activate.bat
-          else
-            . venv/bin/activate
-          fi
+          source venv/bin/activate
           python -m pip install --upgrade pip
           pip install dist/*.whl
-          python -c "import ciss_vae"
+          python -c "import ciss_vae"  # should succeed
+      - name: Install with ml extra & test
+        shell: bash
+        run: |
+          source venv/bin/activate
+          pip install -U dist/*.whl[clustering]
+          python -c "from ciss_vae.utils import some_function; print('ml import works')"
 
   testpypi-publish:
-    runs-on: ubuntu-latest
     needs: install-check
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
-
     environment:
       name: testpypi
       url: https://test.pypi.org/project/ciss-vae/
-
     steps:
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
