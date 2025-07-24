@@ -11,8 +11,9 @@ requires-python = ">=3.10"
 license = "MIT"
 
 authors = [
-{ name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" },
-  { name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" }
+{ name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" },
+{ name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" }
+ 
 ]
 dependencies = [
   "numpy>=1.22",
