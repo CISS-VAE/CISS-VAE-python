@@ -111,7 +111,7 @@ plot_vae_architecture(model = vae,
                         ## Colors below are default
                         color_shared = "skyblue", 
                         color_unshared ="lightcoral",
-                        color_latent = "gold", # xx fix
+                        color_latent = "gold", 
                         color_input = "lightgreen",
                         color_output = "lightgreen",
                         figsize=(16, 8),

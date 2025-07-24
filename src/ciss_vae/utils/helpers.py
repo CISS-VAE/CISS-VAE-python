@@ -115,13 +115,13 @@ return_fig = False):
     style = "shared" if model.latent_shared else "unshared"
 
     if style == "shared":
-        draw_box((x, y_base), f"Latent\nμ/σ²\n{latent_dim}", style=style, color=color_latent)
+        draw_box((x, y_base), f"Latent\nμ/σ²\n{latent_dim}", style=style, color=color_latent, color_override=True)
         # Arrow from last encoder layer
         draw_arrow((x - x_gap + box_width / 2, y_base), (x - box_width / 2, y_base))
     else:
         for c in range(n_clusters):
             y_c = y_base + (c - (n_clusters - 1) / 2) * cluster_gap
-            draw_box((x, y_c), f"Latent\nC{c}\nμ/σ²\n{latent_dim}", style=style, color=color_latent)
+            draw_box((x, y_c), f"Latent\nC{c}\nμ/σ²\n{latent_dim}", style=style, color=color_latent, color_override=True)
             draw_arrow((x - x_gap + box_width / 2, y_c), (x - box_width / 2, y_c))
     x += x_gap
 
