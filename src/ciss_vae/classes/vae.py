@@ -42,11 +42,19 @@ class CISSVAE(nn.Module):
         in_features = input_dim
         for idx, (out_features, layer_type) in enumerate(zip(hidden_dims, layer_order_enc)):
             layer_type_lower = layer_type.lower()  # Case-insensitive check
+            # Prepare factory_kwargs, only including non-None dtype/device
+            factory_kwargs = {}
             if layer_type_lower in  ["shared", "s"]: ## if shared add to .encoder_layers
-                self.encoder_layers.append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
+                self.encoder_layers.append(
+                    nn.Sequential(
+                        nn.Linear(in_features, out_features, **factory_kwargs), 
+                        nn.ReLU()))
             elif layer_type_lower in ["unshared", "u"]: ## if unshared add to .cluster_encoder_layers
                 for c in range(num_clusters): ## .cluster_encoder_layers has layer list for each cluster
-                    self.cluster_encoder_layers[str(c)].append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
+                    self.cluster_encoder_layers[str(c)].append(
+                        nn.Sequential(
+                            nn.Linear(in_features, out_features, **factory_kwargs), 
+                            nn.ReLU()))
             else:
                 raise ValueError(f"Invalid encoder layer type at index {idx}: {layer_type}")
             in_features = out_features
@@ -70,11 +78,18 @@ class CISSVAE(nn.Module):
         ## Set up the layers list w/ correct layers in correct order. 
         in_features = latent_dim
         for idx, (out_features, layer_type) in enumerate(zip(hidden_dims[::-1], layer_order_dec)):
+            factory_kwargs = {}
             if layer_type == "shared":
-                self.decoder_layers.append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
+                self.decoder_layers.append(
+                    nn.Sequential(
+                        nn.Linear(in_features, out_features, **factory_kwargs), 
+                        nn.ReLU()))
             elif layer_type == "unshared":
                 for c in range(num_clusters):
-                    self.cluster_decoder_layers[str(c)].append(nn.Sequential(nn.Linear(in_features, out_features), nn.ReLU()))
+                    self.cluster_decoder_layers[str(c)].append(
+                        nn.Sequential(
+                            nn.Linear(in_features, out_features, **factory_kwargs), 
+                            nn.ReLU()))
             else:
                 raise ValueError(f"Invalid decoder layer type at index {idx}: {layer_type}")
             in_features = out_features
