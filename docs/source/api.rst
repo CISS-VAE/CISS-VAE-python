@@ -7,6 +7,7 @@ Classes
 -------
 .. autosummary::
    :toctree: _autosummary
+   :signatures: short
    :caption: Classes in CISS-VAE
 
    ciss_vae.classes.vae.CISSVAE
@@ -17,6 +18,7 @@ Training & Tuning
 -----------------------
 .. autosummary::
    :toctree: _autosummary
+   :signatures: short
    :caption: Run CISS-VAE & Automated Hyperparameter Tuning
 
    ciss_vae.training.autotune.autotune
@@ -26,6 +28,7 @@ Helpers & Plotting
 -------------------
 .. autosummary::
    :toctree: _autosummary
+   :signatures: short
    :caption: Helper functions
 
    ciss_vae.utils.helpers.get_imputed_df
