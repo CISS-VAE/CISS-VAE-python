@@ -165,8 +165,16 @@ def autotune(
         beta = sample_param(trial, "beta", search_space.beta)
         num_epochs = sample_param(trial, "num_epochs", search_space.num_epochs)
         batch_size = sample_param(trial, "batch_size", search_space.batch_size)
-        num_shared_encode = sample_param(trial, "num_shared_encode", search_space.num_shared_encode)
-        num_shared_decode = sample_param(trial, "num_shared_decode", search_space.num_shared_decode)
+        
+        ## handle num_shared_encode/decode 
+        enc_choices = [v for v in search_space.num_shared_encode if v <= num_hidden_layers]
+        enc_choices = enc_choices or [num_hidden_layers]
+        num_shared_encode = trial.suggest_categorical("num_shared_encode", enc_choices)
+        # num_shared_encode = sample_param(trial, "num_shared_encode", search_space.num_shared_encode)
+        dec_choices = [v for v in search_space.num_shared_decode if v <= num_hidden_layers]
+        dec_choices = dec_choices or [num_hidden_layers]
+        num_shared_decode = trial.suggest_categorical("num_shared_decode", dec_choices)
+        # num_shared_decode = sample_param(trial, "num_shared_decode", search_space.num_shared_decode)
         refit_patience = sample_param(trial, "refit_patience", search_space.refit_patience)
         refit_loops = sample_param(trial, "refit_loops", search_space.refit_loops)
         epochs_per_loop = sample_param(trial, "epochs_per_loop", search_space.epochs_per_loop)
