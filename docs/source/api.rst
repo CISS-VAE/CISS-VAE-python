@@ -1,13 +1,32 @@
 API Reference
 =============
 
+.. currentmodule:: ciss_vae
+
+Classes
+-------
 .. autosummary::
    :toctree: _autosummary
-   :recursive:
+   :caption: Classes in CISS-VAE
 
    ciss_vae.classes.vae.CISSVAE
    ciss_vae.classes.cluster_dataset.ClusterDataset
+   ciss_vae.training.autotune.SearchSpace
+
+Training & Tuning
+-----------------------
+.. autosummary::
+   :toctree: _autosummary
+   :caption: Run CISS-VAE & Automated Hyperparameter Tuning
+
    ciss_vae.training.autotune.autotune
    ciss_vae.utils.run_cissvae.run_cissvae
-   ciss_vae.utils.helpers.plot_vae_architecture
+
+Helpers & Plotting
+-------------------
+.. autosummary::
+   :toctree: _autosummary
+   :caption: Helper functions
+
    ciss_vae.utils.helpers.get_imputed_df
+   ciss_vae.utils.helpers.plot_vae_architecture

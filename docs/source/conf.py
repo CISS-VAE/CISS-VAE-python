@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.intersphinx",      # cross-project refs
     "sphinx_autodoc_typehints",    # better type hint rendering
     "myst_parser",                 # if using markdown
+    "sphinx_copybutton"
 ]
 
 autosummary_generate = True
@@ -41,6 +42,10 @@ add_module_names = False  # so :func:`train_model` instead of :func:`vae.train_m
 templates_path = ['_templates']
 exclude_patterns = []
 
+# copybutton behavior (adjust to preference)
+copybutton_prompt_text = ">>> "
+copybutton_only_copy_prompt_lines = False
+copybutton_remove_prompts = True
 
 
 # -- Options for HTML output -------------------------------------------------
