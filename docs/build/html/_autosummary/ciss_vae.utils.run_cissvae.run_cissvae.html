@@ -1,0 +1,183 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.run_cissvae.run_cissvae &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=00122899"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ciss_vae.utils.run_cissvae.cluster_on_missing" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html" />
+    <link rel="prev" title="ciss_vae.training.train_refit.impute_and_refit_loop" href="ciss_vae.training.train_refit.impute_and_refit_loop.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.utils.run_cissvae.run_cissvae</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ciss_vae.utils.run_cissvae.run_cissvae"><code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.run_cissvae.run_cissvae</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ciss-vae-utils-run-cissvae-run-cissvae">
+<h1>ciss_vae.utils.run_cissvae.run_cissvae<a class="headerlink" href="#ciss-vae-utils-run-cissvae-run-cissvae" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="ciss_vae.utils.run_cissvae.run_cissvae">
+<span class="sig-name descname"><span class="pre">run_cissvae</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">print_dataset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clusters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_clusters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_selection_epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">missingness_proportion_matrix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[150,</span> <span class="pre">120,</span> <span class="pre">60]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['unshared',</span> <span class="pre">'unshared',</span> <span class="pre">'unshared']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['shared',</span> <span class="pre">'shared',</span> <span class="pre">'shared']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs_per_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_lr_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_silhouettes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/run_cissvae.html#run_cissvae"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.run_cissvae.run_cissvae" title="Link to this definition"></a></dt>
+<dd><p>End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</p>
+<p>This function handles data preparation, optional clustering, initial VAE training,
+and iterative refitting loops until convergence, returning the final reconstructed data and (optionally) the trained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pd.DataFrame</em><em> | </em><em>np.ndarray</em><em> | </em><em>torch.Tensor</em>) – Input data matrix (samples × features), may contain missing values.</p></li>
+<li><p><strong>val_proportion</strong> (<em>float</em><em>, </em><em>default=0.1</em>) – Fraction of non-missing entries per cluster to mask for validation.</p></li>
+<li><p><strong>replacement_value</strong> (<em>float</em><em>, </em><em>default=0.0</em>) – Value used to fill in masked entries (e.g., zero imputation).</p></li>
+<li><p><strong>columns_ignore</strong> (<em>list</em><em>[</em><em>int</em><em>|</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>default=None</em>) – Column names or indices to exclude from masking for valiation.</p></li>
+<li><p><strong>print_dataset</strong> (<em>bool</em><em>, </em><em>default=True</em>) – If True, prints dataset summary.</p></li>
+<li><p><strong>clusters</strong> (<em>array-like</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Precomputed cluster labels per sample. If None, clustering will be performed.</p></li>
+<li><p><strong>n_clusters</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Number of clusters to form with KMeans clustering if <cite>clusters</cite> is None. If None and clusters is None, will perform hdbscan clustering.</p></li>
+<li><p><strong>cluster_selection_epsilon</strong> (<em>float</em><em>, </em><em>default=0.25</em>) – cluster_selection_epsilon for hdbscan clustering.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>default=42</em>) – Random seed for reproducibility.</p></li>
+<li><p><strong>missingness_proportion_matrix</strong> (<em>pd.DataFrame</em><em> | </em><em>np.ndarray</em><em>, </em><em>default=None</em>) – Missingness proportion matrix for cluster_on_missing_prop.</p></li>
+<li><p><strong>scale_features</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If true, scales features for missingness proportion matrix.</p></li>
+<li><p><strong>hidden_dims</strong> (<em>list</em><em> of </em><em>int</em><em>, </em><em>default=</em><em>[</em><em>150</em><em>, </em><em>120</em><em>, </em><em>60</em><em>]</em>) – Sizes of hidden layers in encoder/decoder (excluding latent layer).</p></li>
+<li><p><strong>latent_dim</strong> (<em>int</em><em>, </em><em>default=15</em>) – Dimensionality of the VAE latent space.</p></li>
+<li><p><strong>layer_order_enc</strong> (<em>list</em><em> of </em><em>{&quot;shared&quot;</em><em>,</em><em>&quot;unshared&quot;}</em><em>, </em><em>default=</em><em>[</em><em>&quot;unshared&quot;</em><em>,</em><em>&quot;unshared&quot;</em><em>,</em><em>&quot;unshared&quot;</em><em>]</em>) – Specify whether each encoder layer is shared across clusters or unique per cluster.</p></li>
+<li><p><strong>layer_order_dec</strong> (<em>list</em><em> of </em><em>{&quot;shared&quot;</em><em>,</em><em>&quot;unshared&quot;}</em><em>, </em><em>default=</em><em>[</em><em>&quot;shared&quot;</em><em>,</em><em>&quot;shared&quot;</em><em>,</em><em>&quot;shared&quot;</em><em>]</em>) – Specify whether each decoder layer is shared or unique per cluster.</p></li>
+<li><p><strong>latent_shared</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, latent layer weights are shared across clusters.</p></li>
+<li><p><strong>output_shared</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, final output layer weights are shared across clusters.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>default=4000</em>) – Number of samples per training batch.</p></li>
+<li><p><strong>return_model</strong> (<em>bool</em><em>, </em><em>default=True</em>) – If True, returns the trained VAE model; otherwise returns only reconstructed data.</p></li>
+<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>default=500</em>) – Number of epochs for initial training.</p></li>
+<li><p><strong>initial_lr</strong> (<em>float</em><em>, </em><em>default=0.01</em>) – Initial learning rate for the optimizer.</p></li>
+<li><p><strong>decay_factor</strong> (<em>float</em><em>, </em><em>default=0.999</em>) – Multiplicative factor to decay the learning rate each epoch.</p></li>
+<li><p><strong>beta</strong> (<em>float</em><em>, </em><em>default=0.001</em>) – Weight of the KL-divergence term in the VAE loss.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Device for computation (“cpu” or “cuda”). If None, auto-selects.</p></li>
+<li><p><strong>max_loops</strong> (<em>int</em><em>, </em><em>default=100</em>) – Maximum number of refitting loops after initial training.</p></li>
+<li><p><strong>patience</strong> (<em>int</em><em>, </em><em>default=2</em>) – Number of loops with no improvement before early stopping.</p></li>
+<li><p><strong>epochs_per_loop</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Number of epochs per refit loop; if None, uses <cite>epochs</cite>.</p></li>
+<li><p><strong>initial_lr_refit</strong> (<em>float</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Learning rate for refit loops; if None, uses <cite>initial_lr</cite>.</p></li>
+<li><p><strong>decay_factor_refit</strong> (<em>float</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – LR decay for refit; if None, uses <cite>decay_factor</cite>.</p></li>
+<li><p><strong>beta_refit</strong> (<em>float</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – KL weight for refit; if None, uses <cite>beta</cite>.</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, prints progress messages during training and refitting.</p></li>
+<li><p><strong>return_silhouettes</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, returns silhouettes from clustering</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ciss_vae.training.train_refit.impute_and_refit_loop.html" class="btn btn-neutral float-left" title="ciss_vae.training.train_refit.impute_and_refit_loop" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ciss_vae.utils.run_cissvae.cluster_on_missing.html" class="btn btn-neutral float-right" title="ciss_vae.utils.run_cissvae.cluster_on_missing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

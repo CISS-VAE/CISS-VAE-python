@@ -1,0 +1,685 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.training.autotune &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=00122899"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.training.autotune</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.training.autotune</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">optuna</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_initial</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_vae_initial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_refit</span><span class="w"> </span><span class="kn">import</span> <span class="n">impute_and_refit_loop</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_val_mse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">TQDMProgress</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Custom callback to show progress bar for Optuna trials.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_trials</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Optuna tuning&quot;</span><span class="p">,</span> <span class="n">leave</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pbar</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SearchSpace">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SearchSpace</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines tunable and fixed hyperparameter ranges. Input for &#39;autotune&#39; function.</span>
+<span class="sd">    [] -&gt; pick items from list.</span>
+<span class="sd">    () -&gt; tuple, creates a range (min, max, step).</span>
+<span class="sd">     x -&gt; use single value&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="SearchSpace.__init__">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">num_hidden_layers</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                 <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span>
+                 <span class="n">latent_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+                 <span class="n">latent_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+                 <span class="n">output_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">],</span>
+                 <span class="n">lr</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">),</span>
+                 <span class="n">decay_factor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">),</span>
+                 <span class="n">beta</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                 <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">refit_loops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_hidden_layers</span> <span class="o">=</span> <span class="n">num_hidden_layers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dims</span> <span class="o">=</span> <span class="n">hidden_dims</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span> <span class="o">=</span> <span class="n">latent_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">latent_shared</span> <span class="o">=</span> <span class="n">latent_shared</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="n">lr</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decay_factor</span> <span class="o">=</span> <span class="n">decay_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beta</span> <span class="o">=</span> <span class="n">beta</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_epochs</span> <span class="o">=</span> <span class="n">num_epochs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_shared_encode</span> <span class="o">=</span> <span class="n">num_shared_encode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_shared_decode</span> <span class="o">=</span> <span class="n">num_shared_decode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refit_patience</span> <span class="o">=</span> <span class="n">refit_patience</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">refit_loops</span> <span class="o">=</span> <span class="n">refit_loops</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="n">epochs_per_loop</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="n">reset_lr_refit</span></div>
+</div>
+
+
+<div class="viewcode-block" id="autotune">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span><span class="p">:</span> <span class="n">SearchSpace</span><span class="p">,</span>
+    <span class="n">train_dataset</span><span class="p">:</span> <span class="n">ClusterDataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">permute_hidden_layers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>   <span class="c1"># default: expose layer order as Optuna categorical params</span>
+    <span class="n">constant_layer_size</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>    <span class="c1"># if True, one dim is tuned and repeated for all layers</span>
+    <span class="n">evaluate_all_orders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>    <span class="c1"># if True, try ALL valid enc/dec orders per trial and pick best</span>
+    <span class="n">max_exhaustive_orders</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>    <span class="c1"># safety cap for evaluate_all_orders</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Optuna-based hyperparameter search for VAE model.</span>
+<span class="sd">        Parameters:</span>
+<span class="sd">            - search_space : SearchSpace</span>
+<span class="sd">                The hyperparameter search space for the tuning</span>
+<span class="sd">            - train_dataset : ClusterDataset</span>
+<span class="sd">                A ClusterDataset object                 </span>
+<span class="sd">            - save_model_path : </span>
+<span class="sd">                [optional], Where to save the best model</span>
+<span class="sd">            - save_search_space_path : </span>
+<span class="sd">                [optional], Where to save the search space</span>
+<span class="sd">            - n_trials : int </span>
+<span class="sd">                Number of trials to run</span>
+<span class="sd">            - study_name : str default=&quot;vae_autotune&quot;</span>
+<span class="sd">                Name for the optuna study, default is &quot;vae_autotune&quot;,</span>
+<span class="sd">            - device_preference : (str), </span>
+<span class="sd">                Preferred device, default is &quot;cuda&quot;,</span>
+<span class="sd">            - show_progress : (bool) default=False, </span>
+<span class="sd">                Set as True to show progress bar, default is False,</span>
+<span class="sd">            - optuna_dashboard_db : (str), </span>
+<span class="sd">                Path to optuna dashboard db file. Default is None,</span>
+<span class="sd">            - load_if_exists : (bool) default=True, </span>
+<span class="sd">                If study by &#39;study_name&#39; exists in optuna dashboard db, load that study. Default is True.</span>
+<span class="sd">            - seed : (int): </span>
+<span class="sd">                Seed for selecting order of shared/unshared layers. Default is 42.</span>
+<span class="sd">            - verbose : (bool) default=False: </span>
+<span class="sd">                Set to True to print diagnostic statements. Default is False</span>
+<span class="sd">            permute_hidden_layers : (bool) default=TRUE:</span>
+<span class="sd">                *True*: Encoder/decoder shared/unshared **order** is represented as **categorical</span>
+<span class="sd">                Optuna parameters** (`layer_order_enc`, `layer_order_dec`) chosen from all valid</span>
+<span class="sd">                permutations given the number of shared layers. This makes order visible in</span>
+<span class="sd">                parameter-importance plots on the Optuna dashboard.</span>
+
+<span class="sd">                *False*: Use a canonical, deterministic layout (no search over order):</span>
+<span class="sd">                - ENCODER: shared layers at the **END** (unshared...unshared, shared...shared)</span>
+<span class="sd">                - DECODER: shared layers at the **START** (shared...shared, unshared...unshared)</span>
+<span class="sd">            - constant_layer_size : (bool) default=False:</span>
+<span class="sd">                If True, Optuna samples a single `hidden_dim_constant` and we **repeat** it</span>
+<span class="sd">                across all hidden layers (cleaner importances, fewer degrees of freedom).</span>
+<span class="sd">                Otherwise, tune one `hidden_dim_i` per layer.</span>
+<span class="sd">            - evaluate_all_orders : (bool) default=False:</span>
+<span class="sd">                If True, each trial **exhaustively evaluates *all* valid order pairs**</span>
+<span class="sd">                (given `num_hidden_layers`, `num_shared_encode`, `num_shared_decode`)</span>
+<span class="sd">                and returns the best metric among them. In this mode, layer order is</span>
+<span class="sd">                *not* an Optuna parameter (so it won&#39;t appear in importance), but the</span>
+<span class="sd">                chosen best orders are recorded in `trial.user_attrs` and included in</span>
+<span class="sd">                `results_df`. Guarded by `max_exhaustive_orders` to avoid explosion.</span>
+<span class="sd">            - max_exhaustive_orders : (int) default=100:</span>
+<span class="sd">                If `evaluate_all_orders`, sets safety cap for number of runs to try. Can be increased/decreased as needed. </span>
+
+
+<span class="sd">        Returns: </span>
+<span class="sd">            best_imputed_df : pd.DataFrame</span>
+<span class="sd">                The imputed dataset from the best model</span>
+<span class="sd">            best_model : CISSVAE </span>
+<span class="sd">                The best model</span>
+<span class="sd">            study : </span>
+<span class="sd">                Optuna study</span>
+<span class="sd">            results_df : pd.DataFrame</span>
+<span class="sd">                The results of the autotuning</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+    <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Infer device</span>
+    <span class="c1"># --------------------------</span>
+    <span class="k">if</span> <span class="n">device_preference</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[Warning] CUDA requested but not available. Falling back to CPU.&quot;</span><span class="p">)</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_preference</span><span class="p">)</span>
+
+    <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;minimize&quot;</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Infer input dim and num clusters</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">input_dim</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">num_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">train_dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">))</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Helper to sample from fixed, categorical, or range param</span>
+    <span class="c1"># --------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">value</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_float</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">log</span><span class="o">=</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported parameter format for &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Helpers to format order of shared/unshared + control for enumerating or sampling form orders</span>
+    <span class="c1"># --------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_format_order</span><span class="p">(</span><span class="n">order_list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;[&#39;shared&#39;,&#39;unshared&#39;,...] → &#39;S,U,...&#39; (stable, readable, categorical)&quot;&quot;&quot;</span>
+        <span class="n">abbrev</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;shared&#39;</span><span class="p">:</span> <span class="s1">&#39;S&#39;</span><span class="p">,</span> <span class="s1">&#39;unshared&#39;</span><span class="p">:</span> <span class="s1">&#39;U&#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">abbrev</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">order_list</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_decode_pattern</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        &#39;S,U,S&#39; → [&#39;shared&#39;,&#39;unshared&#39;,&#39;shared&#39;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;S&#39;</span><span class="p">:</span> <span class="s1">&#39;shared&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">:</span> <span class="s1">&#39;unshared&#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">m</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_enumerate_orders</span><span class="p">(</span><span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_shared</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Deterministically enumerate **all** valid orders (no randomness).</span>
+<span class="sd">        Each order is a string like &#39;S,U,U,S&#39;. Uses combinations to place S.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n_layers</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n_shared</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">n_shared</span> <span class="o">&gt;</span> <span class="n">n_layers</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">patterns</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idxs</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">),</span> <span class="n">n_shared</span><span class="p">):</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;U&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">n_layers</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">idxs</span><span class="p">:</span>
+                <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;S&#39;</span>
+            <span class="n">patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>  <span class="c1"># lexicographic by construction</span>
+        <span class="k">return</span> <span class="n">patterns</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_orders</span><span class="p">(</span><span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nse</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nsd</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Canonical (non-permuted) layout:</span>
+<span class="sd">          - ENCODER: unshared ... unshared, shared ... shared   (shared at END)</span>
+<span class="sd">          - DECODER: shared ... shared, unshared ... unshared   (shared at START)</span>
+<span class="sd">        Returns patterns as &#39;S,U,...&#39; strings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">enc_list</span> <span class="o">=</span> <span class="p">([</span><span class="s2">&quot;unshared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">nse</span><span class="p">))</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;shared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nse</span><span class="p">)</span>
+        <span class="n">dec_list</span> <span class="o">=</span> <span class="p">([</span><span class="s2">&quot;shared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsd</span><span class="p">)</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;unshared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">nsd</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">enc_list</span><span class="p">),</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">dec_list</span><span class="p">)</span>
+
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Create Optuna objective</span>
+    <span class="c1"># --------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
+        <span class="c1"># --------------------------</span>
+        <span class="c1"># Parse Parameters</span>
+        <span class="c1"># --------------------------</span>
+        <span class="n">num_hidden_layers</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;num_hidden_layers&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">num_hidden_layers</span><span class="p">)</span>
+        <span class="c1"># ---- Hidden dimensions ----</span>
+        <span class="k">if</span> <span class="n">constant_layer_size</span><span class="p">:</span>
+            <span class="c1"># One parameter drives all hidden dims (shows up in importance)</span>
+            <span class="n">base_dim</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;hidden_dim_constant&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">hidden_dims</span><span class="p">)</span>
+            <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">base_dim</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_hidden_layers</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># One param per layer</span>
+            <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;hidden_dim_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">hidden_dims</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="n">latent_dim</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;latent_dim&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">latent_dim</span><span class="p">)</span>
+        <span class="n">latent_shared</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;latent_shared&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">latent_shared</span><span class="p">)</span>
+        <span class="n">output_shared</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;output_shared&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">output_shared</span><span class="p">)</span>
+        <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">lr</span><span class="p">)</span>
+        <span class="n">decay_factor</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;decay_factor&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">decay_factor</span><span class="p">)</span>
+        <span class="n">beta</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;beta&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span>
+        <span class="n">num_epochs</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;num_epochs&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">num_epochs</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;batch_size&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+        
+        <span class="c1">## handle num_shared_encode/decode </span>
+        <span class="n">enc_choices</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">search_space</span><span class="o">.</span><span class="n">num_shared_encode</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="n">num_hidden_layers</span><span class="p">]</span>
+        <span class="n">enc_choices</span> <span class="o">=</span> <span class="n">enc_choices</span> <span class="ow">or</span> <span class="p">[</span><span class="n">num_hidden_layers</span><span class="p">]</span>
+        <span class="n">num_shared_encode</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;num_shared_encode&quot;</span><span class="p">,</span> <span class="n">enc_choices</span><span class="p">)</span>
+        <span class="c1"># num_shared_encode = sample_param(trial, &quot;num_shared_encode&quot;, search_space.num_shared_encode)</span>
+        <span class="n">dec_choices</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">search_space</span><span class="o">.</span><span class="n">num_shared_decode</span> <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="n">num_hidden_layers</span><span class="p">]</span>
+        <span class="n">dec_choices</span> <span class="o">=</span> <span class="n">dec_choices</span> <span class="ow">or</span> <span class="p">[</span><span class="n">num_hidden_layers</span><span class="p">]</span>
+        <span class="n">num_shared_decode</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;num_shared_decode&quot;</span><span class="p">,</span> <span class="n">dec_choices</span><span class="p">)</span>
+        <span class="c1"># num_shared_decode = sample_param(trial, &quot;num_shared_decode&quot;, search_space.num_shared_decode)</span>
+        <span class="n">refit_patience</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;refit_patience&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">refit_patience</span><span class="p">)</span>
+        <span class="n">refit_loops</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;refit_loops&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">refit_loops</span><span class="p">)</span>
+        <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;epochs_per_loop&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">epochs_per_loop</span><span class="p">)</span>
+        <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;reset_lr_refit&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">reset_lr_refit</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">reset_lr_refit</span><span class="p">:</span>
+            <span class="n">lr_refit</span> <span class="o">=</span> <span class="n">learning_rate</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lr_refit</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># --------------------------</span>
+        <span class="c1"># Handle hidden layers</span>
+        <span class="c1"># Allow for permutation of hidden layers</span>
+        <span class="c1"># Create shared/unshared layer orders for encoder &amp; decoder</span>
+        <span class="c1"># layer_order_enc: List of str: &quot;shared&quot; or &quot;unshared&quot;</span>
+        <span class="c1"># layer_order_dec: List of str: &quot;shared&quot; or &quot;unshared&quot;</span>
+        <span class="c1"># --------------------------</span>
+
+        <span class="n">enc_pool</span> <span class="o">=</span> <span class="n">_enumerate_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">)</span>  <span class="c1"># e.g., [&#39;S,U,U&#39;,&#39;U,S,U&#39;,...]</span>
+        <span class="n">dec_pool</span> <span class="o">=</span> <span class="n">_enumerate_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">)</span>
+
+        <span class="c1"># Determine which orders to evaluate this trial</span>
+        <span class="k">if</span> <span class="n">permute_hidden_layers</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">evaluate_all_orders</span><span class="p">:</span>
+            <span class="c1"># Expose order as **categorical parameters** (visible in Optuna importance)</span>
+            <span class="n">enc_pattern</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;layer_order_enc&quot;</span><span class="p">,</span> <span class="n">enc_pool</span><span class="p">)</span>
+            <span class="n">dec_pattern</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;layer_order_dec&quot;</span><span class="p">,</span> <span class="n">dec_pool</span><span class="p">)</span>
+            <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="p">[(</span><span class="n">enc_pattern</span><span class="p">,</span> <span class="n">dec_pattern</span><span class="p">)]</span>
+
+            <span class="c1"># Record for convenience</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">,</span> <span class="n">enc_pattern</span><span class="p">)</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;layer_order_dec_used&quot;</span><span class="p">,</span> <span class="n">dec_pattern</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">evaluate_all_orders</span><span class="p">:</span>
+            <span class="c1"># Exhaustively evaluate enc×dec order pairs up to the cap; if more, warn &amp; sample.</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_pool</span><span class="p">)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dec_pool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">total</span> <span class="o">&lt;=</span> <span class="n">max_exhaustive_orders</span><span class="p">:</span>
+                <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="n">enc_pool</span><span class="p">,</span> <span class="n">dec_pool</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Exhaustive order eval would run </span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> models; sampling &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">max_exhaustive_orders</span><span class="si">}</span><span class="s2"> combos uniformly without replacement.&quot;</span><span class="p">,</span>
+                    <span class="ne">RuntimeWarning</span>
+                <span class="p">)</span>
+                <span class="c1"># Reproducible uniform sampling without building the full product list.</span>
+                <span class="c1"># Index the Cartesian product by i ∈ [0, total):</span>
+                <span class="c1">#   enc_idx = i // len(dec_pool), dec_idx = i % len(dec_pool)</span>
+                <span class="n">rng</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">+</span> <span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="n">max_exhaustive_orders</span>
+                <span class="c1"># Guard: if k &gt; total (e.g., user sets a huge cap), clamp to total</span>
+                <span class="n">k</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+                <span class="n">sampled_indices</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">total</span><span class="p">),</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+                <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="p">(</span><span class="n">enc_pool</span><span class="p">[</span><span class="n">i</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">dec_pool</span><span class="p">)],</span> <span class="n">dec_pool</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">dec_pool</span><span class="p">)])</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sampled_indices</span>
+                <span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Non-permuted **canonical** layout:</span>
+            <span class="c1">#   ENCODER shared at END, DECODER shared at START</span>
+            <span class="n">enc_pattern</span><span class="p">,</span> <span class="n">dec_pattern</span> <span class="o">=</span> <span class="n">_canonical_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">)</span>
+            <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="p">[(</span><span class="n">enc_pattern</span><span class="p">,</span> <span class="n">dec_pattern</span><span class="p">)]</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">,</span> <span class="n">enc_pattern</span><span class="p">)</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;layer_order_dec_used&quot;</span><span class="p">,</span> <span class="n">dec_pattern</span><span class="p">)</span>
+
+
+        <span class="n">best_val</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">best_patterns</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">best_val_mse_history</span> <span class="o">=</span> <span class="kc">None</span> <span class="c1">## lets us plot the val_mse_history</span>
+
+        <span class="k">for</span> <span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span> <span class="ow">in</span> <span class="n">combos_to_eval</span><span class="p">:</span>
+            <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">enc_pat</span><span class="p">)</span>
+            <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">dec_pat</span><span class="p">)</span>
+
+            <span class="c1"># --------------------------</span>
+            <span class="c1"># Train loader and model</span>
+            <span class="c1"># --------------------------</span>
+            
+            <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="n">model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
+                <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
+                <span class="n">hidden_dims</span><span class="o">=</span><span class="n">hidden_dims</span><span class="p">,</span>
+                <span class="n">layer_order_enc</span><span class="o">=</span><span class="n">layer_order_enc</span><span class="p">,</span>
+                <span class="n">layer_order_dec</span><span class="o">=</span><span class="n">layer_order_dec</span><span class="p">,</span>
+                <span class="n">latent_shared</span><span class="o">=</span><span class="n">latent_shared</span><span class="p">,</span>
+                <span class="n">num_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span>
+                <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
+                <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="c1"># --------------------------</span>
+            <span class="c1"># Initial training</span>
+            <span class="c1"># --------------------------</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+
+            <span class="c1"># --------------------------</span>
+            <span class="c1"># Impute &amp; refit loop</span>
+            <span class="c1"># --------------------------</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">val_mse_history</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">max_loops</span><span class="o">=</span><span class="n">refit_loops</span><span class="p">,</span>
+                <span class="n">patience</span><span class="o">=</span><span class="n">refit_patience</span><span class="p">,</span>
+                <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr_refit</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span>
+            <span class="p">)</span>
+
+            <span class="c1"># --------------------------</span>
+            <span class="c1"># Get validation MSE from the training-refit loop</span>
+            <span class="c1"># --------------------------</span>
+            <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">best_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val_mse</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">):</span>
+                <span class="n">best_val</span> <span class="o">=</span> <span class="n">val_mse</span>
+                <span class="n">best_patterns</span> <span class="o">=</span> <span class="p">(</span><span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span><span class="p">)</span>
+                <span class="n">best_val_mse_history</span> <span class="o">=</span> <span class="n">val_mse_history</span>
+
+        <span class="c1"># Report intermediate values to Optuna (so dashboard shows the learning curve)</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val_mse</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_val_mse_history</span><span class="p">):</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="n">val_mse</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
+        
+        <span class="c1"># Record the chosen best patterns for this trial (useful in exhaustive/sample mode)</span>
+        <span class="k">if</span> <span class="n">best_patterns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">,</span> <span class="n">best_patterns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_layer_order_dec&quot;</span><span class="p">,</span> <span class="n">best_patterns</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">best_val</span>
+
+    <span class="c1"># -----------------------</span>
+    <span class="c1"># Optuna study setup</span>
+    <span class="c1"># -----------------------</span>
+    <span class="n">study</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">create_study</span><span class="p">(</span>
+        <span class="n">direction</span><span class="o">=</span><span class="n">direction</span><span class="p">,</span>
+        <span class="n">study_name</span><span class="o">=</span><span class="n">study_name</span><span class="p">,</span>
+        <span class="n">storage</span><span class="o">=</span><span class="n">optuna_dashboard_db</span><span class="p">,</span>
+        <span class="n">load_if_exists</span><span class="o">=</span><span class="n">load_if_exists</span>
+    <span class="p">)</span>
+
+    <span class="c1"># -----------------------</span>
+    <span class="c1"># Progress bar</span>
+    <span class="c1"># -----------------------</span>
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="n">progress</span> <span class="o">=</span> <span class="n">TQDMProgress</span><span class="p">(</span><span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">)</span>
+        <span class="n">study</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span> <span class="n">callbacks</span><span class="o">=</span><span class="p">[</span><span class="n">progress</span><span class="p">])</span>
+        <span class="n">progress</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">study</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">)</span>
+
+    <span class="n">best_params</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># -----------------------</span>
+    <span class="c1"># Final model: train with best params from scratch (robust to fixed params)</span>
+    <span class="c1"># -----------------------</span>
+
+    <span class="c1"># Helper to get best param or fallback to search_space default</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_best_param</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">best_params</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">best_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+    <span class="c1"># 1. num_hidden_layers (int)</span>
+    <span class="n">best_num_hidden_layers</span> <span class="o">=</span> <span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;num_hidden_layers&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 2. hidden_dims (list of int)</span>
+    <span class="c1"># If hidden_dims were tuned, best_params will have keys like &quot;hidden_dim_0&quot;, else just use fixed or list from search_space</span>
+    <span class="k">if</span> <span class="n">constant_layer_size</span><span class="p">:</span>
+        <span class="c1"># If we tuned it, it will be present; otherwise fall back to search_space</span>
+        <span class="k">if</span> <span class="s2">&quot;hidden_dim_constant&quot;</span> <span class="ow">in</span> <span class="n">best_params</span><span class="p">:</span>
+            <span class="n">base_dim</span> <span class="o">=</span> <span class="n">best_params</span><span class="p">[</span><span class="s2">&quot;hidden_dim_constant&quot;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">base_dim</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="s2">&quot;hidden_dims&quot;</span><span class="p">,</span> <span class="mi">64</span><span class="p">)</span>  <span class="c1"># conservative fallback</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_dim</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="n">base_dim</span> <span class="o">=</span> <span class="n">base_dim</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">base_dim</span><span class="p">)]</span> <span class="o">*</span> <span class="n">best_num_hidden_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;hidden_dim_0&quot;</span> <span class="ow">in</span> <span class="n">best_params</span><span class="p">:</span>
+            <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">best_params</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;hidden_dim_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">best_num_hidden_layers</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hdims</span> <span class="o">=</span> <span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;hidden_dims&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hdims</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hdims</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="n">hdims</span> <span class="o">*</span> <span class="n">best_num_hidden_layers</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">hdims</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">best_num_hidden_layers</span><span class="p">:</span>
+                    <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="p">(</span><span class="n">hdims</span> <span class="o">*</span> <span class="n">best_num_hidden_layers</span><span class="p">)[:</span><span class="n">best_num_hidden_layers</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="n">hdims</span><span class="p">[:</span><span class="n">best_num_hidden_layers</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdims</span><span class="p">]</span> <span class="o">*</span> <span class="n">best_num_hidden_layers</span>
+
+
+
+    <span class="c1"># 3. Layer orders (reproducible from Optuna trial, no shuffle)</span>
+    <span class="c1"># Retrieve best encoder/decoder patterns for the best trial</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_best_patterns_from_study</span><span class="p">(</span><span class="n">study_</span><span class="p">:</span> <span class="n">optuna</span><span class="o">.</span><span class="n">Study</span><span class="p">):</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">study_</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">ua</span> <span class="o">=</span> <span class="n">study_</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">user_attrs</span>
+        <span class="c1"># If permuted (non-exhaustive), patterns live in params; else in user_attrs.</span>
+        <span class="n">enc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_enc&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">)</span>
+        <span class="n">dec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_dec&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_dec&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_dec_used&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">enc</span><span class="p">,</span> <span class="n">dec</span>
+
+    <span class="n">enc_pattern</span><span class="p">,</span> <span class="n">dec_pattern</span> <span class="o">=</span> <span class="n">_get_best_patterns_from_study</span><span class="p">(</span><span class="n">study</span><span class="p">)</span>
+
+    <span class="c1"># If missing (very unlikely), fall back to canonical using best counts</span>
+    <span class="k">if</span> <span class="n">enc_pattern</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dec_pattern</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">best_nse</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;num_shared_encode&quot;</span><span class="p">))</span>
+        <span class="n">best_nsd</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;num_shared_decode&quot;</span><span class="p">))</span>
+        <span class="n">enc_pattern</span><span class="p">,</span> <span class="n">dec_pattern</span> <span class="o">=</span> <span class="n">_canonical_orders</span><span class="p">(</span><span class="n">best_num_hidden_layers</span><span class="p">,</span> <span class="n">best_nse</span><span class="p">,</span> <span class="n">best_nsd</span><span class="p">)</span>
+
+    <span class="n">best_layer_order_enc</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">enc_pattern</span><span class="p">)</span>
+    <span class="n">best_layer_order_dec</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">dec_pattern</span><span class="p">)</span>
+
+    <span class="n">latent_shared</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;latent_shared&quot;</span><span class="p">))</span>
+    <span class="n">output_shared</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;output_shared&quot;</span><span class="p">))</span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;latent_dim&quot;</span><span class="p">))</span>
+    <span class="n">num_epochs</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;num_epochs&quot;</span><span class="p">))</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;lr&quot;</span><span class="p">))</span>
+    <span class="n">decay_factor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;decay_factor&quot;</span><span class="p">))</span>
+    <span class="n">beta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">))</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">))</span>
+
+    <span class="c1"># ---------------------</span>
+    <span class="c1"># Build &amp; train the final best model</span>
+    <span class="c1"># ---------------------</span>
+
+    <span class="c1"># Prepare DataLoader</span>
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Create best model</span>
+    <span class="n">best_model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">hidden_dims</span><span class="o">=</span><span class="n">best_hidden_dims</span><span class="p">,</span>
+        <span class="n">layer_order_enc</span><span class="o">=</span><span class="n">best_layer_order_enc</span><span class="p">,</span>
+        <span class="n">layer_order_dec</span><span class="o">=</span><span class="n">best_layer_order_dec</span><span class="p">,</span>
+        <span class="n">latent_shared</span><span class="o">=</span><span class="n">latent_shared</span><span class="p">,</span>
+        <span class="n">num_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span>
+        <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
+        <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="c1"># Train initial fit</span>
+    <span class="n">best_model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Impute &amp; refit</span>
+    <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">max_loops</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">refit_loops</span><span class="p">,</span>
+        <span class="n">patience</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">refit_patience</span><span class="p">,</span>
+        <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">)</span>
+
+    <span class="c1"># -----------------------</span>
+    <span class="c1"># Save things if needed</span>
+    <span class="c1"># -----------------------</span>
+    <span class="k">if</span> <span class="n">save_model_path</span><span class="p">:</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">save_model_path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">save_search_space_path</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_search_space_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">search_space</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+
+    <span class="c1"># Results DataFrame (include layer orders per trial for inspection)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">study</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;trial_number&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">number</span><span class="p">,</span> <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="p">}</span>
+        <span class="c1"># Include which order actually got used/evaluated-best even if not a param</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_enc&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">row</span><span class="p">[</span><span class="s2">&quot;layer_order_dec_used&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_dec&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_dec&quot;</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_dec_used&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+    <span class="n">results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.training.train_refit &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=00122899"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.training.train_refit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.training.train_refit</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">TensorDataset</span><span class="p">,</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.optim</span><span class="w"> </span><span class="kn">import</span> <span class="n">Adam</span><span class="p">,</span> <span class="n">lr_scheduler</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">loss_function</span><span class="p">,</span> <span class="n">loss_function_nomask</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_imputed_df</span><span class="p">,</span> <span class="n">get_imputed</span><span class="p">,</span> <span class="n">compute_val_mse</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">train_vae_refit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">imputed_data</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                    <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">optimizer</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">)</span>
+    <span class="n">scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">)</span>
+
+
+    <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">imputed_data</span><span class="p">:</span>
+            <span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">mask_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">batch</span>
+            <span class="n">x_batch</span> <span class="o">=</span> <span class="n">x_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">cluster_batch</span> <span class="o">=</span> <span class="n">cluster_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">mask_batch</span> <span class="o">=</span> <span class="n">mask_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">recon_x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">)</span>
+            <span class="n">loss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loss_function_nomask</span><span class="p">(</span>
+                <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">recon_x</span><span class="p">,</span> <span class="n">x_batch</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">return_components</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
+            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
+            <span class="n">optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+            <span class="n">total_loss</span> <span class="o">+=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+        <span class="n">avg_loss</span> <span class="o">=</span> <span class="n">total_loss</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, Refit Loss: </span><span class="si">{</span><span class="n">avg_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, LR: </span><span class="si">{</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+
+        <span class="c1"># if avg_loss &lt; best_loss:</span>
+        <span class="c1">#     best_loss = avg_loss</span>
+        <span class="c1">#     patience_counter = 0</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     patience_counter += 1</span>
+        <span class="c1">#     if patience_counter &gt;= patience:</span>
+        <span class="c1">#         if verbose:</span>
+        <span class="c1">#             print(&quot;Early stopping triggered.&quot;)</span>
+        <span class="c1">#         break</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">set_final_lr</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">model</span>
+
+
+
+
+<div class="viewcode-block" id="impute_and_refit_loop">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.train_refit.impute_and_refit_loop.html#ciss_vae.training.train_refit.impute_and_refit_loop">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">impute_and_refit_loop</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">max_loops</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                          <span class="n">epochs_per_loop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">initial_lr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span>
+                          <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4000</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Iterative impute-refit loop with validation MSE early stopping.</span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    imputed_df : pd.DataFrame</span>
+<span class="sd">        Final imputed values produced by the best (early-stopped) model.</span>
+<span class="sd">    best_model : torch.nn.Module</span>
+<span class="sd">        Copy of the best-performing model encountered during the loop.</span>
+<span class="sd">    best_dataset : ClusterDataset</span>
+<span class="sd">        Copy of the dataset corresponding to `best_model`&#39;s imputations.</span>
+<span class="sd">    refit_history_df : pd.DataFrame</span>
+<span class="sd">        Per-loop history aligned to `train_vae_initial`&#39;s history schema so you</span>
+<span class="sd">        can `pd.concat([history_df, refit_history_df], ignore_index=True)` later.</span>
+
+<span class="sd">        Columns:</span>
+<span class="sd">          - epoch (int)          : cumulative epoch counter (continues from initial)</span>
+<span class="sd">          - train_loss (float)   : NaN (not tracked during refit here)</span>
+<span class="sd">          - train_recon (float)  : NaN</span>
+<span class="sd">          - train_kl (float)     : NaN</span>
+<span class="sd">          - val_mse (float)      : validation MSE after each refit loop</span>
+<span class="sd">          - lr (float)           : learning rate after each refit loop</span>
+<span class="sd">          - phase (str)          : {&quot;refit_init&quot;, &quot;refit_loop&quot;}</span>
+<span class="sd">          - loop (int)           : 0 for baseline (pre-refit), then 1..k per loop</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Get imputed dataset, save &#39;best&#39; states of dataset, model</span>
+    <span class="c1"># Create data loader to start loop, initialize patience counter</span>
+    <span class="c1"># Start list for val_mse_history</span>
+    <span class="c1"># --------------------------</span>
+
+    <span class="c1">## get initial imputed dataset and hold it, create data loader, preserve model</span>
+    <span class="n">dataset</span>  <span class="o">=</span> <span class="n">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">best_dataset</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+    <span class="n">best_val_mse</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+    <span class="n">best_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">patience_counter</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">val_mse_history</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="c1">## set lrs</span>
+    <span class="k">if</span> <span class="n">initial_lr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No LR givin, using last lr from initial training!&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">set_final_lr</span><span class="p">(</span><span class="n">initial_lr</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set lr to </span><span class="si">{</span><span class="n">initial_lr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    
+    <span class="n">refit_lr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_final_lr</span><span class="p">()</span>
+
+    <span class="c1"># --- History container (schema matches train_vae_initial + extras) ---</span>
+    <span class="n">history_rows</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_append_history_row</span><span class="p">(</span><span class="n">epoch_int</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lr_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loop_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">history_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">epoch_int</span><span class="p">),</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_recon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_kl&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_mse</span><span class="p">),</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">lr_val</span><span class="p">),</span>
+            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="n">phase</span><span class="p">,</span>
+            <span class="s2">&quot;loop&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">loop_idx</span><span class="p">),</span>
+        <span class="p">})</span>
+
+    <span class="c1"># Determine where to continue the epoch counter</span>
+    <span class="c1"># If user trained with train_vae_initial and attached .training_history_, keep continuity.</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;training_history_&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">training_history_</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">start_epoch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">training_history_</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">start_epoch</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">start_epoch</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># Compute initial MSE (before loop)</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="n">_append_history_row</span><span class="p">(</span><span class="n">epoch_int</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">val_mse</span><span class="o">=</span><span class="n">val_mse</span><span class="p">,</span> <span class="n">lr_val</span><span class="o">=</span><span class="n">refit_lr</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;refit_init&quot;</span><span class="p">,</span> <span class="n">loop_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Initial Validation MSE (pre-refit): </span><span class="si">{</span><span class="n">val_mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+    <span class="k">for</span> <span class="n">loop</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_loops</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== Impute-Refit Loop </span><span class="si">{</span><span class="n">loop</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">max_loops</span><span class="si">}</span><span class="s2"> ===&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Current lr is </span><span class="si">{</span><span class="n">refit_lr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># --------------------------</span>
+        <span class="c1"># Refit the model</span>
+        <span class="c1"># --------------------------</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_refit</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+            <span class="n">imputed_data</span><span class="o">=</span><span class="n">data_loader</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+            <span class="n">initial_lr</span><span class="o">=</span><span class="n">refit_lr</span><span class="p">,</span>
+            <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+            <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+
+        <span class="c1"># --------------------------</span>
+        <span class="c1"># Compute validation MSE</span>
+        <span class="c1"># If val MSE for this loop is better than current best, </span>
+        <span class="c1"># replace best_val_mse and best_model + reset patience_counter,</span>
+        <span class="c1"># and get new imputed dataset + data_loader</span>
+        <span class="c1"># If not better, increment patience_counter and if patience_counter &gt;= patience, break loop. </span>
+        <span class="c1"># --------------------------</span>
+        <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+        <span class="c1"># Advance epoch counter by the epochs we just trained</span>
+        <span class="n">epoch_after_loop</span> <span class="o">=</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="n">loop</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
+        <span class="n">refit_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">get_final_lr</span><span class="p">())</span>
+                <span class="c1"># Log history row for this loop</span>
+        <span class="n">_append_history_row</span><span class="p">(</span>
+            <span class="n">epoch_int</span><span class="o">=</span><span class="n">epoch_after_loop</span><span class="p">,</span>
+            <span class="n">val_mse</span><span class="o">=</span><span class="n">val_mse</span><span class="p">,</span>
+            <span class="n">lr_val</span><span class="o">=</span><span class="n">refit_lr</span><span class="p">,</span>
+            <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;refit_loop&quot;</span><span class="p">,</span>
+            <span class="n">loop_idx</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loop </span><span class="si">{</span><span class="n">loop</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> Validation MSE: </span><span class="si">{</span><span class="n">val_mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">val_mse</span> <span class="o">&lt;</span> <span class="n">best_val_mse</span><span class="p">:</span>
+            <span class="n">best_val_mse</span> <span class="o">=</span> <span class="n">val_mse</span>
+            <span class="n">best_model</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+            <span class="n">patience_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">best_dataset</span> <span class="o">=</span> <span class="n">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">best_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">patience_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">imputed_dataset</span> <span class="o">=</span> <span class="n">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="n">device</span><span class="p">)</span>
+            <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">patience_counter</span> <span class="o">&gt;=</span> <span class="n">patience</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Early stopping triggered.&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+    <span class="c1"># -----------------------------</span>
+    <span class="c1"># Final denormalized output</span>
+    <span class="c1"># Get mean and sd from this</span>
+    <span class="c1"># Apply this final model on the original dataset </span>
+    <span class="c1"># -----------------------------</span>
+    <span class="c1"># final_val_mse = compute_val_mse(best_model, dataset, device)</span>
+    <span class="c1"># final_imputed = get_imputed(best_model, train_loader, device)</span>
+
+    <span class="c1"># ## try using the best dataset</span>
+    <span class="n">final_val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">best_model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1">#final_imputed = get_imputed(best_model, data_loader, device)</span>
+
+    <span class="n">imputed_df</span> <span class="o">=</span> <span class="n">get_imputed_df</span><span class="p">(</span><span class="n">best_model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> 
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best Val MSE </span><span class="si">{</span><span class="n">best_val_mse</span><span class="si">}</span><span class="s2">. Imputed Dataset MSE </span><span class="si">{</span><span class="n">final_val_mse</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+    <span class="c1"># --- Assemble the refit history DataFrame ---</span>
+    <span class="n">refit_history_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">history_rows</span><span class="p">,</span>
+        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span> <span class="s2">&quot;train_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;train_recon&quot;</span><span class="p">,</span> <span class="s2">&quot;train_kl&quot;</span><span class="p">,</span> <span class="s2">&quot;val_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="s2">&quot;phase&quot;</span><span class="p">,</span> <span class="s2">&quot;loop&quot;</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_dataset</span><span class="p">,</span> <span class="n">refit_history_df</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

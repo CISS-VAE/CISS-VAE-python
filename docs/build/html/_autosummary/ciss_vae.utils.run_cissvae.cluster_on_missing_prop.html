@@ -1,0 +1,193 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.run_cissvae.cluster_on_missing_prop &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=00122899"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ciss_vae.utils.helpers.get_imputed_df" href="ciss_vae.utils.helpers.get_imputed_df.html" />
+    <link rel="prev" title="ciss_vae.utils.run_cissvae.cluster_on_missing" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ciss_vae.utils.run_cissvae.cluster_on_missing_prop"><code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing_prop.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ciss-vae-utils-run-cissvae-cluster-on-missing-prop">
+<h1>ciss_vae.utils.run_cissvae.cluster_on_missing_prop<a class="headerlink" href="#ciss-vae-utils-run-cissvae-cluster-on-missing-prop" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="ciss_vae.utils.run_cissvae.cluster_on_missing_prop">
+<span class="sig-name descname"><span class="pre">cluster_on_missing_prop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prop_matrix</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_clusters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cluster_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_selection_epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metric</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'euclidean'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_features</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/run_cissvae.html#cluster_on_missing_prop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.run_cissvae.cluster_on_missing_prop" title="Link to this definition"></a></dt>
+<dd><p>Cluster columns (biomarkers) using per-sample proportions of missingness.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>prop_matrix</strong> (<em>(</em><em>pd.DataFrame</em><em> or </em><em>np.ndarray</em><em>)</em><em>, </em><em>shape</em><em> (</em><em>n_samples</em><em>, </em><em>n_biomarkers</em><em>)</em>) – <dl class="simple">
+<dt>Input matrix prepared by the user where:</dt><dd><ul>
+<li><p>Each <strong>row</strong> is a sample (e.g., mouse, patient).</p></li>
+<li><p>Each <strong>column</strong> is a <strong>biomarker</strong>.</p></li>
+<li><p>Each entry is in <strong>[0, 1]</strong> and equals the <strong>proportion of missingness
+for that biomarker across all timepoints</strong> for that sample.</p></li>
+</ul>
+</dd>
+</dl>
+<p>If a DataFrame is provided, the <strong>column order is preserved</strong> and returned
+labels are aligned to those columns (biomarkers).</p>
+</p></li>
+<li><p><strong>n_clusters</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – If set (e.g., 3, 4, …), use <strong>KMeans</strong> with exactly that many clusters.
+If None, use <strong>HDBSCAN</strong> (data-driven number of clusters).</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – Random seed for KMeans reproducibility.</p></li>
+<li><p><strong>min_cluster_size</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>default=None</em>) – HDBSCAN’s <cite>min_cluster_size</cite>. If None, defaults to <cite>max(2, n_biomarkers // 25)</cite>.</p></li>
+<li><p><strong>cluster_selection_epsilon</strong> (<em>float</em><em>, </em><em>default=0.25</em>) – HDBSCAN’s <cite>cluster_selection_epsilon</cite>.</p></li>
+<li><p><strong>metric</strong> (<em>{&quot;euclidean&quot;</em><em>, </em><em>&quot;cosine&quot;}</em><em>, </em><em>default=&quot;euclidean&quot;</em>) – Distance metric for HDBSCAN and silhouette scoring. (KMeans itself optimizes
+Euclidean, but silhouette can still be evaluated with cosine.)</p></li>
+<li><p><strong>scale_features</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, standardize the <strong>column vectors</strong> (biomarkers) across samples
+before clustering. Not usually needed since inputs are in [0,1], but can help
+when a few rows dominate variance.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-data docutils literal notranslate"><span class="pre">Tuple</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">ndarray</span></code>, <code class="xref py py-data docutils literal notranslate"><span class="pre">Optional</span></code>[<code class="xref py py-class docutils literal notranslate"><span class="pre">float</span></code>]]</span></p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>labels</strong> (<em>np.ndarray of shape (n_biomarkers,)</em>) – Cluster label for each <strong>biomarker</strong> (i.e., for each input column). HDBSCAN
+may assign -1 to noise. Order matches <cite>prop_matrix</cite>’s columns.</p></li>
+<li><p><strong>silhouette</strong> (<em>float or None</em>) – Silhouette score of the solution using the chosen <cite>metric</cite>. Returns None if
+it cannot be computed (e.g., single cluster or singleton clusters).</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>We cluster <strong>columns</strong> (biomarkers), treating each biomarker as a vector of
+per-sample missingness proportions. Internally we transpose to shape
+(n_biomarkers, n_samples) so each biomarker is a “point” in that space.</p></li>
+<li><p>For correlation-like behavior, <cite>metric=”cosine”</cite> is a robust choice (optionally
+with <cite>scale_features=True</cite>).</p></li>
+<li><p>To compute <cite>prop_matrix</cite> from raw wide data with multiple timepoints, aggregate
+per sample and biomarker as: proportion_missing = (# missing timepoints) / (total timepoints).</p></li>
+</ul>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ciss_vae.utils.run_cissvae.cluster_on_missing.html" class="btn btn-neutral float-left" title="ciss_vae.utils.run_cissvae.cluster_on_missing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ciss_vae.utils.helpers.get_imputed_df.html" class="btn btn-neutral float-right" title="ciss_vae.utils.helpers.get_imputed_df" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

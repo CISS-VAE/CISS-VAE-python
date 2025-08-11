@@ -1,0 +1,440 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Overview &mdash; CISS-VAE 1.0.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/styles.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=baaebd52"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=00122899"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="prev" title="CISS-VAE documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#dataset-preparation">Dataset Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clustering-on-missingness-pattern">Clustering on missingness pattern</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#create-a-searchspace-object">Create a SearchSpace object:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#run-the-autotune-function">Run the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#optional-using-optuna-dashboard">(optional) Using Optuna Dashboard</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#saving-and-loading-models">Saving and loading models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#saving">Saving</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#loading-a-model">Loading a Model</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Overview</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/vignette.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+<p>A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers, which allows knowledge transfer across clusters and enhance parameter stability, especially important when certain clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.</p>
+<p>Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.</p>
+<p>There are two ways to run the CISS-VAE process. If you know what model
+parameters you want to use, you can use the <a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae" title="ciss_vae.utils.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.utils.run_cissvae.run_cissvae()</span></code></a> function to
+run the model once for the given set of parameters. If you want to tune
+the model instead, you can use <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a>.</p>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>The CISS-VAE package is currently available for python, with an R
+package to be released soon. It can be installed from either
+<a class="reference external" href="https://github.com/CISS-VAE/CISS-VAE-python">github</a> or PyPI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From PyPI</span>
+pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From GitHub (latest development version)</span>
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/CISS-VAE/CISS-VAE-python.git
+</pre></div>
+</div>
+<div>
+<blockquote>
+<div><p><strong>Note</strong></p>
+<p>If you want run_cissvae to handle clustering, please install the
+clustering dependencies scikit-learn and hdbscan with pip.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>scikit-learn<span class="w"> </span>hdbscan
+
+OR
+
+pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o">[</span>clustering<span class="o">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+</section>
+<section id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
+<p>If you already know what parameters you want for your model (or do not
+want to use the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function), you can use the <a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae" title="ciss_vae.utils.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.utils.run_cissvae.run_cissvae()</span></code></a> function for your imputation.</p>
+<p>Your input dataset should be one of the following:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- A Pandas DataFrame  
+
+- A NumPy array  
+
+- A PyTorch tensor  
+</pre></div>
+</div>
+<p>Missing values should be represented using np.nan or None.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+
+<span class="c1"># optional, display vae architecture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s2">&quot;/data/test_data.csv&quot;</span><span class="p">)</span>
+
+<span class="n">clusters</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">clusters</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;clusters&quot;</span><span class="p">,</span> <span class="s2">&quot;Unnamed: 0&quot;</span><span class="p">])</span>
+
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+<span class="c1">## Dataset params</span>
+    <span class="n">val_percent</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## Fraction of non-missing data held out for validation</span>
+    <span class="n">replacement_value</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> 
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.</span>
+    <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+
+<span class="c1">## Cluster params</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## Where your cluster list goes. If none, will do clustering for you  </span>
+    <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If you want run_cissvae to do clustering and you know how many clusters your data should have</span>
+    <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="c1">## Cluster Selection Epsilon for HDBSCAN </span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+    
+<span class="c1">## VAE model params</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="c1">## Dimensions of hidden layers, in order. One number per layer. </span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="c1">## Dimensions of latent embedding</span>
+    <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span> <span class="c1">## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span>  <span class="c1">## order of shared vs unshared layers for decode</span>
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span> <span class="c1">## batch size for data loader</span>
+    <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`</span>
+
+<span class="c1">## Initial Training params</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="c1">## default </span>
+    <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="c1">## default</span>
+    <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> <span class="c1">## default, factor learning rate is multiplied by after each epoch, prevents overfitting</span>
+    <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="c1">## default</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, will use gpu if available, cpu if not. See torch.devices for info </span>
+
+<span class="c1">## Impute-refit loop params</span>
+    <span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="c1">## max number of refit loops</span>
+    <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="c1">## number of loops to check after best_dataset updated. Can increase to avoid local extrema</span>
+    <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, same as epochs</span>
+    <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, picks up from end of initial training</span>
+    <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, same as decay_factor</span>
+    <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## if none, same as beta</span>
+
+<span class="c1">## Other params</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+    <span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="c1">## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return &quot;None&quot;</span>
+<span class="p">)</span>
+
+<span class="c1">## OPTIONAL - PLOT VAE ARCHITECTURE</span>
+<span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
+                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## Set title of plot</span>
+                        <span class="c1">## Colors below are default</span>
+                        <span class="n">color_shared</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span><span class="p">,</span> 
+                        <span class="n">color_unshared</span> <span class="o">=</span><span class="s2">&quot;lightcoral&quot;</span><span class="p">,</span>
+                        <span class="n">color_latent</span> <span class="o">=</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="c1"># xx fix</span>
+                        <span class="n">color_input</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">color_output</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+                        <span class="n">return_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><img alt="Output of plot_vae_architecture" src="_images/image-1.png" /></p>
+</section>
+<section id="hyperparameter-tuning-with-optuna">
+<h1>Hyperparameter Tuning with Optuna<a class="headerlink" href="#hyperparameter-tuning-with-optuna" title="Link to this heading"></a></h1>
+<p>The <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function lets you tune the model’s hyperparameters with
+optuna to get the best possible model.</p>
+<section id="dataset-preparation">
+<h2>Dataset Preparation<a class="headerlink" href="#dataset-preparation" title="Link to this heading"></a></h2>
+<p>Your dataset should be one of the following:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>- A Pandas DataFrame  
+
+- A NumPy array  
+
+- A PyTorch tensor  
+</pre></div>
+</div>
+<p>Missing values should be represented using np.nan or None.</p>
+<p>Once your dataset is loaded, the first step is to identify patterns of
+missingness using clustering.</p>
+</section>
+<section id="clustering-on-missingness-pattern">
+<h2>Clustering on missingness pattern<a class="headerlink" href="#clustering-on-missingness-pattern" title="Link to this heading"></a></h2>
+<p>Before fitting the model, the dataset is clustered based on its
+missingness pattern (i.e., which variables are missing in each
+observation).</p>
+<p>You can use the built-in function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing</span>
+
+<span class="n">clusters</span> <span class="o">=</span> <span class="n">cluster_on_missing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cols_ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n_clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This function uses HDBSCAN clustering to detect structure in binary
+missingness masks, and will automatically determine the number of
+clusters if not specified. If n_clusters is specified, uses KMeans.</p>
+<p><strong>Options:</strong></p>
+<ul class="simple">
+<li><p>cols_ignore: list of columns to exclude when computing the missingness
+pattern.</p></li>
+<li><p>n_clusters: set this to use K-Means instead of nonparametric
+clustering.</p></li>
+</ul>
+<p>You should store your cluster labels separately for input into the model
+constructor.</p>
+</section>
+</section>
+<section id="creating-a-clusterdataset-object">
+<h1>Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object<a class="headerlink" href="#creating-a-clusterdataset-object" title="Link to this heading"></a></h1>
+<p>Once you’ve computed the cluster labels, you’ll convert your dataset
+into a <a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ciss_vae.classes.cluster_dataset.ClusterDataset</span></code></a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.autotune</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchSpace</span><span class="p">,</span> <span class="n">autotune</span>
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+<span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
+<span class="n">val_percent</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## 10% non-missing data is default.</span>
+<span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">## value to replace all missing data with before running model. Could be set to 0 or random</span>
+<span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="c1">## Tells ClusterDataset not to hold out entries demographic columns for validation</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<section id="create-a-searchspace-object">
+<h2>Create a SearchSpace object:<a class="headerlink" href="#create-a-searchspace-object" title="Link to this heading"></a></h2>
+<p>In the SearchSpace object, define the search space for each
+hyperparameter. Each of the parameters in <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace" title="ciss_vae.training.autotune.SearchSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.SearchSpace</span></code></a> can be set as
+either tunable or non-tunable.</p>
+<p>Types of parameters:</p>
+<ul class="simple">
+<li><p>(min, max, step) -&gt; creates a range</p></li>
+<li><p>[a, b, c] -&gt; select value from list</p></li>
+<li><p>x -&gt; set param as non-tunable</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">## These are the default parameters. Please note these parameters may not be best for all datasets depending on size and complexity.</span>
+
+<span class="n">searchspace</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">(</span>
+                 <span class="n">num_hidden_layers</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="c1">## Set number of hidden layers</span>
+                 <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span>
+                 <span class="n">latent_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+                 <span class="n">latent_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+                 <span class="n">output_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">],</span>
+                 <span class="n">lr</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">),</span>
+                 <span class="n">decay_factor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">),</span>
+                 <span class="n">beta</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                 <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">refit_loops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
+</pre></div>
+</div>
+</section>
+<section id="run-the-autotune-function">
+<h2>Run the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function:<a class="headerlink" href="#run-the-autotune-function" title="Link to this heading"></a></h2>
+<p>Once the search space is set, the autotune function can be run.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+<span class="n">best_imputed_df</span><span class="p">,</span>  <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span> <span class="o">=</span> <span class="n">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span> <span class="o">=</span> <span class="n">searchspace</span><span class="p">,</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># If using optuna dashboard, if study by &#39;study_name&#39; already exists, will load that study</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>                                 <span class="c1"># Sets seed for random order of shared/unshared layers</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="optional-using-optuna-dashboard">
+<h2>(optional) Using Optuna Dashboard<a class="headerlink" href="#optional-using-optuna-dashboard" title="Link to this heading"></a></h2>
+<p>You can use <a class="reference external" href="https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html">optuna
+dashboard</a>
+to visualize the importance of your tuning parameters. If you use VSCode
+or <a class="reference external" href="https://positron.posit.co/download.html">Positron</a> there is an
+extension for viewing optuna dashboards in your development environment.</p>
+<p>To use optuna dashboard, set your database in the autotune function. You
+can have multiple autotune ‘studies’ in the same database and compare
+them.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_imputed_df</span><span class="p">,</span>  <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span> <span class="o">=</span> <span class="n">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span> <span class="o">=</span> <span class="n">searchspace</span><span class="p">,</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># &#39;ClusterDataset&#39; object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///db.sqlite3&quot;</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="saving-and-loading-models">
+<h1>Saving and loading models<a class="headerlink" href="#saving-and-loading-models" title="Link to this heading"></a></h1>
+<section id="saving">
+<h2>Saving<a class="headerlink" href="#saving" title="Link to this heading"></a></h2>
+<p>If you want to save your model and load it later, there are two options.</p>
+<p>To save the model weights after training:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1">## assuming your trained model is called &#39;model&#39;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+
+<span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="s2">&quot;trained_vae.pt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you want to save the entire model (not usually recommended):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;trained_vae_full.pt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="loading-a-model">
+<h2>Loading a Model<a class="headerlink" href="#loading-a-model" title="Link to this heading"></a></h2>
+<p>To reload the model for imputation or further training:</p>
+<ol class="arabic simple">
+<li><p>Re-create the model architecture with the same settings used during training</p></li>
+<li><p>Load the saved weights</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+
+<span class="c1"># 1. Define the architecture (must match the saved model!)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
+    <span class="n">input_dim</span><span class="o">=...</span><span class="p">,</span>
+    <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">],</span>
+    <span class="n">layer_order_enc</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">],</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="o">...</span><span class="p">],</span>
+    <span class="n">latent_shared</span><span class="o">=...</span><span class="p">,</span>
+    <span class="n">num_clusters</span><span class="o">=...</span><span class="p">,</span>
+    <span class="n">latent_dim</span><span class="o">=...</span><span class="p">,</span>
+    <span class="n">output_shared</span><span class="o">=...</span>
+<span class="p">)</span>
+<span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;trained_vae.pt&quot;</span><span class="p">))</span>
+
+
+
+<span class="c1">## optional to get imputed dataset. </span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_imputed_df</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+
+<span class="c1">## assuming dataset is a ClusterDataset</span>
+<span class="n">data_loader</span> <span class="o">=</span>  <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4000</span><span class="p">)</span>
+
+<span class="n">imputed_df</span> <span class="o">=</span> <span class="n">get_imputed_df</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="CISS-VAE documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
