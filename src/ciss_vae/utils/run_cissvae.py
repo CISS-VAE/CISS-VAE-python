@@ -1,6 +1,8 @@
 """run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model."""
 
 import torch
+from __future__ import annotations
+from typing import Optional, Sequence, Tuple, Union
 import pandas as pd
 import numpy as np
 from torch.utils.data import DataLoader
@@ -18,7 +20,7 @@ from ciss_vae.training.train_refit import impute_and_refit_loop
 
 def cluster_on_missing(data, cols_ignore = None, 
  n_clusters = None, seed = None, min_cluster_size = None, 
- cluster_selection_epsilon = 0.25):
+ cluster_selection_epsilon = 0.25, prop = False):
     """
     Given pandas dataframe with missing data, clusters on missingness pattern and returns cluster labels.
         Parameters:
@@ -101,11 +103,156 @@ def cluster_on_missing(data, cols_ignore = None,
     return clusters, silhouette
 
 # --------------------
+# Func 1b: Cluster on proportion of missingness by biomarker
+# --------------------
+def cluster_on_missing_prop(
+    prop_matrix: Union[pd.DataFrame, np.ndarray],
+    *,
+    n_clusters: Optional[int] = None,
+    seed: Optional[int] = None,
+    min_cluster_size: Optional[int] = None,
+    cluster_selection_epsilon: float = 0.25,
+    metric: str = "euclidean",
+    scale_features: bool = False,
+) -> Tuple[np.ndarray, Optional[float]]:
+    """
+    Cluster columns (biomarkers) using per-sample proportions of missingness.
+
+    Parameters
+    ----------
+    prop_matrix : (pd.DataFrame or np.ndarray), shape (n_samples, n_biomarkers)
+        Input matrix prepared by the user where:
+          * Each **row** is a sample (e.g., mouse, patient).
+          * Each **column** is a **biomarker**.
+          * Each entry is in **[0, 1]** and equals the **proportion of missingness
+            for that biomarker across all timepoints** for that sample.
+
+        If a DataFrame is provided, the **column order is preserved** and returned
+        labels are aligned to those columns (biomarkers).
+
+    n_clusters : int or None, default=None
+        If set (e.g., 3, 4, ...), use **KMeans** with exactly that many clusters.
+        If None, use **HDBSCAN** (data-driven number of clusters).
+
+    seed : int or None, default=None
+        Random seed for KMeans reproducibility.
+
+    min_cluster_size : int or None, default=None
+        HDBSCAN's `min_cluster_size`. If None, defaults to `max(2, n_biomarkers // 25)`.
+
+    cluster_selection_epsilon : float, default=0.25
+        HDBSCAN's `cluster_selection_epsilon`.
+
+    metric : {"euclidean", "cosine"}, default="euclidean"
+        Distance metric for HDBSCAN and silhouette scoring. (KMeans itself optimizes
+        Euclidean, but silhouette can still be evaluated with cosine.)
+
+    scale_features : bool, default=False
+        If True, standardize the **column vectors** (biomarkers) across samples
+        before clustering. Not usually needed since inputs are in [0,1], but can help
+        when a few rows dominate variance.
+
+    Returns
+    -------
+    labels : np.ndarray of shape (n_biomarkers,)
+        Cluster label for each **biomarker** (i.e., for each input column). HDBSCAN
+        may assign -1 to noise. Order matches `prop_matrix`'s columns.
+
+    silhouette : float or None
+        Silhouette score of the solution using the chosen `metric`. Returns None if
+        it cannot be computed (e.g., single cluster or singleton clusters).
+
+    Notes
+    -----
+    - We cluster **columns** (biomarkers), treating each biomarker as a vector of
+      per-sample missingness proportions. Internally we transpose to shape
+      (n_biomarkers, n_samples) so each biomarker is a "point" in that space.
+    - For correlation-like behavior, `metric="cosine"` is a robust choice (optionally
+      with `scale_features=True`).
+    - To compute `prop_matrix` from raw wide data with multiple timepoints, aggregate
+      per sample and biomarker as: proportion_missing = (# missing timepoints) / (total timepoints).
+    """
+    # --- Imports kept inside to keep optional deps optional ---
+    try:
+        from sklearn.cluster import KMeans
+        from sklearn.metrics import silhouette_score
+        from sklearn.preprocessing import StandardScaler
+        import hdbscan  # type: ignore
+    except ImportError as e:
+        raise ImportError(
+            "Optional dependencies required: scikit-learn and hdbscan.\n"
+            "Install with: pip install ciss_vae[clustering]"
+        ) from e
+
+    # --- Convert to array; capture column names to preserve alignment ---
+    if isinstance(prop_matrix, pd.DataFrame):
+        col_names: Sequence[str] = list(prop_matrix.columns)
+        X = prop_matrix.to_numpy(copy=True)
+    else:
+        X = np.asarray(prop_matrix, dtype=float).copy()
+        col_names = [f"col_{j}" for j in range(X.shape[1])]
+
+    if X.ndim != 2:
+        raise ValueError("prop_matrix must be 2D (n_samples × n_biomarkers).")
+
+    n_samples, n_features = X.shape  # features = biomarkers
+
+    # --- Sanity checks; clip to [0,1] if slightly out of bounds ---
+    if not np.isfinite(X).all():
+        raise ValueError("prop_matrix contains non-finite values (NaN/Inf).")
+    if (X < 0).any() or (X > 1).any():
+        X = np.clip(X, 0.0, 1.0)
+
+    # --- Each column (biomarker) is a point in R^(n_samples) ---
+    X_cols = X.T  # shape: (n_biomarkers, n_samples)
+
+    if scale_features:
+        X_cols = StandardScaler().fit_transform(X_cols)
+
+    if min_cluster_size is None:
+        min_cluster_size = max(2, n_features // 25)
+
+    metric = metric.lower()
+    if metric not in {"euclidean", "cosine"}:
+        raise ValueError("metric must be 'euclidean' or 'cosine'.")
+
+    # --- Clustering ---
+    if n_clusters is None:
+        clusterer = hdbscan.HDBSCAN(
+            metric=metric,
+            min_cluster_size=min_cluster_size,
+            cluster_selection_epsilon=cluster_selection_epsilon,
+        )
+        labels = clusterer.fit_predict(X_cols)
+        X_for_sil = X_cols
+        sil_metric = metric
+    else:
+        # sklearn>=1.4 supports n_init="auto"; fall back if needed
+        n_init = "auto"
+        try:
+            _ = KMeans(n_clusters=2, n_init=n_init)
+        except TypeError:
+            n_init = 10
+        km = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=seed)
+        labels = km.fit_predict(X_cols)
+        X_for_sil = X_cols
+        sil_metric = metric
+
+    # --- Silhouette (only if ≥2 clusters and no singletons) ---
+    unique, counts = np.unique(labels, return_counts=True)
+    if len(unique) > 1 and np.all(counts >= 2):
+        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
+    else:
+        silhouette = None
+
+    return labels, silhouette
+
+# --------------------
 # Func 2: Make dataset & run VAE
 # --------------------
 
 def run_cissvae(data, val_percent = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, ## dataset params
-clusters = None, n_clusters = None, cluster_selection_epsilon = 0.25, seed = 42, ## clustering params
+clusters = None, n_clusters = None, cluster_selection_epsilon = 0.25, seed = 42, missingness_proportion_matrix = None, scale_features = False,## clustering params
 hidden_dims = [150, 120, 60], latent_dim = 15, layer_order_enc = ["unshared", "unshared", "unshared"],
 layer_order_dec=["shared", "shared",  "shared"], latent_shared=False, output_shared=False, batch_size = 4000,
 return_model = True,## model params
@@ -141,6 +288,10 @@ return_silhouettes = False
         cluster_selection_epsilon for hdbscan clustering. 
     seed : int, default=42
         Random seed for reproducibility.
+    missingness_proportion_matrix : pd.DataFrame | np.ndarray, default=None
+        Missingness proportion matrix for cluster_on_missing_prop. 
+    scale_features : bool, default=False
+        If true, scales features for missingness proportion matrix. 
 
     hidden_dims : list of int, default=[150, 120, 60]
         Sizes of hidden layers in encoder/decoder (excluding latent layer).
@@ -211,7 +362,10 @@ return_silhouettes = False
     # Cluster if needed
     # ------------
     if clusters is None:
-        clusters, silh = cluster_on_missing(data, cols_ignore = columns_ignore, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon = cluster_selection_epsilon)
+        if missingness_proportion_matrix is None:
+            clusters, silh = cluster_on_missing(data, cols_ignore = columns_ignore, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon = cluster_selection_epsilon)
+        else:
+            clusters, silh = cluster_on_missing_prop(prop_matrix = missingness_proportion_matrix, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon=cluster_selection_epsilon, scale_features = scale_features)
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
