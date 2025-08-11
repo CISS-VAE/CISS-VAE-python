@@ -79,7 +79,27 @@
            <div itemprop="articleBody">
              
   <h1>Source code for ciss_vae.classes.cluster_dataset</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Dataset utilities for clustering-aware masking and normalization.</span>
+
+<span class="sd">This module defines :class:`ClusterDataset`, a PyTorch :class:`torch.utils.data.Dataset`</span>
+<span class="sd">that (1) optionally holds out a validation subset of *observed* entries on a</span>
+<span class="sd">per-cluster basis, (2) normalizes features using statistics computed on the</span>
+<span class="sd">masked training matrix, and (3) exposes tensors required by the CISS-VAE</span>
+<span class="sd">training loops: normalized data with missing values filled, cluster labels,</span>
+<span class="sd">and binary observation masks.</span>
+
+<span class="sd">Typical usage::</span>
+
+<span class="sd">    ds = ClusterDataset(</span>
+<span class="sd">        data=df,                       # (N, P) with NaNs for missing</span>
+<span class="sd">        cluster_labels=clusters,       # length-N array-like</span>
+<span class="sd">        val_proportion=0.1,            # or per-cluster mapping/sequence</span>
+<span class="sd">        replacement_value=0.0,</span>
+<span class="sd">        columns_ignore=[&quot;id&quot;]          # columns to exclude from validation masking</span>
+<span class="sd">    )</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -89,24 +109,81 @@
 <div class="viewcode-block" id="ClusterDataset">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">ClusterDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Dataset with per-cluster validation masking and feature normalization.</span>
+
+<span class="sd">    The dataset masks a user-specified proportion of *observed* entries within</span>
+<span class="sd">    each cluster to form an internal validation target matrix, keeps the</span>
+<span class="sd">    complement for training, normalizes non-missing values feature-wise, and</span>
+<span class="sd">    replaces missing/held-out entries with a fixed value for model input.</span>
+
+<span class="sd">    :param data: Input matrix of shape ``(N, P)`` with possible missing values</span>
+<span class="sd">        (NaNs). May be a :class:`pandas.DataFrame`, :class:`numpy.ndarray`, or</span>
+<span class="sd">        :class:`torch.Tensor`. If a DataFrame is given, row indices and column</span>
+<span class="sd">        names are preserved.</span>
+<span class="sd">    :param cluster_labels: Cluster assignment per sample (length ``N``). If</span>
+<span class="sd">        ``None``, all samples are treated as a single cluster.</span>
+<span class="sd">    :param val_proportion: Validation hold-out specification. One of:</span>
+<span class="sd">        * **float in [0, 1]** – same fraction for *each* cluster.</span>
+<span class="sd">        * **sequence** – values aligned to ``sorted(unique(cluster_labels))``.</span>
+<span class="sd">        * **mapping** – dict/Series mapping ``cluster_id -&gt; proportion``.</span>
+<span class="sd">        Proportions apply to the number of *observed* entries per feature</span>
+<span class="sd">        within each cluster.</span>
+<span class="sd">    :param replacement_value: Value used to fill missing/held-out inputs after</span>
+<span class="sd">        normalization (e.g., ``0.0``).</span>
+<span class="sd">    :param columns_ignore: Column names (if ``data`` is a DataFrame) or integer</span>
+<span class="sd">        indices (if array/tensor) to **exclude** from validation masking. These</span>
+<span class="sd">        columns are still normalized and returned; they just won&#39;t have</span>
+<span class="sd">        additional validation entries held out.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    raw_data : torch.FloatTensor</span>
+<span class="sd">        Original data as ``float32`` with NaNs for missing (shape ``(N, P)``).</span>
+<span class="sd">    data : torch.FloatTensor</span>
+<span class="sd">        Normalized data with NaNs replaced by ``replacement_value`` (``(N, P)``).</span>
+<span class="sd">    masks : torch.BoolTensor</span>
+<span class="sd">        Binary mask where ``True`` indicates an observed (non-NaN) value in</span>
+<span class="sd">        ``data`` before replacement (``(N, P)``).</span>
+<span class="sd">    val_data : torch.FloatTensor</span>
+<span class="sd">        Matrix containing **only** the validation-held-out targets (NaN</span>
+<span class="sd">        elsewhere), shape ``(N, P)``.</span>
+<span class="sd">    cluster_labels : torch.LongTensor</span>
+<span class="sd">        Cluster id per row (``(N,)``).</span>
+<span class="sd">    indices : torch.LongTensor</span>
+<span class="sd">        Original row indices (from DataFrame or ``range(N)``).</span>
+<span class="sd">    feature_names : list[str]</span>
+<span class="sd">        Column names (from DataFrame) or synthetic names ``[&quot;V1&quot;, ..., &quot;VP&quot;]``.</span>
+<span class="sd">    feature_means : numpy.ndarray</span>
+<span class="sd">        Per-feature mean used for normalization (NaN-robust), shape ``(P,)``.</span>
+<span class="sd">    feature_stds : numpy.ndarray</span>
+<span class="sd">        Per-feature std used for normalization (zeros clipped to 1.0), ``(P,)``.</span>
+<span class="sd">    n_clusters : int</span>
+<span class="sd">        Number of unique clusters.</span>
+<span class="sd">    columns_ignore : list</span>
+<span class="sd">        The resolved ignore list.</span>
+
+<span class="sd">    :raises TypeError: If ``data`` or ``cluster_labels`` are of unsupported type,</span>
+<span class="sd">        or if ``val_proportion`` is not a float/sequence/mapping/Series.</span>
+<span class="sd">    :raises ValueError: If any provided proportion is outside ``[0, 1]``, or if</span>
+<span class="sd">        a sequence/mapping omits required clusters.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="ClusterDataset.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Dataset that handles cluster-wise masking and normalization for VAE training.</span>
+<span class="sd">        Build the dataset, apply per-cluster validation masking, and normalize.</span>
 
-<span class="sd">        Parameters:</span>
-<span class="sd">            - data : pd.DataFrame | np.ndarray | torch.Tensor): </span>
-<span class="sd">                Input matrix (rows = samples, cols = features) with potential missing values.</span>
-<span class="sd">            - cluster_labels : (array-like): </span>
-<span class="sd">                Cluster assignment per sample. If None, will assign all rows to same cluster.</span>
-<span class="sd">            - val_proportion : float | sequence | mapping: </span>
-<span class="sd">                Fraction of non-missing data per cluster to mask for validation.</span>
-<span class="sd">            - replacement_value : (float): </span>
-<span class="sd">                Value to fill in missing entries after masking (e.g., 0.0).</span>
-<span class="sd">            - columns_ignore : (list): </span>
-<span class="sd">                Optional list of column names (if data is a DataFrame) or indices (if array) to exclude from validation masking.</span>
-
+<span class="sd">        Steps</span>
+<span class="sd">        -----</span>
+<span class="sd">        1. Convert inputs to tensors; preserve indices/column names if a DataFrame.</span>
+<span class="sd">        2. Resolve per-cluster validation proportions from ``val_proportion``.</span>
+<span class="sd">        3. For each cluster and feature, randomly mark the requested fraction of</span>
+<span class="sd">        **observed** entries as validation targets.</span>
+<span class="sd">        4. Create ``val_data`` (validation targets only) and training ``data`` where</span>
+<span class="sd">        validation entries are set to NaN.</span>
+<span class="sd">        5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply</span>
+<span class="sd">        normalization; then replace remaining NaNs with ``replacement_value``.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set columns ignore </span>
@@ -276,12 +353,25 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns length of the original dataframe.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Number of samples in the dataset.</span>
+
+<span class="sd">        :return: ``N`` (number of rows).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get the Values, cluster label and binary mask for a single data entry (row) by index.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a single sample.</span>
+
+<span class="sd">        :param index: Row index.</span>
+<span class="sd">        :return: Tuple ``(x, cluster_id, mask, original_index)`` where:</span>
+<span class="sd">            * **x** – normalized input row with NaNs replaced (``(P,)``).</span>
+<span class="sd">            * **cluster_id** – integer cluster label (``()``).</span>
+<span class="sd">            * **mask** – boolean mask of observed entries before replacement</span>
+<span class="sd">            (``(P,)``).</span>
+<span class="sd">            * **original_index** – original row index from the source DataFrame</span>
+<span class="sd">            (if provided) or the integer position.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>            <span class="c1"># input with missing replaced</span>
@@ -291,7 +381,7 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Displays the number of samples, features, and clusters, the percentage of missing data, </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Displays the number of samples, features, and clusters, the percentage of missing data before masking, </span>
 <span class="sd">        and the percentage of non-missing data held out for validation.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>

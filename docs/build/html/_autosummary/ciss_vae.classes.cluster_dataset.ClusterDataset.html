@@ -59,6 +59,17 @@
 <li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.classes.cluster_dataset.ClusterDataset</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.raw_data"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.raw_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.data"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.masks"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.masks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.val_data"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.val_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.cluster_labels"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.cluster_labels</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.indices"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.indices</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_names"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.feature_names</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_means"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.feature_means</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_stds"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.feature_stds</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.n_clusters"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.n_clusters</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.columns_ignore"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.columns_ignore</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.__init__()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.copy"><code class="docutils literal notranslate"><span class="pre">ClusterDataset.copy()</span></code></a></li>
 </ul>
@@ -109,33 +120,182 @@
 <dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ClusterDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
-<dd><p>Dataset that handles cluster-wise masking and normalization for VAE training.</p>
+<p>Dataset with per-cluster validation masking and feature normalization.</p>
+<p>The dataset masks a user-specified proportion of <em>observed</em> entries within
+each cluster to form an internal validation target matrix, keeps the
+complement for training, normalizes non-missing values feature-wise, and
+replaces missing/held-out entries with a fixed value for model input.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>-</em>) – pd.DataFrame | np.ndarray | torch.Tensor):
-Input matrix (rows = samples, cols = features) with potential missing values.</p></li>
-<li><p><strong>cluster_labels</strong> (<em>-</em>) – (array-like):
-Cluster assignment per sample. If None, will assign all rows to same cluster.</p></li>
-<li><p><strong>val_proportion</strong> (<em>-</em>) – float | sequence | mapping:
-Fraction of non-missing data per cluster to mask for validation.</p></li>
-<li><p><strong>replacement_value</strong> (<em>-</em>) – (float):
-Value to fill in missing entries after masking (e.g., 0.0).</p></li>
-<li><p><strong>columns_ignore</strong> (<em>-</em>) – (list):
-Optional list of column names (if data is a DataFrame) or indices (if array) to exclude from validation masking.</p></li>
+<li><p><strong>data</strong> – Input matrix of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">P)</span></code> with possible missing values
+(NaNs). May be a <code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>, <code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>, or
+<code class="xref py py-class docutils literal notranslate"><span class="pre">torch.Tensor</span></code>. If a DataFrame is given, row indices and column
+names are preserved.</p></li>
+<li><p><strong>cluster_labels</strong> – Cluster assignment per sample (length <code class="docutils literal notranslate"><span class="pre">N</span></code>). If
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, all samples are treated as a single cluster.</p></li>
+<li><p><strong>val_proportion</strong> – Validation hold-out specification. One of:
+* <strong>float in [0, 1]</strong> – same fraction for <em>each</em> cluster.
+* <strong>sequence</strong> – values aligned to <code class="docutils literal notranslate"><span class="pre">sorted(unique(cluster_labels))</span></code>.
+* <strong>mapping</strong> – dict/Series mapping <code class="docutils literal notranslate"><span class="pre">cluster_id</span> <span class="pre">-&gt;</span> <span class="pre">proportion</span></code>.
+Proportions apply to the number of <em>observed</em> entries per feature
+within each cluster.</p></li>
+<li><p><strong>replacement_value</strong> – Value used to fill missing/held-out inputs after
+normalization (e.g., <code class="docutils literal notranslate"><span class="pre">0.0</span></code>).</p></li>
+<li><p><strong>columns_ignore</strong> – Column names (if <code class="docutils literal notranslate"><span class="pre">data</span></code> is a DataFrame) or integer
+indices (if array/tensor) to <strong>exclude</strong> from validation masking. These
+columns are still normalized and returned; they just won’t have
+additional validation entries held out.</p></li>
 </ul>
 </dd>
 </dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.raw_data">
+<span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.raw_data" title="Link to this definition"></a></dt>
+<dd><p>Original data as <code class="docutils literal notranslate"><span class="pre">float32</span></code> with NaNs for missing (shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">P)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.FloatTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.data">
+<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.data" title="Link to this definition"></a></dt>
+<dd><p>Normalized data with NaNs replaced by <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code> (<code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">P)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.FloatTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.masks">
+<span class="sig-name descname"><span class="pre">masks</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.masks" title="Link to this definition"></a></dt>
+<dd><p>Binary mask where <code class="docutils literal notranslate"><span class="pre">True</span></code> indicates an observed (non-NaN) value in
+<code class="docutils literal notranslate"><span class="pre">data</span></code> before replacement (<code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">P)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.BoolTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.val_data">
+<span class="sig-name descname"><span class="pre">val_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.val_data" title="Link to this definition"></a></dt>
+<dd><p>Matrix containing <strong>only</strong> the validation-held-out targets (NaN
+elsewhere), shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">P)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.FloatTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.cluster_labels">
+<span class="sig-name descname"><span class="pre">cluster_labels</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.cluster_labels" title="Link to this definition"></a></dt>
+<dd><p>Cluster id per row (<code class="docutils literal notranslate"><span class="pre">(N,)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.LongTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.indices">
+<span class="sig-name descname"><span class="pre">indices</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.indices" title="Link to this definition"></a></dt>
+<dd><p>Original row indices (from DataFrame or <code class="docutils literal notranslate"><span class="pre">range(N)</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.LongTensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.feature_names">
+<span class="sig-name descname"><span class="pre">feature_names</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_names" title="Link to this definition"></a></dt>
+<dd><p>Column names (from DataFrame) or synthetic names <code class="docutils literal notranslate"><span class="pre">[&quot;V1&quot;,</span> <span class="pre">...,</span> <span class="pre">&quot;VP&quot;]</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[str]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.feature_means">
+<span class="sig-name descname"><span class="pre">feature_means</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_means" title="Link to this definition"></a></dt>
+<dd><p>Per-feature mean used for normalization (NaN-robust), shape <code class="docutils literal notranslate"><span class="pre">(P,)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.feature_stds">
+<span class="sig-name descname"><span class="pre">feature_stds</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_stds" title="Link to this definition"></a></dt>
+<dd><p>Per-feature std used for normalization (zeros clipped to 1.0), <code class="docutils literal notranslate"><span class="pre">(P,)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.n_clusters">
+<span class="sig-name descname"><span class="pre">n_clusters</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.n_clusters" title="Link to this definition"></a></dt>
+<dd><p>Number of unique clusters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.columns_ignore">
+<span class="sig-name descname"><span class="pre">columns_ignore</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.columns_ignore" title="Link to this definition"></a></dt>
+<dd><p>The resolved ignore list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
+<dd><p>Build the dataset, apply per-cluster validation masking, and normalize.</p>
+<section id="steps">
+<h2>Steps<a class="headerlink" href="#steps" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Convert inputs to tensors; preserve indices/column names if a DataFrame.</p></li>
+<li><p>Resolve per-cluster validation proportions from <code class="docutils literal notranslate"><span class="pre">val_proportion</span></code>.</p></li>
+</ol>
+<p>3. For each cluster and feature, randomly mark the requested fraction of
+<strong>observed</strong> entries as validation targets.
+4. Create <code class="docutils literal notranslate"><span class="pre">val_data</span></code> (validation targets only) and training <code class="docutils literal notranslate"><span class="pre">data</span></code> where
+validation entries are set to NaN.
+5. Compute per-feature mean/std over non-NaN entries in <code class="docutils literal notranslate"><span class="pre">data</span></code> and apply
+normalization; then replace remaining NaNs with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p>
+</section>
 </dd></dl>
 
 <p class="rubric">Methods</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(data, cluster_labels[, ...])</p></td>
-<td><p>Dataset that handles cluster-wise masking and normalization for VAE training.</p></td>
+<td><p>Build the dataset, apply per-cluster validation masking, and normalize.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.copy" title="ciss_vae.classes.cluster_dataset.ClusterDataset.copy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">copy</span></code></a>()</p></td>
 <td><p>Creates a deep copy of the ClusterDataset method containing all attributes.</p></td>
