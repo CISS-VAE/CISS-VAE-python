@@ -2,12 +2,9 @@ API Reference
 =============
 
 .. currentmodule:: ciss_vae
-.. autosummary::
-   :toctree: _autosummary
-   :recursive:
 
-   run_cissvae
-
+Classes
+-------
 .. currentmodule:: ciss_vae.classes
 .. autosummary::
    :toctree: _autosummary
@@ -16,6 +13,8 @@ API Reference
    vae.CISSVAE
    cluster_dataset.ClusterDataset
 
+Training & Tuning
+-------
 .. currentmodule:: ciss_vae.training
 .. autosummary::
    :toctree: _autosummary
@@ -23,9 +22,9 @@ API Reference
 
    autotune.SearchSpace
    autotune.autotune
-   train_initial.train_vae_initial
-   train_refit.impute_and_refit_loop
 
+Utilities & Helpers
+-------
 .. currentmodule:: ciss_vae.utils
 .. autosummary::
    :toctree: _autosummary
