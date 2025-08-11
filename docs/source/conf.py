@@ -35,7 +35,10 @@ extensions = [
 
 autosummary_generate = True
 add_module_names = False  # so :func:`train_model` instead of :func:`vae.train_model`
-
+autosummary_imported_members = True
+autodoc_default_options = {
+    "members": True, "undoc-members": True, "show-inheritance": True, "member-order": "bysource",
+}
 
 
 
