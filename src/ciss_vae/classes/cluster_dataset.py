@@ -15,7 +15,7 @@ class ClusterDataset(Dataset):
                 Input matrix (rows = samples, cols = features) with potential missing values.
             - cluster_labels : (array-like): 
                 Cluster assignment per sample. If None, will assign all rows to same cluster.
-            - val_proportion : (float): 
+            - val_proportion : float | sequence | mapping: 
                 Fraction of non-missing data per cluster to mask for validation.
             - replacement_value : (float): 
                 Value to fill in missing entries after masking (e.g., 0.0).
