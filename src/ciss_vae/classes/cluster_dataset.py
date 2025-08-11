@@ -1,3 +1,23 @@
+"""
+Dataset utilities for clustering-aware masking and normalization.
+
+This module defines :class:`ClusterDataset`, a PyTorch :class:`torch.utils.data.Dataset`
+that (1) optionally holds out a validation subset of *observed* entries on a
+per-cluster basis, (2) normalizes features using statistics computed on the
+masked training matrix, and (3) exposes tensors required by the CISS-VAE
+training loops: normalized data with missing values filled, cluster labels,
+and binary observation masks.
+
+Typical usage::
+
+    ds = ClusterDataset(
+        data=df,                       # (N, P) with NaNs for missing
+        cluster_labels=clusters,       # length-N array-like
+        val_proportion=0.1,            # or per-cluster mapping/sequence
+        replacement_value=0.0,
+        columns_ignore=["id"]          # columns to exclude from validation masking
+    )
+"""
 from torch.utils.data import Dataset
 import torch
 import numpy as np
@@ -6,22 +26,79 @@ import copy
 from collections.abc import Mapping, Sequence
 
 class ClusterDataset(Dataset):
+    """
+    Dataset with per-cluster validation masking and feature normalization.
+
+    The dataset masks a user-specified proportion of *observed* entries within
+    each cluster to form an internal validation target matrix, keeps the
+    complement for training, normalizes non-missing values feature-wise, and
+    replaces missing/held-out entries with a fixed value for model input.
+
+    :param data: Input matrix of shape ``(N, P)`` with possible missing values
+        (NaNs). May be a :class:`pandas.DataFrame`, :class:`numpy.ndarray`, or
+        :class:`torch.Tensor`. If a DataFrame is given, row indices and column
+        names are preserved.
+    :param cluster_labels: Cluster assignment per sample (length ``N``). If
+        ``None``, all samples are treated as a single cluster.
+    :param val_proportion: Validation hold-out specification. One of:
+        * **float in [0, 1]** – same fraction for *each* cluster.
+        * **sequence** – values aligned to ``sorted(unique(cluster_labels))``.
+        * **mapping** – dict/Series mapping ``cluster_id -> proportion``.
+        Proportions apply to the number of *observed* entries per feature
+        within each cluster.
+    :param replacement_value: Value used to fill missing/held-out inputs after
+        normalization (e.g., ``0.0``).
+    :param columns_ignore: Column names (if ``data`` is a DataFrame) or integer
+        indices (if array/tensor) to **exclude** from validation masking. These
+        columns are still normalized and returned; they just won't have
+        additional validation entries held out.
+
+    Attributes
+    ----------
+    raw_data : torch.FloatTensor
+        Original data as ``float32`` with NaNs for missing (shape ``(N, P)``).
+    data : torch.FloatTensor
+        Normalized data with NaNs replaced by ``replacement_value`` (``(N, P)``).
+    masks : torch.BoolTensor
+        Binary mask where ``True`` indicates an observed (non-NaN) value in
+        ``data`` before replacement (``(N, P)``).
+    val_data : torch.FloatTensor
+        Matrix containing **only** the validation-held-out targets (NaN
+        elsewhere), shape ``(N, P)``.
+    cluster_labels : torch.LongTensor
+        Cluster id per row (``(N,)``).
+    indices : torch.LongTensor
+        Original row indices (from DataFrame or ``range(N)``).
+    feature_names : list[str]
+        Column names (from DataFrame) or synthetic names ``["V1", ..., "VP"]``.
+    feature_means : numpy.ndarray
+        Per-feature mean used for normalization (NaN-robust), shape ``(P,)``.
+    feature_stds : numpy.ndarray
+        Per-feature std used for normalization (zeros clipped to 1.0), ``(P,)``.
+    n_clusters : int
+        Number of unique clusters.
+    columns_ignore : list
+        The resolved ignore list.
+
+    :raises TypeError: If ``data`` or ``cluster_labels`` are of unsupported type,
+        or if ``val_proportion`` is not a float/sequence/mapping/Series.
+    :raises ValueError: If any provided proportion is outside ``[0, 1]``, or if
+        a sequence/mapping omits required clusters.
+    """
     def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
         """
-        Dataset that handles cluster-wise masking and normalization for VAE training.
+        Build the dataset, apply per-cluster validation masking, and normalize.
 
-        Parameters:
-            - data : pd.DataFrame | np.ndarray | torch.Tensor): 
-                Input matrix (rows = samples, cols = features) with potential missing values.
-            - cluster_labels : (array-like): 
-                Cluster assignment per sample. If None, will assign all rows to same cluster.
-            - val_proportion : float | sequence | mapping: 
-                Fraction of non-missing data per cluster to mask for validation.
-            - replacement_value : (float): 
-                Value to fill in missing entries after masking (e.g., 0.0).
-            - columns_ignore : (list): 
-                Optional list of column names (if data is a DataFrame) or indices (if array) to exclude from validation masking.
-
+        Steps
+        -----
+        1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
+        2. Resolve per-cluster validation proportions from ``val_proportion``.
+        3. For each cluster and feature, randomly mark the requested fraction of
+        **observed** entries as validation targets.
+        4. Create ``val_data`` (validation targets only) and training ``data`` where
+        validation entries are set to NaN.
+        5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply
+        normalization; then replace remaining NaNs with ``replacement_value``.
         """
 
         ## set columns ignore 
@@ -190,12 +267,25 @@ class ClusterDataset(Dataset):
         self.shape = self.data.shape
 
     def __len__(self):
-        """ Returns length of the original dataframe.
+        """
+        Number of samples in the dataset.
+
+        :return: ``N`` (number of rows).
         """
         return len(self.data)
 
     def __getitem__(self, index):
-        """ Get the Values, cluster label and binary mask for a single data entry (row) by index.
+        """
+        Get a single sample.
+
+        :param index: Row index.
+        :return: Tuple ``(x, cluster_id, mask, original_index)`` where:
+            * **x** – normalized input row with NaNs replaced (``(P,)``).
+            * **cluster_id** – integer cluster label (``()``).
+            * **mask** – boolean mask of observed entries before replacement
+            (``(P,)``).
+            * **original_index** – original row index from the source DataFrame
+            (if provided) or the integer position.
         """
         return (
             self.data[index],            # input with missing replaced
@@ -205,7 +295,7 @@ class ClusterDataset(Dataset):
         )
 
     def __repr__(self):
-        """ Displays the number of samples, features, and clusters, the percentage of missing data, 
+        """ Displays the number of samples, features, and clusters, the percentage of missing data before masking, 
         and the percentage of non-missing data held out for validation.
         """
         n, p = self.data.shape
