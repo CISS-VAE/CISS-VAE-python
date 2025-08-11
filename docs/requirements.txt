@@ -1,6 +1,7 @@
 sphinx>=6.0
 sphinx_rtd_theme
 sphinx_autodoc_typehints
+sphinx_copybutton
 myst_parser  # only if you're using .md or .qmd files
 
 
