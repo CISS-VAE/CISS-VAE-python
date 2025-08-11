@@ -6,4 +6,5 @@ from .training.autotune import autotune
 from .training.train_initial import train_vae_initial
 from .training.train_refit import impute_and_refit_loop
 from .utils.helpers import plot_vae_architecture, get_imputed_df, evaluate_imputation
-from .utils.run_cissvae import run_cissvae
+from .utils.run_cissvae import run_cissvae, cluster_on_missing, cluster_on_missing_prop
+from .utils.missing_prop_matrix import make_missingness_prop_matrix
