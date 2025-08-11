@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.utils.helpers.get_imputed_df &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.utils.run_cissvae.cluster_on_missing &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -23,8 +23,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ciss_vae.utils.helpers.plot_vae_architecture" href="ciss_vae.utils.helpers.plot_vae_architecture.html" />
-    <link rel="prev" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" /> 
+    <link rel="next" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" />
+    <link rel="prev" title="ciss_vae.utils.run_cissvae.run_cissvae" href="ciss_vae.utils.run_cissvae.run_cissvae.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -58,12 +58,12 @@
 <li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#helpers-plotting">Helpers &amp; Plotting</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.helpers.get_imputed_df</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.helpers.get_imputed_df"><code class="docutils literal notranslate"><span class="pre">get_imputed_df()</span></code></a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.run_cissvae.cluster_on_missing</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.run_cissvae.cluster_on_missing"><code class="docutils literal notranslate"><span class="pre">cluster_on_missing()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
 </ul>
 </li>
@@ -86,9 +86,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
-      <li class="breadcrumb-item active">ciss_vae.utils.helpers.get_imputed_df</li>
+      <li class="breadcrumb-item active">ciss_vae.utils.run_cissvae.cluster_on_missing</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/ciss_vae.utils.helpers.get_imputed_df.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -96,22 +96,52 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="ciss-vae-utils-helpers-get-imputed-df">
-<h1>ciss_vae.utils.helpers.get_imputed_df<a class="headerlink" href="#ciss-vae-utils-helpers-get-imputed-df" title="Link to this heading"></a></h1>
+  <section id="ciss-vae-utils-run-cissvae-cluster-on-missing">
+<h1>ciss_vae.utils.run_cissvae.cluster_on_missing<a class="headerlink" href="#ciss-vae-utils-run-cissvae-cluster-on-missing" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="ciss_vae.utils.helpers.get_imputed_df">
-<span class="sig-name descname"><span class="pre">get_imputed_df</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/helpers.html#get_imputed_df"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.helpers.get_imputed_df" title="Link to this definition"></a></dt>
-<dd><p>Given trained model and cluster dataset object, get imputed dataset.
-:type model: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE"><code class="xref py py-class docutils literal notranslate"><span class="pre">CISSVAE</span></code></a></span>
-:param model: Trained CISSVAE model (should be in eval() mode)
-:type data_loader: 
-:param data_loader: DataLoader for the original ClusterDataset</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas DataFrame of imputed (unscaled) data</p>
+<dt class="sig sig-object py" id="ciss_vae.utils.run_cissvae.cluster_on_missing">
+<span class="sig-name descname"><span class="pre">cluster_on_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_clusters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cluster_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_selection_epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/run_cissvae.html#cluster_on_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.run_cissvae.cluster_on_missing" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Given pandas dataframe with missing data, clusters on missingness pattern and returns cluster labels.</dt><dd><dl class="simple">
+<dt>Parameters:</dt><dd><ul class="simple">
+<li><dl class="simple">
+<dt>data<span class="classifier">(pd.DataFrame) :</span></dt><dd><p>The original dataset</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>imputed_df</p>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>cols_ignore<span class="classifier">(list[str]) default=None :</span></dt><dd><p>List of columns to ignore when clustering.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>n_clusters<span class="classifier">(int) default=None:</span></dt><dd><p>Set n_clusters to perform KMeans clustering with n_clusters clusters. If none, will use hdbscan for clustering.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>seed<span class="classifier">(int) default=None:</span></dt><dd><p>Set seed.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>min_cluster_size<span class="classifier">(int) default=None:</span></dt><dd><p>Set min_cluster_size for hdbscan.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>cluster_selection_epsilon<span class="classifier">(float) default=0.25:</span></dt><dd><p>Set cluster_selection_epsilon for hdbscan.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</dd>
+<dt>Returns:</dt><dd><ul class="simple">
+<li><p>clusters : cluster labels</p></li>
+<li><p>silhouette : silhouette score</p></li>
+</ul>
+</dd>
+</dl>
 </dd>
 </dl>
 </dd></dl>
@@ -122,8 +152,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" class="btn btn-neutral float-left" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ciss_vae.utils.helpers.plot_vae_architecture.html" class="btn btn-neutral float-right" title="ciss_vae.utils.helpers.plot_vae_architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ciss_vae.utils.run_cissvae.run_cissvae.html" class="btn btn-neutral float-left" title="ciss_vae.utils.run_cissvae.run_cissvae" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" class="btn btn-neutral float-right" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -9,6 +9,7 @@
   <title>CISS-VAE documentation &mdash; CISS-VAE 1.0.3 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
   
@@ -17,6 +18,8 @@
       <script src="_static/documentation_options.js?v=baaebd52"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=00122899"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -85,7 +88,7 @@ It also functions effectively under MAR (Missing at Random) assumptions.</p>
 <p>The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation
 accuracy compared to traditional training approaches.</p>
-<p>The CISS-VAE package also offers an <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function that will select the best hyperparameters for your model within a user-defined search space, and compatibility with Optuna Dashboard for viewing hyperparameter importance trends.</p>
+<p>The CISS-VAE package also offers the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function, which can help select the best hyperparameters for your model within a user-defined search space. The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
@@ -109,18 +112,16 @@ accuracy compared to traditional training approaches.</p>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#training-tuning">Training &amp; Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api.html#helpers-plotting">Helpers &amp; Plotting</a></li>
 </ul>
 </li>
 </ul>
 </div>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
+<p>To install via PyPI:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
 </pre></div>
 </div>
@@ -129,9 +130,8 @@ accuracy compared to traditional training approaches.</p>
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p>Cluster-specific VAE architecture</p></li>
-<li><p>Compatible with real-world missing data</p></li>
+<li><p>Compatible with real-world missing data (MAR, MNAR)</p></li>
 <li><p>Optuna-based hyperparameter tuning</p></li>
-<li><p>Clean API for training and imputation</p></li>
 </ul>
 <p>Need help? See the <a class="reference external" href="vignette.html">vignette</a> or the full <a class="reference external" href="api.html">API reference</a>.</p>
 </section>
