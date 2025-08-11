@@ -251,7 +251,7 @@ def cluster_on_missing_prop(
 # Func 2: Make dataset & run VAE
 # --------------------
 
-def run_cissvae(data, val_percent = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, ## dataset params
+def run_cissvae(data, val_proportion = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, ## dataset params
 clusters = None, n_clusters = None, cluster_selection_epsilon = 0.25, seed = 42, missingness_proportion_matrix = None, scale_features = False,## clustering params
 hidden_dims = [150, 120, 60], latent_dim = 15, layer_order_enc = ["unshared", "unshared", "unshared"],
 layer_order_dec=["shared", "shared",  "shared"], latent_shared=False, output_shared=False, batch_size = 4000,
@@ -271,7 +271,7 @@ return_silhouettes = False
     ----------
     data : pd.DataFrame | np.ndarray | torch.Tensor
         Input data matrix (samples × features), may contain missing values.
-    val_percent : float, default=0.1
+    val_proportion : float, default=0.1
         Fraction of non-missing entries per cluster to mask for validation.
     replacement_value : float, default=0.0
         Value used to fill in masked entries (e.g., zero imputation).
@@ -369,7 +369,7 @@ return_silhouettes = False
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
-                            val_percent = val_percent,
+                            val_proportion = val_proportion,
                             replacement_value = replacement_value, 
                             columns_ignore = columns_ignore)
 

@@ -341,7 +341,7 @@ def compute_val_mse(model, dataset, device="cpu"):
         print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
 
     if masked_error.numel() == 0:
-        raise ValueError("No validation entries found. Increase `val_percent` in ClusterDataset.")
+        raise ValueError("No validation entries found. Increase `val_proportion` in ClusterDataset.")
 
     return masked_error.mean().item()
     

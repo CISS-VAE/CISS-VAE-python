@@ -79,7 +79,7 @@ data = data.drop(columns = ["clusters", "Unnamed: 0"])
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
-    val_percent = 0.1, ## Fraction of non-missing data held out for validation
+    val_proportion = 0.1, ## Fraction of non-missing data held out for validation
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
@@ -176,7 +176,7 @@ from ciss_vae.training.autotune import SearchSpace, autotune
 
 dataset = ClusterDataset(data = data,
 cluster_labels = clusters,
-val_percent = 0.1, ## 10% non-missing data is default.
+val_proportion = 0.1, ## 10% non-missing data is default.
 replacement_value = 0, ## value to replace all missing data with before running model. Could be set to 0 or random
 columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entries demographic columns for validation
 )

@@ -5,14 +5,14 @@ import pandas as pd
 import copy
 
 class ClusterDataset(Dataset):
-    def __init__(self, data, cluster_labels, val_percent = 0.1, replacement_value = 0, columns_ignore = None):
+    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
         """
         Dataset that handles cluster-wise masking and normalization for VAE training.
 
         Parameters:
             - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
             - cluster_labels (array-like): Cluster assignment per sample. If None, will assign all rows to same cluster.
-            - val_percent (float): Fraction of non-missing data per cluster to mask for validation.
+            - val_proportion (float): Fraction of non-missing data per cluster to mask for validation.
             - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
             - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)
                                     to exclude from validation masking.
@@ -90,7 +90,7 @@ class ClusterDataset(Dataset):
                 if col in ignore_indices:
                     continue
                 non_missing = [i for i in range(len(row_idxs)) if not np.isnan(cluster_data[i, col])]
-                n_val = int(np.floor(len(non_missing) * val_percent))
+                n_val = int(np.floor(len(non_missing) * val_proportion))
                 if n_val > 0:
                     selected = np.random.choice(non_missing, size=n_val, replace=False)
                     val_mask_np[row_idxs[selected], col] = True
