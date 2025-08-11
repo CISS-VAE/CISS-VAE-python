@@ -3,6 +3,7 @@ import torch
 import numpy as np
 import pandas as pd
 import copy
+from collections.abc import Mapping, Sequence
 
 class ClusterDataset(Dataset):
     def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
@@ -10,12 +11,17 @@ class ClusterDataset(Dataset):
         Dataset that handles cluster-wise masking and normalization for VAE training.
 
         Parameters:
-            - data (pd.DataFrame, np.ndarray, or torch.Tensor): Input matrix with potential missing values.
-            - cluster_labels (array-like): Cluster assignment per sample. If None, will assign all rows to same cluster.
-            - val_proportion (float): Fraction of non-missing data per cluster to mask for validation.
-            - replacement_value (float): Value to fill in missing entries after masking (e.g., 0.0).
-            - columns_ignore (list): Optional list of column names (if data is a DataFrame) or indices (if array)
-                                    to exclude from validation masking.
+            - data : pd.DataFrame | np.ndarray | torch.Tensor): 
+                Input matrix (rows = samples, cols = features) with potential missing values.
+            - cluster_labels : (array-like): 
+                Cluster assignment per sample. If None, will assign all rows to same cluster.
+            - val_proportion : (float): 
+                Fraction of non-missing data per cluster to mask for validation.
+            - replacement_value : (float): 
+                Value to fill in missing entries after masking (e.g., 0.0).
+            - columns_ignore : (list): 
+                Optional list of column names (if data is a DataFrame) or indices (if array) to exclude from validation masking.
+
         """
 
         ## set columns ignore 
@@ -74,26 +80,80 @@ class ClusterDataset(Dataset):
             self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
 
         self.n_clusters = len(np.unique(cluster_labels_np))
+        unique_clusters = np.unique(cluster_labels_np)
+
+        # --------------------------
+        # Resolve per-cluster validation proportion
+        # --------------------------
+        def _as_per_cluster_props(vp):
+            # scalar → broadcast
+            if isinstance(vp, (int, float, np.floating)):
+                p = float(vp)
+                if not (0 <= p <= 1):
+                    raise ValueError("`val_proportion` scalar must be in [0, 1].")
+                return {c: p for c in unique_clusters}
+
+            # pandas Series with labeled index
+            if isinstance(vp, pd.Series):
+                mapping = {int(k): float(v) for k, v in vp.items()}
+                missing = [c for c in unique_clusters if c not in mapping]
+                if missing:
+                    raise ValueError(f"`val_proportion` Series missing clusters: {missing}")
+                return mapping
+
+            # Mapping (e.g., dict)
+            if isinstance(vp, Mapping):
+                mapping = {int(k): float(v) for k, v in vp.items()}
+                missing = [c for c in unique_clusters if c not in mapping]
+                if missing:
+                    raise ValueError(f"`val_proportion` mapping missing clusters: {missing}")
+                return mapping
+
+            # Sequence aligned to sorted unique clusters
+            if isinstance(vp, Sequence):
+                vals = list(vp)
+                if len(vals) != len(unique_clusters):
+                    raise ValueError(
+                        f"`val_proportion` sequence length ({len(vals)}) must equal number of clusters ({len(unique_clusters)})."
+                    )
+                return {c: float(v) for c, v in zip(unique_clusters, vals)}
+
+            raise TypeError(
+                "`val_proportion` must be float in [0,1], a sequence (len = #clusters), "
+                "a pandas Series (index=cluster), or a mapping {cluster: proportion}."
+            )
+
+        per_cluster_prop = _as_per_cluster_props(val_proportion)
+        for cid, p in per_cluster_prop.items():
+            if not (0.0 <= p <= 1.0):
+                raise ValueError(f"`val_proportion` for cluster {cid} must be in [0, 1]; got {p}.")
 
         # ----------------------------------------
         # Validation mask per cluster
         # ----------------------------------------
         val_mask_np = np.zeros_like(raw_data_np, dtype=bool)
 
-        ## for each cluster
-        val_mask_np = np.zeros_like(raw_data_np, dtype=bool)
-        for cluster_id in np.unique(cluster_labels_np):
+        for cluster_id in unique_clusters:
             row_idxs = np.where(cluster_labels_np == cluster_id)[0]
+            if row_idxs.size == 0:
+                continue
+
             cluster_data = raw_data_np[row_idxs]
+            prop = per_cluster_prop[cluster_id]
+            if prop == 0.0:
+                continue  # nothing to select for this cluster
 
             for col in range(cluster_data.shape[1]):
-                if col in ignore_indices:
+                if col in self.ignore_indices:
                     continue
-                non_missing = [i for i in range(len(row_idxs)) if not np.isnan(cluster_data[i, col])]
-                n_val = int(np.floor(len(non_missing) * val_proportion))
-                if n_val > 0:
-                    selected = np.random.choice(non_missing, size=n_val, replace=False)
-                    val_mask_np[row_idxs[selected], col] = True
+                non_missing = np.where(~np.isnan(cluster_data[:, col]))[0]
+                if non_missing.size == 0:
+                    continue
+                n_val = int(np.floor(non_missing.size * prop))
+                if n_val <= 0:
+                    continue
+                chosen = np.random.choice(non_missing, size=n_val, replace=False)
+                val_mask_np[row_idxs[chosen], col] = True
 
         val_mask_tensor = torch.tensor(val_mask_np, dtype=torch.bool)
 
