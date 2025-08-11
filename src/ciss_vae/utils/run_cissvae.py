@@ -1,15 +1,9 @@
 """run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model."""
-
-import torch
 from __future__ import annotations
 from typing import Optional, Sequence, Tuple, Union
 import pandas as pd
 import numpy as np
-from torch.utils.data import DataLoader
-from ciss_vae.classes.vae import CISSVAE
-from ciss_vae.classes.cluster_dataset import ClusterDataset
-from ciss_vae.training.train_initial import train_vae_initial
-from ciss_vae.training.train_refit import impute_and_refit_loop
+
 #from ciss_vae.utils.helpers import plot_vae_architecture
 
 
@@ -339,6 +333,12 @@ return_silhouettes = False
     return_silhouettes : bool, default=False
         If True, returns silhouettes from clustering
     """
+    import torch
+    from torch.utils.data import DataLoader
+    from ciss_vae.classes.vae import CISSVAE
+    from ciss_vae.classes.cluster_dataset import ClusterDataset
+    from ciss_vae.training.train_initial import train_vae_initial
+    from ciss_vae.training.train_refit import impute_and_refit_loop
 
     # ------------
     # Set params
