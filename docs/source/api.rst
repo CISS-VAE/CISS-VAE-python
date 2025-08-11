@@ -22,7 +22,7 @@ Training & Tuning
    :caption: Run CISS-VAE & Automated Hyperparameter Tuning
 
    ciss_vae.training.autotune.autotune
-   .. ciss_vae.utils.run_cissvae.run_cissvae
+   ciss_vae.utils.run_cissvae.run_cissvae
 
 Helpers & Plotting
 -------------------
