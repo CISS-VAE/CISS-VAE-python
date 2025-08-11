@@ -31,5 +31,8 @@ Helpers & Plotting
    :signatures: short
    :caption: Helper functions
 
+   ciss_vae.utils.run_cissvae.cluster_on_missing
+   ciss_vae.utils.run_cissvae.cluster_on_missing_prop
    ciss_vae.utils.helpers.get_imputed_df
    ciss_vae.utils.helpers.plot_vae_architecture
+   

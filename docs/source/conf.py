@@ -58,4 +58,6 @@ html_css_files = [
 ]
 
 
-autodoc_mock_imports = ["torch", "sklearn"]  # add libs you don't need at doc-build time
+autodoc_mock_imports = [    "torch", "torchvision", "torchaudio",
+    "hdbscan", "optuna",
+    "sklearn",]  # add libs you don't need at doc-build time
