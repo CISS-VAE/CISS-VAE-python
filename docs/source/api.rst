@@ -2,37 +2,37 @@ API Reference
 =============
 
 .. currentmodule:: ciss_vae
-
-Classes
--------
 .. autosummary::
    :toctree: _autosummary
-   :signatures: short
-   :caption: Classes in CISS-VAE
+   :recursive:
 
-   ciss_vae.classes.vae.CISSVAE
-   ciss_vae.classes.cluster_dataset.ClusterDataset
-   ciss_vae.training.autotune.SearchSpace
+   run_cissvae
 
-Training & Tuning
------------------------
+.. currentmodule:: ciss_vae.classes
 .. autosummary::
    :toctree: _autosummary
-   :signatures: short
-   :caption: Run CISS-VAE & Automated Hyperparameter Tuning
+   :recursive:
 
-   ciss_vae.training.autotune.autotune
-   ciss_vae.utils.run_cissvae.run_cissvae
+   vae.CISSVAE
+   cluster_dataset.ClusterDataset
 
-Helpers & Plotting
--------------------
+.. currentmodule:: ciss_vae.training
 .. autosummary::
    :toctree: _autosummary
-   :signatures: short
-   :caption: Helper functions
+   :recursive:
 
-   ciss_vae.utils.run_cissvae.cluster_on_missing
-   ciss_vae.utils.run_cissvae.cluster_on_missing_prop
-   ciss_vae.utils.helpers.get_imputed_df
-   ciss_vae.utils.helpers.plot_vae_architecture
-   
+   autotune.SearchSpace
+   autotune.autotune
+   train_initial.train_vae_initial
+   train_refit.impute_and_refit_loop
+
+.. currentmodule:: ciss_vae.utils
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   run_cissvae.run_cissvae
+   run_cissvae.cluster_on_missing
+   run_cissvae.cluster_on_missing_prop
+   helpers.get_imputed_df
+   helpers.plot_vae_architecture
