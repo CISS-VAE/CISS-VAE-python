@@ -378,3 +378,12 @@ class CISSVAE(nn.Module):
             in_dim = out_dim
         lines.append(f"\nFinal Output Layer: {in_dim} → {self.input_dim}")
         return "\n".join(lines)
+        
+    def set_final_lr(self, final_lr):
+        """Stores final lr from initial training loop in model attributes to be accessed in refit loop."""
+        self.final_lr = final_lr
+
+    def get_final_lr(self):
+        """Returns the learning rate stored with self.set_final_lr/"""
+        return(self.final_lr)
+
