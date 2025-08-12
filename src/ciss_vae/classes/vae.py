@@ -1,9 +1,56 @@
-"""VAE model class."""
+r"""
+Variational Autoencoder with cluster‑aware shared/unshared layers.
+
+This module defines :class:`CISSVAE`, a VAE that can route samples through
+either **shared** or **cluster‑specific** (unshared) layers in the encoder and
+decoder, controlled by per‑layer directives.
+"""
 
 import torch
 import torch.nn as nn
 
 class CISSVAE(nn.Module):
+    r"""
+    Cluster‑aware Variational Autoencoder (VAE).
+
+    Supports flexible mixtures of **shared** and **unshared** layers across
+    clusters in both encoder and decoder. Unshared layers are duplicated per
+    cluster; shared layers are single modules applied to all samples.
+
+    :param input_dim: Number of input features (columns).
+    :type input_dim: int
+    :param hidden_dims: Width of each hidden layer (encoder goes forward, decoder uses the reverse).
+    :type hidden_dims: list[int]
+    :param layer_order_enc: Per‑encoder‑layer directive: ``"shared"`` or ``"unshared"`` (case‑insensitive, ``"s"``/``"u"`` allowed).
+    :type layer_order_enc: list[str]
+    :param layer_order_dec: Per‑decoder‑layer directive: ``"shared"`` or ``"unshared"`` (case‑insensitive, ``"s"``/``"u"`` allowed).
+    :type layer_order_dec: list[str]
+    :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.
+    :type latent_shared: bool
+    :param latent_dim: Dimensionality of the latent space.
+    :type latent_dim: int
+    :param output_shared: If ``True``, the final output layer is shared; otherwise one output layer per cluster.
+    :type output_shared: bool
+    :param num_clusters: Number of clusters present in the data.
+    :type num_clusters: int
+    :param debug: If ``True``, prints routing shapes and asserts row order invariants.
+    :type debug: bool
+
+    :raises ValueError: If an item of ``layer_order_enc`` or ``layer_order_dec`` is not one of
+        ``{"shared","unshared","s","u"}`` (case‑insensitive), or if their lengths do not match
+        ``len(hidden_dims)`` for the respective path.
+
+    **Expected shapes**
+        * Encoder input ``x``: ``(batch, input_dim)``
+        * Cluster labels ``cluster_labels``: ``(batch,)`` (``LongTensor`` with values in ``[0, num_clusters-1]``)
+        * Decoder/Output: ``(batch, input_dim)``
+
+    **Notes**
+        * The decoder consumes ``hidden_dims[::-1]`` (reverse order).
+        * Unshared layers maintain per‑cluster ``ModuleList``/``ModuleDict`` replicas.
+        * Routing never reorders rows; masks are used to apply cluster‑specific sublayers in‑place.
+    """
+
     def __init__(self,
                  input_dim,
                  hidden_dims,
@@ -17,26 +64,24 @@ class CISSVAE(nn.Module):
         """
         Variational Autoencoder supporting flexible shared/unshared layers across clusters.
 
-        Parameters
-        ----------
-        input_dim : int
-            Number of input features.
-        hidden_dims : list[int]
-            Dimensions of hidden layers.
-        layer_order_enc : list[str]
-            "shared" / "unshared" for encoder layers.
-        layer_order_dec : list[str]
-            "shared" / "unshared" for decoder layers.
-        latent_shared : bool
-            Whether latent representation is shared across clusters.
-        latent_dim : int
-            Dimensionality of the latent space.
-        output_shared : bool
-            Whether output layer is shared across clusters.
-        num_clusters : int
-            Number of clusters.
-        debug : bool
-            If True, print shape/routing info.
+        :param input_dim: Number of input features.
+        :type input_dim: int
+        :param hidden_dims: Dimensions of hidden layers.
+        :type hidden_dims: list[int]
+        :param layer_order_enc: Layer type for each encoder layer (``"shared"`` or ``"unshared"``).
+        :type layer_order_enc: list[str]
+        :param layer_order_dec: Layer type for each decoder layer (``"shared"`` or ``"unshared"``).
+        :type layer_order_dec: list[str]
+        :param latent_shared: Whether latent representation is shared across clusters.
+        :type latent_shared: bool
+        :param latent_dim: Dimensionality of the latent space.
+        :type latent_dim: int
+        :param output_shared: Whether output layer is shared across clusters.
+        :type output_shared: bool
+        :param num_clusters: Number of clusters.
+        :type num_clusters: int
+        :param debug: If ``True``, print shape and routing information.
+        :type debug: bool
         """
         super().__init__()
         self.debug = debug
@@ -141,6 +186,31 @@ class CISSVAE(nn.Module):
                              layer_type_list,
                              shared_layers,
                              unshared_layers):
+        r"""
+        Apply a sequence of shared/unshared layers according to ``layer_type_list``.
+
+        For each position ``i``:
+        * if ``layer_type_list[i]`` is shared → apply ``shared_layers[i_shared]`` to all rows;
+        * if unshared → for each cluster ``c``, apply the ``c``‑specific layer
+            at that depth to the subset of rows where ``cluster_labels == c``.
+
+        :param x: Input activations to be routed.
+        :type x: torch.Tensor, shape ``(batch, d_in)``
+        :param cluster_labels: Cluster id per row.
+        :type cluster_labels: torch.LongTensor, shape ``(batch,)``
+        :param layer_type_list: Sequence of ``"shared"``/``"unshared"`` flags (length = number of layers at this stage).
+        :type layer_type_list: list[str]
+        :param shared_layers: Layers used when the directive is shared (index increases only when a shared layer is consumed).
+        :type shared_layers: torch.nn.ModuleList
+        :param unshared_layers: Per‑cluster lists of layers for unshared directives (index per cluster increases only when an unshared layer is consumed).
+        :type unshared_layers: dict[str, torch.nn.ModuleList] | torch.nn.ModuleDict
+
+        :returns: Routed activations.
+        :rtype: torch.Tensor
+
+        :raises ValueError: If an entry in ``layer_type_list`` is invalid or if per‑cluster
+            unshared stacks are inconsistent with the directives.
+        """
         shared_idx = 0
         unshared_idx = {str(c): 0 for c in range(self.num_clusters)}
 
@@ -176,6 +246,17 @@ class CISSVAE(nn.Module):
         return x
 
     def encode(self, x, cluster_labels):
+        r"""
+        Encoder forward pass producing ``mu`` and ``logvar``.
+
+        :param x: Input batch.
+        :type x: torch.Tensor, shape ``(batch, input_dim)``
+        :param cluster_labels: Cluster id per row.
+        :type cluster_labels: torch.LongTensor, shape ``(batch,)``
+
+        :returns: Tuple ``(mu, logvar)``.
+        :rtype: tuple[torch.Tensor, torch.Tensor]
+        """
         x = self.route_through_layers(
             x, cluster_labels,
             self.layer_order_enc,
@@ -197,11 +278,33 @@ class CISSVAE(nn.Module):
         return mu, logvar
 
     def reparameterize(self, mu, logvar):
+        r"""
+        Reparameterization trick: ``z = mu + eps * exp(0.5 * logvar)``.
+
+        :param mu: Mean of the approximate posterior.
+        :type mu: torch.Tensor, shape ``(batch, latent_dim)``
+        :param logvar: Log‑variance of the approximate posterior.
+        :type logvar: torch.Tensor, shape ``(batch, latent_dim)``
+
+        :returns: Sampled latent codes ``z``.
+        :rtype: torch.Tensor
+        """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
 
     def decode(self, z, cluster_labels):
+        r"""
+        Decoder forward pass from latent ``z`` to reconstruction.
+
+        :param z: Latent codes.
+        :type z: torch.Tensor, shape ``(batch, latent_dim)``
+        :param cluster_labels: Cluster id per row.
+        :type cluster_labels: torch.LongTensor, shape ``(batch,)``
+
+        :returns: Reconstructed inputs.
+        :rtype: torch.Tensor, shape ``(batch, input_dim)``
+        """
         z = self.route_through_layers(
             z, cluster_labels,
             self.layer_order_dec,
@@ -227,6 +330,17 @@ class CISSVAE(nn.Module):
             return output
 
     def forward(self, x, cluster_labels):
+        r"""
+        Full VAE forward pass: encode → reparameterize → decode.
+
+        :param x: Input batch.
+        :type x: torch.Tensor, shape ``(batch, input_dim)``
+        :param cluster_labels: Cluster id per row.
+        :type cluster_labels: torch.LongTensor, shape ``(batch,)``
+
+        :returns: Tuple ``(recon, mu, logvar)``.
+        :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+        """
         if self.debug:
             print(f"[DEBUG] Forward start: {x.shape}")
         mu, logvar = self.encode(x, cluster_labels)
@@ -237,6 +351,12 @@ class CISSVAE(nn.Module):
         return recon, mu, logvar
 
     def __repr__(self):
+        r"""
+        String summary of the architecture (encoder/latent/decoder layout).
+
+        :returns: Human‑readable multi‑line description.
+        :rtype: str
+        """
         lines = [f"CISSVAE(input_dim={self.input_dim}, latent_dim={self.latent_dim}, "
                  f"latent_shared={self.latent_shared}, num_clusters={self.num_clusters})"]
         lines.append("Encoder Layers:")

@@ -1,3 +1,14 @@
+"""
+Optuna-based hyperparameter tuning for CISS-VAE.
+
+This module defines:
+
+- :class:`TQDMProgress`: a lightweight Optuna callback to render a progress bar.
+- :class:`SearchSpace`: a structured container describing tunable/fixed hyperparameters.
+- :func:`autotune`: runs Optuna trials that train CISSVAE models and selects the best trial
+  by validation MSE, then retrains a final model with the best settings.
+"""
+
 import torch
 import optuna
 import json
@@ -12,20 +23,92 @@ from itertools import combinations, product
 from tqdm import tqdm
 import random
 
+
 class TQDMProgress:
-    """Custom callback to show progress bar for Optuna trials."""
-    def __init__(self, n_trials):
-        self.pbar = tqdm(total=n_trials, desc="Optuna tuning", leave=True)
-    def __call__(self, study, trial):
-        self.pbar.update(1)
+    """Two-level progress: trials (outer) and epochs (inner)."""
+    def __init__(self, n_trials: int):
+        self.trials_total = n_trials
+        self.trials_done = 0
+        self.trials_pbar = tqdm(total=n_trials, desc="Trials", leave=True)
+        self.epoch_pbar = None
+
+    def start_trial(self, trial_number: int, total_epochs: int, label: str = ""):
+        # Close any stray inner bar
+        if self.epoch_pbar is not None:
+            self.epoch_pbar.close()
+            self.epoch_pbar = None
+        self.epoch_pbar = tqdm(total=total_epochs, desc=f"Trial {trial_number+1}: {label}", leave=False)
+
+    def switch_phase(self, total_epochs: int, label: str = ""):
+        # Close previous phase bar, open a new one
+        if self.epoch_pbar is not None:
+            self.epoch_pbar.close()
+        self.epoch_pbar = tqdm(total=total_epochs, desc=label, leave=False)
+
+    def update_epoch(self, n: int = 1):
+        if self.epoch_pbar is not None:
+            self.epoch_pbar.update(n)
+
+    def finish_trial(self):
+        # Finish inner bar and tick outer one
+        if self.epoch_pbar is not None:
+            self.epoch_pbar.close()
+            self.epoch_pbar = None
+        self.trials_done += 1
+        self.trials_pbar.update(1)
+
     def close(self):
-        self.pbar.close()
+        if self.epoch_pbar is not None:
+            self.epoch_pbar.close()
+            self.epoch_pbar = None
+        if self.trials_pbar is not None:
+            self.trials_pbar.close()
+            self.trials_pbar = None
 
 class SearchSpace:
-    """Defines tunable and fixed hyperparameter ranges. Input for 'autotune' function.
-    [] -> pick items from list.
-    () -> tuple, creates a range (min, max, step).
-     x -> use single value"""
+    r"""
+        Defines tunable and fixed hyperparameter ranges for the Optuna search.
+
+        Parameters are specified as:
+        * **scalar**: fixed value (e.g., ``latent_dim=16``)
+        * **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)
+        * **tuple**: range (``(min, max)``) for ``suggest_int``/``suggest_float``
+
+        Attributes
+        ----------
+        num_hidden_layers : int | list[int] | tuple[int, int]
+            Number of encoder/decoder hidden layers.
+        hidden_dims : int | list[int] | tuple[int, int]
+            Hidden dimension spec. If int → repeated per layer; list → per‑layer choices; tuple → range.
+        latent_dim : int | tuple[int, int]
+            Latent size or range.
+        latent_shared : bool | list[bool]
+            Whether latent is shared (or categorical choice).
+        output_shared : bool | list[bool]
+            Whether output is shared (or categorical choice).
+        lr : float | tuple[float, float]
+            Initial learning rate or range.
+        decay_factor : float | tuple[float, float]
+            LR exponential decay factor or range.
+        beta : float | tuple[float, float]
+            KL weight or range.
+        num_epochs : int | tuple[int, int]
+            Epochs for initial training (or range).
+        batch_size : int | tuple[int, int]
+            Mini-batch size (or range).
+        num_shared_encode : list[int]
+            Candidate counts of shared encoder layers.
+        num_shared_decode : list[int]
+            Candidate counts of shared decoder layers.
+        refit_patience : int | tuple[int, int]
+            Early-stop patience for refit loops (or range).
+        refit_loops : int | tuple[int, int]
+            Maximum number of refit loops (or range).
+        epochs_per_loop : int | tuple[int, int]
+            Epochs per refit loop (or range).
+        reset_lr_refit : bool | list[bool]
+            Whether to reset LR before refit.
+        """
     def __init__(self,
                  num_hidden_layers=(1, 4),
                  hidden_dims=[64, 512],
@@ -78,66 +161,45 @@ def autotune(
     evaluate_all_orders: bool = False,    # if True, try ALL valid enc/dec orders per trial and pick best
     max_exhaustive_orders: int = 100,    # safety cap for evaluate_all_orders
 ):
-    """
-    Optuna-based hyperparameter search for VAE model.
-        Parameters:
-            - search_space : SearchSpace
-                The hyperparameter search space for the tuning
-            - train_dataset : ClusterDataset
-                A ClusterDataset object                 
-            - save_model_path : 
-                [optional], Where to save the best model
-            - save_search_space_path : 
-                [optional], Where to save the search space
-            - n_trials : int 
-                Number of trials to run
-            - study_name : str default="vae_autotune"
-                Name for the optuna study, default is "vae_autotune",
-            - device_preference : (str), 
-                Preferred device, default is "cuda",
-            - show_progress : (bool) default=False, 
-                Set as True to show progress bar, default is False,
-            - optuna_dashboard_db : (str), 
-                Path to optuna dashboard db file. Default is None,
-            - load_if_exists : (bool) default=True, 
-                If study by 'study_name' exists in optuna dashboard db, load that study. Default is True.
-            - seed : (int): 
-                Seed for selecting order of shared/unshared layers. Default is 42.
-            - verbose : (bool) default=False: 
-                Set to True to print diagnostic statements. Default is False
-            permute_hidden_layers : (bool) default=TRUE:
-                *True*: Encoder/decoder shared/unshared **order** is represented as **categorical
-                Optuna parameters** (`layer_order_enc`, `layer_order_dec`) chosen from all valid
-                permutations given the number of shared layers. This makes order visible in
-                parameter-importance plots on the Optuna dashboard.
+    r"""
+    Optuna-based hyperparameter search for the CISSVAE model.
 
-                *False*: Use a canonical, deterministic layout (no search over order):
-                - ENCODER: shared layers at the **END** (unshared...unshared, shared...shared)
-                - DECODER: shared layers at the **START** (shared...shared, unshared...unshared)
-            - constant_layer_size : (bool) default=False:
-                If True, Optuna samples a single `hidden_dim_constant` and we **repeat** it
-                across all hidden layers (cleaner importances, fewer degrees of freedom).
-                Otherwise, tune one `hidden_dim_i` per layer.
-            - evaluate_all_orders : (bool) default=False:
-                If True, each trial **exhaustively evaluates *all* valid order pairs**
-                (given `num_hidden_layers`, `num_shared_encode`, `num_shared_decode`)
-                and returns the best metric among them. In this mode, layer order is
-                *not* an Optuna parameter (so it won't appear in importance), but the
-                chosen best orders are recorded in `trial.user_attrs` and included in
-                `results_df`. Guarded by `max_exhaustive_orders` to avoid explosion.
-            - max_exhaustive_orders : (int) default=100:
-                If `evaluate_all_orders`, sets safety cap for number of runs to try. Can be increased/decreased as needed. 
+    Runs initial training, then impute–refit loops per trial, and selects the
+    trial with the lowest validation MSE.
 
+    :param search_space: Hyperparameter ranges and fixed values.
+    :type search_space: SearchSpace
+    :param train_dataset: Dataset containing masks, normalization, and cluster labels.
+    :type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset
+    :param save_model_path: Optional path to save the best model's ``state_dict``.
+    :type save_model_path: str | None
+    :param save_search_space_path: Optional path to dump the resolved search-space.
+    :type save_search_space_path: str | None
+    :param n_trials: Number of Optuna trials to run.
+    :type n_trials: int
+    :param study_name: Name for the Optuna study.
+    :type study_name: str
+    :param device_preference: ``"cuda"`` or ``"cpu"``; falls back to CPU if CUDA unavailable.
+    :type device_preference: str
+    :param show_progress: Whether to show Optuna progress bar.
+    :type show_progress: bool
+    :param optuna_dashboard_db: RDB storage URL/file for dashboard (or ``None`` for in‑memory).
+    :type optuna_dashboard_db: str | None
+    :param load_if_exists: Load existing study with the same name from storage.
+    :type load_if_exists: bool
+    :param seed: Base RNG seed for order generation etc.
+    :type seed: int
+    :param verbose: If ``True``, prints diagnostic logs.
+    :type verbose: bool
+    :param permute_hidden_layers: If ``True``, randomize layer orders per trial.
+    :type permute_hidden_layers: bool
+    :param constant_layer_size: If ``True``, all hidden layers use the same size.
+    :type constant_layer_size: bool
 
-        Returns: 
-            best_imputed_df : pd.DataFrame
-                The imputed dataset from the best model
-            best_model : CISSVAE 
-                The best model
-            study : 
-                Optuna study
-            results_df : pd.DataFrame
-                The results of the autotuning
+    :returns: Tuple ``(best_imputed_df, best_model, study, results_df)``
+    :rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)
+
+    :raises ValueError: If search space parameters are malformed or incompatible.
     """
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -218,6 +280,10 @@ def autotune(
     # --------------------------
     # Create Optuna objective
     # --------------------------
+
+    ## Progress instance in outer scope (so objective can see it)
+    progress = TQDMProgress(n_trials) if show_progress else None
+
     def objective(trial):
         # --------------------------
         # Parse Parameters
@@ -316,6 +382,9 @@ def autotune(
             trial.set_user_attr("layer_order_enc_used", enc_pattern)
             trial.set_user_attr("layer_order_dec_used", dec_pattern)
 
+        ## Start outer && inner bars for trial (initial training pahse)
+        if progress is not None:
+            progress.start_trial(trial.number, total_epochs=num_epochs, label="initial training")
 
         best_val = None
         best_patterns = None
@@ -344,6 +413,7 @@ def autotune(
 
             # --------------------------
             # Initial training
+            # - added progress callback to the initial && refit training 12aug25
             # --------------------------
             model = train_vae_initial(
                 model=model,
@@ -353,7 +423,8 @@ def autotune(
                 decay_factor=decay_factor,
                 beta=beta,
                 device=device,
-                verbose=False
+                verbose=False,
+                progress_callback=progress.update_epoch
             )
 
             # --------------------------
@@ -370,7 +441,10 @@ def autotune(
                 beta=beta,
                 device=device,
                 verbose=False,
-                batch_size=batch_size
+                batch_size=batch_size,
+                ## added refit progress callback
+                progress_phase=(lambda total, label: progress.switch_phase(total, label)) if progress else None,
+                progress_epoch=(lambda: progress.update_epoch()) if progress else None,
             )
 
             # --------------------------
@@ -393,6 +467,10 @@ def autotune(
             trial.set_user_attr("best_layer_order_enc", best_patterns[0])
             trial.set_user_attr("best_layer_order_dec", best_patterns[1])
 
+        ## end trial 
+        if progress is not None:
+            progress.finish_trial()
+
         return best_val
 
     # -----------------------
@@ -409,13 +487,13 @@ def autotune(
     # Progress bar
     # -----------------------
     if show_progress:
-        progress = TQDMProgress(n_trials=n_trials)
-        study.optimize(objective, n_trials=n_trials, callbacks=[progress])
-        progress.close()
+        ## Manage bars w/in train_initial + train_refit; don't use Optuna callbacks for progress 
+        try:
+            study.optimize(objective, n_trials=n_trials)
+        finally:
+            progress.close()  ## Always close bars cleanly
     else:
         study.optimize(objective, n_trials=n_trials)
-
-    best_params = study.best_trial.params
 
     # -----------------------
     # Final model: train with best params from scratch (robust to fixed params)

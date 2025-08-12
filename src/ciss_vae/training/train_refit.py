@@ -12,7 +12,7 @@ import copy
 
 def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
                     decay_factor=0.999, beta=0.1,
-                    device="cpu", verbose=False):
+                    device="cpu", verbose=False, progress_callback = None):
     model.to(device)
     optimizer = Adam(model.parameters(), lr=initial_lr)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
@@ -42,7 +42,12 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
         avg_loss = total_loss / len(imputed_data.dataset)
         if verbose:
             print(f"Epoch {epoch + 1}, Refit Loss: {avg_loss:.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
-
+        
+        #------------------
+        # progress bar hook
+        #------------------
+        if progress_callback:
+            progress_callback(1)
         scheduler.step()
 
         # if avg_loss < best_loss:
@@ -63,7 +68,8 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
 
 def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
                           epochs_per_loop=5, initial_lr=None, decay_factor=0.999,
-                          beta=0.1, device="cpu", verbose=False, batch_size=4000):
+                          beta=0.1, device="cpu", verbose=False, batch_size=4000,
+                          progress_phase=None, progress_epoch=None):
     """
     Iterative impute-refit loop with validation MSE early stopping.
     Returns
@@ -149,6 +155,9 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
 
 
     for loop in range(max_loops):
+        if progress_phase:
+            # show epochs for this refit segment
+            progress_phase(epochs_per_loop, label=f"Refit loop {loop+1}")
         if verbose:
             print(f"\n=== Impute-Refit Loop {loop + 1}/{max_loops} ===")
         
@@ -165,7 +174,8 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
             decay_factor=decay_factor,
             beta=beta,
             device=device,
-            verbose=verbose
+            verbose=verbose,
+            progress_callback = progress_epoch
         )
 
         # --------------------------

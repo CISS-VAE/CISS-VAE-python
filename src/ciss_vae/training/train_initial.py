@@ -17,6 +17,7 @@ def train_vae_initial(
     verbose: bool = False,
     *,
     return_history: bool = True,
+    progress_callback = None,
 ):
     """
     Train a VAE on masked data with validation set aside inside the ClusterDataset.
@@ -139,6 +140,11 @@ def train_vae_initial(
                 f"Val MSE: {val_mse:.6f} | LR: {current_lr:.6f}"
             )
 
+        #-----------------------
+        # Hook for progress bar
+        #-----------------------
+        if progress_callback:
+            progress_callback(1)   # tick one epoch
         scheduler.step()
 
     model.set_final_lr(optimizer.param_groups[0]["lr"])

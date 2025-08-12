@@ -26,64 +26,71 @@ import copy
 from collections.abc import Mapping, Sequence
 
 class ClusterDataset(Dataset):
-    """
-    Dataset with per-cluster validation masking and feature normalization.
+    r"""
+    Dataset that handles cluster-wise masking and normalization for VAE training.
 
-    The dataset masks a user-specified proportion of *observed* entries within
-    each cluster to form an internal validation target matrix, keeps the
-    complement for training, normalizes non-missing values feature-wise, and
-    replaces missing/held-out entries with a fixed value for model input.
+    This dataset:
+      1. Optionally holds out a validation subset **per cluster** from *observed*
+         (non-NaN) entries according to ``val_proportion``.
+      2. Combines original missingness with validation-held-out entries.
+      3. Normalizes observed values column-wise (mean/std), keeps masks for NaNs,
+         and replaces NaNs (incl. held-out) with ``replacement_value``.
 
-    :param data: Input matrix of shape ``(N, P)`` with possible missing values
-        (NaNs). May be a :class:`pandas.DataFrame`, :class:`numpy.ndarray`, or
-        :class:`torch.Tensor`. If a DataFrame is given, row indices and column
-        names are preserved.
-    :param cluster_labels: Cluster assignment per sample (length ``N``). If
-        ``None``, all samples are treated as a single cluster.
-    :param val_proportion: Validation hold-out specification. One of:
-        * **float in [0, 1]** – same fraction for *each* cluster.
-        * **sequence** – values aligned to ``sorted(unique(cluster_labels))``.
-        * **mapping** – dict/Series mapping ``cluster_id -> proportion``.
-        Proportions apply to the number of *observed* entries per feature
-        within each cluster.
-    :param replacement_value: Value used to fill missing/held-out inputs after
-        normalization (e.g., ``0.0``).
-    :param columns_ignore: Column names (if ``data`` is a DataFrame) or integer
-        indices (if array/tensor) to **exclude** from validation masking. These
-        columns are still normalized and returned; they just won't have
-        additional validation entries held out.
+    Parameters
+    ----------
+    data : pandas.DataFrame | numpy.ndarray | torch.Tensor
+        Input matrix, shape ``(n_samples, n_features)``. May contain NaNs.
+    cluster_labels : array-like or None
+        Cluster assignment per sample (length ``n_samples``). If ``None``,
+        all rows are assigned to a single cluster ``0``.
+    val_proportion : float | collections.abc.Sequence | collections.abc.Mapping | pandas.Series, default=0.1
+        Per-cluster fraction of **non-missing** entries to hold out for validation.
+
+        Accepted forms:
+          * **float** in ``[0, 1]``: the same fraction for every cluster.
+          * **Sequence** (length ``#clusters``): aligned to ``sorted(unique(cluster_labels))``.
+          * **Mapping** (e.g. ``{cluster_id: fraction}``) covering **all** clusters.
+          * **pandas.Series** with index = cluster IDs covering **all** clusters.
+    replacement_value : float, default=0
+        Value to fill missing/held-out entries in ``self.data`` after masking.
+    columns_ignore : list[str | int] or None, default=None
+        Columns to exclude from validation masking (names for DataFrame, indices otherwise).
 
     Attributes
     ----------
     raw_data : torch.FloatTensor
-        Original data as ``float32`` with NaNs for missing (shape ``(N, P)``).
+        Original data converted to float tensor (NaNs preserved).
     data : torch.FloatTensor
-        Normalized data with NaNs replaced by ``replacement_value`` (``(N, P)``).
+        Normalized data with NaNs replaced by ``replacement_value``.
     masks : torch.BoolTensor
-        Binary mask where ``True`` indicates an observed (non-NaN) value in
-        ``data`` before replacement (``(N, P)``).
+        Boolean mask where ``True`` marks observed (non-NaN) entries **before** replacement.
     val_data : torch.FloatTensor
-        Matrix containing **only** the validation-held-out targets (NaN
-        elsewhere), shape ``(N, P)``.
+        Tensor containing **only** validation-held-out values (others are NaN).
     cluster_labels : torch.LongTensor
-        Cluster id per row (``(N,)``).
+        Cluster ID for each row, shape ``(n_samples,)``.
     indices : torch.LongTensor
-        Original row indices (from DataFrame or ``range(N)``).
+        Original row indices (from DataFrame index or ``arange`` for arrays/tensors).
     feature_names : list[str]
-        Column names (from DataFrame) or synthetic names ``["V1", ..., "VP"]``.
-    feature_means : numpy.ndarray
-        Per-feature mean used for normalization (NaN-robust), shape ``(P,)``.
-    feature_stds : numpy.ndarray
-        Per-feature std used for normalization (zeros clipped to 1.0), ``(P,)``.
+        Column names (from DataFrame) or synthetic names (``V1``, ``V2``, ...).
     n_clusters : int
-        Number of unique clusters.
-    columns_ignore : list
-        The resolved ignore list.
+        Number of unique clusters discovered from ``cluster_labels``.
+    shape : tuple[int, int]
+        Shape of ``self.data`` (``n_samples``, ``n_features``).
 
-    :raises TypeError: If ``data`` or ``cluster_labels`` are of unsupported type,
-        or if ``val_proportion`` is not a float/sequence/mapping/Series.
-    :raises ValueError: If any provided proportion is outside ``[0, 1]``, or if
-        a sequence/mapping omits required clusters.
+    Raises
+    ------
+    TypeError
+        If ``data`` or ``cluster_labels`` are of unsupported types; or if
+        ``val_proportion`` is not a float/sequence/mapping/Series.
+    ValueError
+        If any provided proportion is outside ``[0, 1]``; or a sequence/mapping/Series
+        omits required clusters; or a sequence length does not match the number
+        of clusters.
+
+    Notes
+    -----
+    * Normalization uses column-wise mean/std on the **current observed** values
+      after validation masking; zero stds are set to 1 to avoid division by zero.
     """
     def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
         """
