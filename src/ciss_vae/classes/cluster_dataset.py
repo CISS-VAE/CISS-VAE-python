@@ -127,17 +127,17 @@ class ClusterDataset(Dataset):
             self.indices = torch.tensor(data.index.values, dtype=torch.long)
             self.feature_names = list(data.columns)
             raw_data_np = data.values.astype(np.float32)
-            ignore_indices = [i for i, col in enumerate(data.columns) if col in self.columns_ignore]
+            self.ignore_indices = [i for i, col in enumerate(data.columns) if col in self.columns_ignore]
         elif isinstance(data, np.ndarray):
             self.indices = torch.arange(data.shape[0])
             self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
             raw_data_np = data.astype(np.float32)
-            ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
+            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
         elif isinstance(data, torch.Tensor):
             self.indices = torch.arange(data.shape[0])
             self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
             raw_data_np = data.cpu().numpy().astype(np.float32)
-            ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
+            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
         else:
             raise TypeError("Unsupported data format. Must be DataFrame, ndarray, or Tensor.")
 
