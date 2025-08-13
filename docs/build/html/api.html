@@ -23,7 +23,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="ciss_vae.run_cissvae" href="_autosummary/ciss_vae.run_cissvae.html" />
+    <link rel="next" title="ciss_vae.classes.vae.CISSVAE" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html" />
     <link rel="prev" title="Overview" href="vignette.html" /> 
 </head>
 
@@ -55,18 +55,24 @@
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
-<li class="toctree-l2"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#classes">Classes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#training-tuning">Training &amp; Tuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#utilities-helpers">Utilities &amp; Helpers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -97,39 +103,34 @@
              
   <section id="api-reference">
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.run_cissvae.html#ciss_vae.run_cissvae" title="ciss_vae.run_cissvae"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_cissvae</span></code></a>(data[, val_proportion, ...])</p></td>
-<td><p>End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</p></td>
-</tr>
-</tbody>
-</table>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading"></a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE"><code class="xref py py-obj docutils literal notranslate"><span class="pre">vae.CISSVAE</span></code></a>(*args, **kwargs)</p></td>
-<td><p></p></td>
+<td><p>Cluster‑aware Variational Autoencoder (VAE).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cluster_dataset.ClusterDataset</span></code></a>(*args, **kwargs)</p></td>
-<td><p>Dataset with per-cluster validation masking and feature normalization.</p></td>
+<td><p>Dataset that handles cluster-wise masking and normalization for VAE training.</p></td>
 </tr>
 </tbody>
 </table>
+</section>
+<section id="training-tuning">
+<h2>Training &amp; Tuning<a class="headerlink" href="#training-tuning" title="Link to this heading"></a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace" title="ciss_vae.training.autotune.SearchSpace"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autotune.SearchSpace</span></code></a>([num_hidden_layers, ...])</p></td>
-<td><p>Defines tunable and fixed hyperparameter ranges. Input for 'autotune' function. [] -&gt; pick items from list. () -&gt; tuple, creates a range (min, max, step). x -&gt; use single value.</p></td>
+<td><p>Defines tunable and fixed hyperparameter ranges for the Optuna search.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-obj docutils literal notranslate"><span class="pre">autotune.autotune</span></code></a>(search_space, train_dataset)</p></td>
-<td><p>Optuna-based hyperparameter search for VAE model.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.training.train_initial.train_vae_initial.html#ciss_vae.training.train_initial.train_vae_initial" title="ciss_vae.training.train_initial.train_vae_initial"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_initial.train_vae_initial</span></code></a>(model, ...)</p></td>
-<td><p>Train a VAE on masked data with validation set aside inside the ClusterDataset.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/ciss_vae.training.train_refit.impute_and_refit_loop.html#ciss_vae.training.train_refit.impute_and_refit_loop" title="ciss_vae.training.train_refit.impute_and_refit_loop"><code class="xref py py-obj docutils literal notranslate"><span class="pre">train_refit.impute_and_refit_loop</span></code></a>(model, ...)</p></td>
-<td><p>Iterative impute-refit loop with validation MSE early stopping. :returns: * <strong>imputed_df</strong> (<em>pd.DataFrame</em>) -- Final imputed values produced by the best (early-stopped) model. * <strong>best_model</strong> (<em>torch.nn.Module</em>) -- Copy of the best-performing model encountered during the loop. * <strong>best_dataset</strong> (<em>ClusterDataset</em>) -- Copy of the dataset corresponding to <cite>best_model</cite>'s imputations. * <strong>refit_history_df</strong> (<em>pd.DataFrame</em>) -- Per-loop history aligned to <cite>train_vae_initial</cite>'s history schema so you             can <cite>pd.concat([history_df, refit_history_df], ignore_index=True)</cite> later.</p></td>
+<td><p>Optuna-based hyperparameter search for the CISSVAE model.</p></td>
 </tr>
 </tbody>
 </table>
+</section>
+<section id="utilities-helpers">
+<h2>Utilities &amp; Helpers<a class="headerlink" href="#utilities-helpers" title="Link to this heading"></a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.utils.run_cissvae.run_cissvae.html#ciss_vae.utils.run_cissvae.run_cissvae" title="ciss_vae.utils.run_cissvae.run_cissvae"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run_cissvae.run_cissvae</span></code></a>(data[, ...])</p></td>
@@ -150,13 +151,14 @@
 </tbody>
 </table>
 </section>
+</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="vignette.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="_autosummary/ciss_vae.run_cissvae.html" class="btn btn-neutral float-right" title="ciss_vae.run_cissvae" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="_autosummary/ciss_vae.classes.vae.CISSVAE.html" class="btn btn-neutral float-right" title="ciss_vae.classes.vae.CISSVAE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

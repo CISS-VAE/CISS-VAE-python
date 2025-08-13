@@ -342,7 +342,8 @@
 <span class="n">epochs</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## initial training params</span>
 <span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## refit params</span>
 <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="n">return_history</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</span>
@@ -421,7 +422,24 @@
 <span class="sd">        If True, prints progress messages during training and refitting.</span>
 <span class="sd">    return_silhouettes : bool, default=False</span>
 <span class="sd">        If True, returns silhouettes from clustering</span>
+
+<span class="sd">        return_history : bool, default=False</span>
+<span class="sd">    If True, returns the concatenated training history from initial training and refit loops.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    The return value depends on the flags `return_model`, `return_silhouettes`, and `return_history`:</span>
+
+<span class="sd">    Always returns: </span>
+<span class="sd">     - `imputed_dataset` : pd.DataFrame - The final reconstructed data</span>
+
+<span class="sd">    Optional Returns:</span>
+<span class="sd">   </span>
+<span class="sd">     - `vae` : CISSVAE - The trained model (if `return_model=True`)</span>
+<span class="sd">     - `silh` : float or None - Silhouette score from clustering (if `return_silhouettes=True`)</span>
+<span class="sd">     - `combined_history_df` : pd.DataFrame - Training history with columns [&quot;epoch&quot;, &quot;train_loss&quot;, &quot;train_recon&quot;, &quot;train_kl&quot;, &quot;val_mse&quot;, &quot;lr&quot;, &quot;phase&quot;, &quot;loop&quot;] (if `return_history=True`)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
@@ -479,7 +497,7 @@
         <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span>
 
-    <span class="n">vae</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+    <span class="n">vae</span><span class="p">,</span> <span class="n">initial_history_df</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
         <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
         <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
@@ -487,10 +505,11 @@
         <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
         <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">return_history</span> <span class="o">=</span> <span class="n">return_history</span>
     <span class="p">)</span>
 
-    <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+    <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">refit_history_df</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
         <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
         <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
         <span class="n">max_loops</span><span class="o">=</span><span class="n">max_loops</span><span class="p">,</span>
@@ -501,20 +520,49 @@
         <span class="n">beta</span><span class="o">=</span><span class="n">beta_refit</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
     <span class="p">)</span>
+    
+    <span class="c1"># ----------------</span>
+    <span class="c1"># Construct history dataframe</span>
+    <span class="c1"># ----------------</span>
+    <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">initial_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">refit_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Concatenate initial and refit histories</span>
+            <span class="n">combined_history_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">initial_history_df</span><span class="p">,</span> <span class="n">refit_history_df</span><span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">initial_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">combined_history_df</span> <span class="o">=</span> <span class="n">initial_history_df</span>
+        <span class="k">elif</span> <span class="n">refit_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">combined_history_df</span> <span class="o">=</span> <span class="n">refit_history_df</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">combined_history_df</span> <span class="o">=</span> <span class="kc">None</span>
+        
+    <span class="c1"># -------------------</span>
+    <span class="c1"># Return statements</span>
+    <span class="c1"># -------------------</span>
 
     <span class="k">if</span> <span class="n">return_model</span><span class="p">:</span> 
-        <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">silh</span>
+        <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">silh</span><span class="p">,</span> <span class="n">combined_history_df</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">combined_history_df</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span>
-        
+            <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">silh</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">silh</span>
+        <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">silh</span><span class="p">,</span> <span class="n">combined_history_df</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">combined_history_df</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">imputed_dataset</span></div>
+            <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">silh</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">imputed_dataset</span></div>
 
 
     

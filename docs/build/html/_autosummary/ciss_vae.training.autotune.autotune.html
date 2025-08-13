@@ -23,7 +23,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ciss_vae.training.train_initial.train_vae_initial" href="ciss_vae.training.train_initial.train_vae_initial.html" />
+    <link rel="next" title="ciss_vae.utils.run_cissvae.run_cissvae" href="ciss_vae.utils.run_cissvae.run_cissvae.html" />
     <link rel="prev" title="ciss_vae.training.autotune.SearchSpace" href="ciss_vae.training.autotune.SearchSpace.html" /> 
 </head>
 
@@ -55,21 +55,16 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.training.autotune.autotune</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ciss_vae.training.autotune.autotune"><code class="docutils literal notranslate"><span class="pre">autotune()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.training.autotune.autotune</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.training.autotune.autotune"><code class="docutils literal notranslate"><span class="pre">autotune()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a></li>
 </ul>
 </li>
 </ul>
@@ -103,120 +98,52 @@
 <h1>ciss_vae.training.autotune.autotune<a class="headerlink" href="#ciss-vae-training-autotune-autotune" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.autotune">
-<span class="sig-name descname"><span class="pre">autotune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_search_space_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">study_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vae_autotune'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optuna_dashboard_db</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_if_exists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permute_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_layer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate_all_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_exhaustive_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#autotune"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.autotune" title="Link to this definition"></a></dt>
-<dd><dl>
-<dt>Optuna-based hyperparameter search for VAE model.</dt><dd><dl>
-<dt>Parameters:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>search_space<span class="classifier">SearchSpace</span></dt><dd><p>The hyperparameter search space for the tuning</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>train_dataset<span class="classifier">ClusterDataset</span></dt><dd><p>A ClusterDataset object</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>save_model_path :</dt><dd><p>[optional], Where to save the best model</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>save_search_space_path :</dt><dd><p>[optional], Where to save the search space</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>n_trials<span class="classifier">int</span></dt><dd><p>Number of trials to run</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>study_name<span class="classifier">str default=”vae_autotune”</span></dt><dd><p>Name for the optuna study, default is “vae_autotune”,</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>device_preference<span class="classifier">(str),</span></dt><dd><p>Preferred device, default is “cuda”,</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>show_progress<span class="classifier">(bool) default=False,</span></dt><dd><p>Set as True to show progress bar, default is False,</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>optuna_dashboard_db<span class="classifier">(str),</span></dt><dd><p>Path to optuna dashboard db file. Default is None,</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>load_if_exists<span class="classifier">(bool) default=True,</span></dt><dd><p>If study by ‘study_name’ exists in optuna dashboard db, load that study. Default is True.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>seed<span class="classifier">(int):</span></dt><dd><p>Seed for selecting order of shared/unshared layers. Default is 42.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>verbose<span class="classifier">(bool) default=False:</span></dt><dd><p>Set to True to print diagnostic statements. Default is False</p>
-</dd>
-</dl>
-</li>
-</ul>
-<dl>
-<dt>permute_hidden_layers<span class="classifier">(bool) default=TRUE:</span></dt><dd><p><em>True</em>: Encoder/decoder shared/unshared <strong>order</strong> is represented as <strong>categorical
-Optuna parameters</strong> (<cite>layer_order_enc</cite>, <cite>layer_order_dec</cite>) chosen from all valid
-permutations given the number of shared layers. This makes order visible in
-parameter-importance plots on the Optuna dashboard.</p>
-<p><em>False</em>: Use a canonical, deterministic layout (no search over order):
-- ENCODER: shared layers at the <strong>END</strong> (unshared…unshared, shared…shared)
-- DECODER: shared layers at the <strong>START</strong> (shared…shared, unshared…unshared)</p>
-</dd>
-</dl>
-<ul class="simple">
-<li><dl class="simple">
-<dt>constant_layer_size<span class="classifier">(bool) default=False:</span></dt><dd><p>If True, Optuna samples a single <cite>hidden_dim_constant</cite> and we <strong>repeat</strong> it
-across all hidden layers (cleaner importances, fewer degrees of freedom).
-Otherwise, tune one <cite>hidden_dim_i</cite> per layer.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>evaluate_all_orders<span class="classifier">(bool) default=False:</span></dt><dd><p>If True, each trial <strong>exhaustively evaluates *all* valid order pairs</strong>
-(given <cite>num_hidden_layers</cite>, <cite>num_shared_encode</cite>, <cite>num_shared_decode</cite>)
-and returns the best metric among them. In this mode, layer order is
-<em>not</em> an Optuna parameter (so it won’t appear in importance), but the
-chosen best orders are recorded in <cite>trial.user_attrs</cite> and included in
-<cite>results_df</cite>. Guarded by <cite>max_exhaustive_orders</cite> to avoid explosion.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>max_exhaustive_orders<span class="classifier">(int) default=100:</span></dt><dd><p>If <cite>evaluate_all_orders</cite>, sets safety cap for number of runs to try. Can be increased/decreased as needed.</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-<dt>Returns:</dt><dd><dl class="simple">
-<dt>best_imputed_df<span class="classifier">pd.DataFrame</span></dt><dd><p>The imputed dataset from the best model</p>
-</dd>
-<dt>best_model<span class="classifier">CISSVAE</span></dt><dd><p>The best model</p>
-</dd>
-<dt>study :</dt><dd><p>Optuna study</p>
-</dd>
-<dt>results_df<span class="classifier">pd.DataFrame</span></dt><dd><p>The results of the autotuning</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-</dl>
+<span class="sig-name descname"><span class="pre">autotune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_search_space_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">study_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vae_autotune'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optuna_dashboard_db</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_if_exists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">permute_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_layer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate_all_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_exhaustive_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#autotune"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.autotune" title="Link to this definition"></a></dt>
+<dd><p>Optuna-based hyperparameter search for the CISSVAE model.
+Runs initial training, then impute–refit loops per trial, and selects the
+trial with the lowest validation MSE.
+:type search_space: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace" title="ciss_vae.training.autotune.SearchSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">SearchSpace</span></code></a></span>
+:param search_space: Hyperparameter ranges and fixed values.
+:type search_space: SearchSpace
+:type train_dataset: <span class="sphinx_autodoc_typehints-type"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ClusterDataset</span></code></a></span>
+:param train_dataset: Dataset containing masks, normalization, and cluster labels.
+:type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset
+:type save_model_path: 
+:param save_model_path: Optional path to save the best model’s <code class="docutils literal notranslate"><span class="pre">state_dict</span></code>.
+:type save_model_path: str | None
+:type save_search_space_path: 
+:param save_search_space_path: Optional path to dump the resolved search-space.
+:type save_search_space_path: str | None
+:type n_trials: 
+:param n_trials: Number of Optuna trials to run.
+:type n_trials: int
+:type study_name: 
+:param study_name: Name for the Optuna study.
+:type study_name: str
+:type device_preference: 
+:param device_preference: <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>; falls back to CPU if CUDA unavailable.
+:type device_preference: str
+:type optuna_dashboard_db: 
+:param optuna_dashboard_db: RDB storage URL/file for dashboard (or <code class="docutils literal notranslate"><span class="pre">None</span></code> for in‑memory).
+:type optuna_dashboard_db: str | None
+:type load_if_exists: 
+:param load_if_exists: Load existing study with the same name from storage.
+:type load_if_exists: bool
+:type seed: 
+:param seed: Base RNG seed for order generation etc.
+:type seed: int
+:type verbose: 
+:param verbose: If <code class="docutils literal notranslate"><span class="pre">True</span></code>, prints diagnostic logs.
+:type verbose: bool
+:type permute_hidden_layers: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>
+:param permute_hidden_layers: If <code class="docutils literal notranslate"><span class="pre">True</span></code>, randomize layer orders per trial.
+:type permute_hidden_layers: bool
+:type constant_layer_size: <span class="sphinx_autodoc_typehints-type"><code class="xref py py-class docutils literal notranslate"><span class="pre">bool</span></code></span>
+:param constant_layer_size: If <code class="docutils literal notranslate"><span class="pre">True</span></code>, all hidden layers use the same size.
+:type constant_layer_size: bool
+:returns: Tuple <code class="docutils literal notranslate"><span class="pre">(best_imputed_df,</span> <span class="pre">best_model,</span> <span class="pre">study,</span> <span class="pre">results_df)</span></code>
+:rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)
+:raises ValueError: If search space parameters are malformed or incompatible.</p>
 </dd></dl>
 
 </section>
@@ -226,7 +153,7 @@ chosen best orders are recorded in <cite>trial.user_attrs</cite> and included in
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="ciss_vae.training.autotune.SearchSpace.html" class="btn btn-neutral float-left" title="ciss_vae.training.autotune.SearchSpace" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ciss_vae.training.train_initial.train_vae_initial.html" class="btn btn-neutral float-right" title="ciss_vae.training.train_initial.train_vae_initial" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ciss_vae.utils.run_cissvae.run_cissvae.html" class="btn btn-neutral float-right" title="ciss_vae.utils.run_cissvae.run_cissvae" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

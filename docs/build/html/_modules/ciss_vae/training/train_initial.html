@@ -99,7 +99,8 @@
     <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
     <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">*</span><span class="p">,</span>
-    <span class="n">return_history</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">return_history</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">progress_callback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Train a VAE on masked data with validation set aside inside the ClusterDataset.</span>
@@ -125,7 +126,7 @@
 <span class="sd">        Torch device to run training on.</span>
 <span class="sd">    verbose : bool, default=False</span>
 <span class="sd">        If True, prints per-epoch metrics (also stored in the history DataFrame).</span>
-<span class="sd">    return_history : bool, default=True</span>
+<span class="sd">    return_history : bool, default=False</span>
 <span class="sd">        If True, returns a tuple (model, history_df). Otherwise returns just `model`.</span>
 <span class="sd">        In both cases, the DataFrame is attached as `model.training_history_`.</span>
 
@@ -222,6 +223,15 @@
                 <span class="sa">f</span><span class="s2">&quot;Val MSE: </span><span class="si">{</span><span class="n">val_mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> | LR: </span><span class="si">{</span><span class="n">current_lr</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
+        <span class="c1">#-----------------------</span>
+        <span class="c1"># Hook for progress bar</span>
+        <span class="c1">#-----------------------</span>
+        <span class="k">if</span> <span class="n">progress_callback</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">progress_callback</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Progress callback error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">scheduler</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
 
     <span class="n">model</span><span class="o">.</span><span class="n">set_final_lr</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">])</span>

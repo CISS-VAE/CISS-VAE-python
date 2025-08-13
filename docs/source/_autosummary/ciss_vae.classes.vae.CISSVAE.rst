@@ -17,8 +17,10 @@
       ~CISSVAE.decode
       ~CISSVAE.encode
       ~CISSVAE.forward
+      ~CISSVAE.get_final_lr
       ~CISSVAE.reparameterize
       ~CISSVAE.route_through_layers
+      ~CISSVAE.set_final_lr
    
    
 

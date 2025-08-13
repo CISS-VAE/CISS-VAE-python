@@ -79,7 +79,13 @@
            <div itemprop="articleBody">
              
   <h1>Source code for ciss_vae.classes.vae</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;VAE model class.&quot;&quot;&quot;</span>
+<span></span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Variational Autoencoder with cluster‑aware shared/unshared layers.</span>
+
+<span class="sd">This module defines :class:`CISSVAE`, a VAE that can route samples through</span>
+<span class="sd">either **shared** or **cluster‑specific** (unshared) layers in the encoder and</span>
+<span class="sd">decoder, controlled by per‑layer directives.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
@@ -87,6 +93,47 @@
 <div class="viewcode-block" id="CISSVAE">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CISSVAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cluster‑aware Variational Autoencoder (VAE).</span>
+
+<span class="sd">    Supports flexible mixtures of **shared** and **unshared** layers across</span>
+<span class="sd">    clusters in both encoder and decoder. Unshared layers are duplicated per</span>
+<span class="sd">    cluster; shared layers are single modules applied to all samples.</span>
+
+<span class="sd">    :param input_dim: Number of input features (columns).</span>
+<span class="sd">    :type input_dim: int</span>
+<span class="sd">    :param hidden_dims: Width of each hidden layer (encoder goes forward, decoder uses the reverse).</span>
+<span class="sd">    :type hidden_dims: list[int]</span>
+<span class="sd">    :param layer_order_enc: Per‑encoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;`` (case‑insensitive, ``&quot;s&quot;``/``&quot;u&quot;`` allowed).</span>
+<span class="sd">    :type layer_order_enc: list[str]</span>
+<span class="sd">    :param layer_order_dec: Per‑decoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;`` (case‑insensitive, ``&quot;s&quot;``/``&quot;u&quot;`` allowed).</span>
+<span class="sd">    :type layer_order_dec: list[str]</span>
+<span class="sd">    :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.</span>
+<span class="sd">    :type latent_shared: bool</span>
+<span class="sd">    :param latent_dim: Dimensionality of the latent space.</span>
+<span class="sd">    :type latent_dim: int</span>
+<span class="sd">    :param output_shared: If ``True``, the final output layer is shared; otherwise one output layer per cluster.</span>
+<span class="sd">    :type output_shared: bool</span>
+<span class="sd">    :param num_clusters: Number of clusters present in the data.</span>
+<span class="sd">    :type num_clusters: int</span>
+<span class="sd">    :param debug: If ``True``, prints routing shapes and asserts row order invariants.</span>
+<span class="sd">    :type debug: bool</span>
+
+<span class="sd">    :raises ValueError: If an item of ``layer_order_enc`` or ``layer_order_dec`` is not one of</span>
+<span class="sd">        ``{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}`` (case‑insensitive), or if their lengths do not match</span>
+<span class="sd">        ``len(hidden_dims)`` for the respective path.</span>
+
+<span class="sd">    **Expected shapes**</span>
+<span class="sd">        * Encoder input ``x``: ``(batch, input_dim)``</span>
+<span class="sd">        * Cluster labels ``cluster_labels``: ``(batch,)`` (``LongTensor`` with values in ``[0, num_clusters-1]``)</span>
+<span class="sd">        * Decoder/Output: ``(batch, input_dim)``</span>
+
+<span class="sd">    **Notes**</span>
+<span class="sd">        * The decoder consumes ``hidden_dims[::-1]`` (reverse order).</span>
+<span class="sd">        * Unshared layers maintain per‑cluster ``ModuleList``/``ModuleDict`` replicas.</span>
+<span class="sd">        * Routing never reorders rows; masks are used to apply cluster‑specific sublayers in‑place.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
 <div class="viewcode-block" id="CISSVAE.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -102,26 +149,24 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Variational Autoencoder supporting flexible shared/unshared layers across clusters.</span>
 
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        input_dim : int</span>
-<span class="sd">            Number of input features.</span>
-<span class="sd">        hidden_dims : list[int]</span>
-<span class="sd">            Dimensions of hidden layers.</span>
-<span class="sd">        layer_order_enc : list[str]</span>
-<span class="sd">            &quot;shared&quot; / &quot;unshared&quot; for encoder layers.</span>
-<span class="sd">        layer_order_dec : list[str]</span>
-<span class="sd">            &quot;shared&quot; / &quot;unshared&quot; for decoder layers.</span>
-<span class="sd">        latent_shared : bool</span>
-<span class="sd">            Whether latent representation is shared across clusters.</span>
-<span class="sd">        latent_dim : int</span>
-<span class="sd">            Dimensionality of the latent space.</span>
-<span class="sd">        output_shared : bool</span>
-<span class="sd">            Whether output layer is shared across clusters.</span>
-<span class="sd">        num_clusters : int</span>
-<span class="sd">            Number of clusters.</span>
-<span class="sd">        debug : bool</span>
-<span class="sd">            If True, print shape/routing info.</span>
+<span class="sd">        :param input_dim: Number of input features.</span>
+<span class="sd">        :type input_dim: int</span>
+<span class="sd">        :param hidden_dims: Dimensions of hidden layers.</span>
+<span class="sd">        :type hidden_dims: list[int]</span>
+<span class="sd">        :param layer_order_enc: Layer type for each encoder layer (``&quot;shared&quot;`` or ``&quot;unshared&quot;``).</span>
+<span class="sd">        :type layer_order_enc: list[str]</span>
+<span class="sd">        :param layer_order_dec: Layer type for each decoder layer (``&quot;shared&quot;`` or ``&quot;unshared&quot;``).</span>
+<span class="sd">        :type layer_order_dec: list[str]</span>
+<span class="sd">        :param latent_shared: Whether latent representation is shared across clusters.</span>
+<span class="sd">        :type latent_shared: bool</span>
+<span class="sd">        :param latent_dim: Dimensionality of the latent space.</span>
+<span class="sd">        :type latent_dim: int</span>
+<span class="sd">        :param output_shared: Whether output layer is shared across clusters.</span>
+<span class="sd">        :type output_shared: bool</span>
+<span class="sd">        :param num_clusters: Number of clusters.</span>
+<span class="sd">        :type num_clusters: int</span>
+<span class="sd">        :param debug: If ``True``, print shape and routing information.</span>
+<span class="sd">        :type debug: bool</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
@@ -229,6 +274,31 @@
                              <span class="n">layer_type_list</span><span class="p">,</span>
                              <span class="n">shared_layers</span><span class="p">,</span>
                              <span class="n">unshared_layers</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply a sequence of shared/unshared layers according to ``layer_type_list``.</span>
+
+<span class="sd">        For each position ``i``:</span>
+<span class="sd">        * if ``layer_type_list[i]`` is shared → apply ``shared_layers[i_shared]`` to all rows;</span>
+<span class="sd">        * if unshared → for each cluster ``c``, apply the ``c``‑specific layer</span>
+<span class="sd">            at that depth to the subset of rows where ``cluster_labels == c``.</span>
+
+<span class="sd">        :param x: Input activations to be routed.</span>
+<span class="sd">        :type x: torch.Tensor, shape ``(batch, d_in)``</span>
+<span class="sd">        :param cluster_labels: Cluster id per row.</span>
+<span class="sd">        :type cluster_labels: torch.LongTensor, shape ``(batch,)``</span>
+<span class="sd">        :param layer_type_list: Sequence of ``&quot;shared&quot;``/``&quot;unshared&quot;`` flags (length = number of layers at this stage).</span>
+<span class="sd">        :type layer_type_list: list[str]</span>
+<span class="sd">        :param shared_layers: Layers used when the directive is shared (index increases only when a shared layer is consumed).</span>
+<span class="sd">        :type shared_layers: torch.nn.ModuleList</span>
+<span class="sd">        :param unshared_layers: Per‑cluster lists of layers for unshared directives (index per cluster increases only when an unshared layer is consumed).</span>
+<span class="sd">        :type unshared_layers: dict[str, torch.nn.ModuleList] | torch.nn.ModuleDict</span>
+
+<span class="sd">        :returns: Routed activations.</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+
+<span class="sd">        :raises ValueError: If an entry in ``layer_type_list`` is invalid or if per‑cluster</span>
+<span class="sd">            unshared stacks are inconsistent with the directives.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">shared_idx</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">unshared_idx</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">)}</span>
 
@@ -267,6 +337,17 @@
 <div class="viewcode-block" id="CISSVAE.encode">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.encode">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Encoder forward pass producing ``mu`` and ``logvar``.</span>
+
+<span class="sd">        :param x: Input batch.</span>
+<span class="sd">        :type x: torch.Tensor, shape ``(batch, input_dim)``</span>
+<span class="sd">        :param cluster_labels: Cluster id per row.</span>
+<span class="sd">        :type cluster_labels: torch.LongTensor, shape ``(batch,)``</span>
+
+<span class="sd">        :returns: Tuple ``(mu, logvar)``.</span>
+<span class="sd">        :rtype: tuple[torch.Tensor, torch.Tensor]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">route_through_layers</span><span class="p">(</span>
             <span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_enc</span><span class="p">,</span>
@@ -291,6 +372,17 @@
 <div class="viewcode-block" id="CISSVAE.reparameterize">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.reparameterize">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reparameterization trick: ``z = mu + eps * exp(0.5 * logvar)``.</span>
+
+<span class="sd">        :param mu: Mean of the approximate posterior.</span>
+<span class="sd">        :type mu: torch.Tensor, shape ``(batch, latent_dim)``</span>
+<span class="sd">        :param logvar: Log‑variance of the approximate posterior.</span>
+<span class="sd">        :type logvar: torch.Tensor, shape ``(batch, latent_dim)``</span>
+
+<span class="sd">        :returns: Sampled latent codes ``z``.</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
         <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">std</span></div>
@@ -299,6 +391,17 @@
 <div class="viewcode-block" id="CISSVAE.decode">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.decode">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">z</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Decoder forward pass from latent ``z`` to reconstruction.</span>
+
+<span class="sd">        :param z: Latent codes.</span>
+<span class="sd">        :type z: torch.Tensor, shape ``(batch, latent_dim)``</span>
+<span class="sd">        :param cluster_labels: Cluster id per row.</span>
+<span class="sd">        :type cluster_labels: torch.LongTensor, shape ``(batch,)``</span>
+
+<span class="sd">        :returns: Reconstructed inputs.</span>
+<span class="sd">        :rtype: torch.Tensor, shape ``(batch, input_dim)``</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">route_through_layers</span><span class="p">(</span>
             <span class="n">z</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_dec</span><span class="p">,</span>
@@ -327,6 +430,17 @@
 <div class="viewcode-block" id="CISSVAE.forward">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.forward">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Full VAE forward pass: encode → reparameterize → decode.</span>
+
+<span class="sd">        :param x: Input batch.</span>
+<span class="sd">        :type x: torch.Tensor, shape ``(batch, input_dim)``</span>
+<span class="sd">        :param cluster_labels: Cluster id per row.</span>
+<span class="sd">        :type cluster_labels: torch.LongTensor, shape ``(batch,)``</span>
+
+<span class="sd">        :returns: Tuple ``(recon, mu, logvar)``.</span>
+<span class="sd">        :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] Forward start: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">)</span>
@@ -338,6 +452,12 @@
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        String summary of the architecture (encoder/latent/decoder layout).</span>
+
+<span class="sd">        :returns: Human‑readable multi‑line description.</span>
+<span class="sd">        :rtype: str</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CISSVAE(input_dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">, latent_dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">, &quot;</span>
                  <span class="sa">f</span><span class="s2">&quot;latent_shared=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_shared</span><span class="si">}</span><span class="s2">, num_clusters=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">]</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Encoder Layers:&quot;</span><span class="p">)</span>
@@ -358,7 +478,22 @@
             <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">lt</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">out_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Final Output Layer: </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="CISSVAE.set_final_lr">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.set_final_lr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_final_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">final_lr</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stores final lr from initial training loop in model attributes to be accessed in refit loop.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">final_lr</span> <span class="o">=</span> <span class="n">final_lr</span></div>
+
+
+<div class="viewcode-block" id="CISSVAE.get_final_lr">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.get_final_lr">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_final_lr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the learning rate stored with self.set_final_lr/&quot;&quot;&quot;</span>
+        <span class="k">return</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">final_lr</span><span class="p">)</span></div>
+</div>
+
 
 </pre></div>
 

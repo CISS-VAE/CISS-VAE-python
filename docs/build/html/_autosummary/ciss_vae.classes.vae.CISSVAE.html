@@ -24,7 +24,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="ciss_vae.classes.cluster_dataset.ClusterDataset" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html" />
-    <link rel="prev" title="ciss_vae.run_cissvae" href="ciss_vae.run_cissvae.html" /> 
+    <link rel="prev" title="API Reference" href="../api.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -55,29 +55,16 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.classes.vae.CISSVAE</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE"><code class="docutils literal notranslate"><span class="pre">CISSVAE</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.__init__"><code class="docutils literal notranslate"><span class="pre">CISSVAE.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="docutils literal notranslate"><span class="pre">CISSVAE.route_through_layers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.encode"><code class="docutils literal notranslate"><span class="pre">CISSVAE.encode()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="docutils literal notranslate"><span class="pre">CISSVAE.reparameterize()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.decode"><code class="docutils literal notranslate"><span class="pre">CISSVAE.decode()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.forward"><code class="docutils literal notranslate"><span class="pre">CISSVAE.forward()</span></code></a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#classes">Classes</a><ul class="current">
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.classes.vae.CISSVAE</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE"><code class="docutils literal notranslate"><span class="pre">CISSVAE</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a></li>
 </ul>
 </li>
 </ul>
@@ -113,6 +100,44 @@
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE">
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CISSVAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
+<p>Cluster‑aware Variational Autoencoder (VAE).</p>
+<p>Supports flexible mixtures of <strong>shared</strong> and <strong>unshared</strong> layers across
+clusters in both encoder and decoder. Unshared layers are duplicated per
+cluster; shared layers are single modules applied to all samples.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dim</strong> (<em>int</em>) – Number of input features (columns).</p></li>
+<li><p><strong>hidden_dims</strong> (<em>list</em><em>[</em><em>int</em><em>]</em>) – Width of each hidden layer (encoder goes forward, decoder uses the reverse).</p></li>
+<li><p><strong>layer_order_enc</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑encoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code> (case‑insensitive, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;u&quot;</span></code> allowed).</p></li>
+<li><p><strong>layer_order_dec</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑decoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code> (case‑insensitive, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;u&quot;</span></code> allowed).</p></li>
+<li><p><strong>latent_shared</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the latent heads (<code class="docutils literal notranslate"><span class="pre">mu</span></code>, <code class="docutils literal notranslate"><span class="pre">logvar</span></code>) are shared across clusters; otherwise one head per cluster.</p></li>
+<li><p><strong>latent_dim</strong> (<em>int</em>) – Dimensionality of the latent space.</p></li>
+<li><p><strong>output_shared</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the final output layer is shared; otherwise one output layer per cluster.</p></li>
+<li><p><strong>num_clusters</strong> (<em>int</em>) – Number of clusters present in the data.</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, prints routing shapes and asserts row order invariants.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If an item of <code class="docutils literal notranslate"><span class="pre">layer_order_enc</span></code> or <code class="docutils literal notranslate"><span class="pre">layer_order_dec</span></code> is not one of
+<code class="docutils literal notranslate"><span class="pre">{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}</span></code> (case‑insensitive), or if their lengths do not match
+<code class="docutils literal notranslate"><span class="pre">len(hidden_dims)</span></code> for the respective path.</p>
+</dd>
+</dl>
+<dl class="simple">
+<dt><strong>Expected shapes</strong></dt><dd><ul class="simple">
+<li><p>Encoder input <code class="docutils literal notranslate"><span class="pre">x</span></code>: <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code></p></li>
+<li><p>Cluster labels <code class="docutils literal notranslate"><span class="pre">cluster_labels</span></code>: <code class="docutils literal notranslate"><span class="pre">(batch,)</span></code> (<code class="docutils literal notranslate"><span class="pre">LongTensor</span></code> with values in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">num_clusters-1]</span></code>)</p></li>
+<li><p>Decoder/Output: <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code></p></li>
+</ul>
+</dd>
+<dt><strong>Notes</strong></dt><dd><ul class="simple">
+<li><p>The decoder consumes <code class="docutils literal notranslate"><span class="pre">hidden_dims[::-1]</span></code> (reverse order).</p></li>
+<li><p>Unshared layers maintain per‑cluster <code class="docutils literal notranslate"><span class="pre">ModuleList</span></code>/<code class="docutils literal notranslate"><span class="pre">ModuleDict</span></code> replicas.</p></li>
+<li><p>Routing never reorders rows; masks are used to apply cluster‑specific sublayers in‑place.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.__init__" title="Link to this definition"></a></dt>
@@ -122,13 +147,13 @@
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> (<em>int</em>) – Number of input features.</p></li>
 <li><p><strong>hidden_dims</strong> (<em>list</em><em>[</em><em>int</em><em>]</em>) – Dimensions of hidden layers.</p></li>
-<li><p><strong>layer_order_enc</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – “shared” / “unshared” for encoder layers.</p></li>
-<li><p><strong>layer_order_dec</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – “shared” / “unshared” for decoder layers.</p></li>
+<li><p><strong>layer_order_enc</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Layer type for each encoder layer (<code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code>).</p></li>
+<li><p><strong>layer_order_dec</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Layer type for each decoder layer (<code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code>).</p></li>
 <li><p><strong>latent_shared</strong> (<em>bool</em>) – Whether latent representation is shared across clusters.</p></li>
 <li><p><strong>latent_dim</strong> (<em>int</em>) – Dimensionality of the latent space.</p></li>
 <li><p><strong>output_shared</strong> (<em>bool</em>) – Whether output layer is shared across clusters.</p></li>
 <li><p><strong>num_clusters</strong> (<em>int</em>) – Number of clusters.</p></li>
-<li><p><strong>debug</strong> (<em>bool</em>) – If True, print shape/routing info.</p></li>
+<li><p><strong>debug</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, print shape and routing information.</p></li>
 </ul>
 </dd>
 </dl>
@@ -141,46 +166,152 @@
 <td><p>Variational Autoencoder supporting flexible shared/unshared layers across clusters.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.decode" title="ciss_vae.classes.vae.CISSVAE.decode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">decode</span></code></a>(z, cluster_labels)</p></td>
-<td><p></p></td>
+<td><p>Decoder forward pass from latent <code class="docutils literal notranslate"><span class="pre">z</span></code> to reconstruction.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.encode" title="ciss_vae.classes.vae.CISSVAE.encode"><code class="xref py py-obj docutils literal notranslate"><span class="pre">encode</span></code></a>(x, cluster_labels)</p></td>
-<td><p></p></td>
+<td><p>Encoder forward pass producing <code class="docutils literal notranslate"><span class="pre">mu</span></code> and <code class="docutils literal notranslate"><span class="pre">logvar</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.forward" title="ciss_vae.classes.vae.CISSVAE.forward"><code class="xref py py-obj docutils literal notranslate"><span class="pre">forward</span></code></a>(x, cluster_labels)</p></td>
-<td><p></p></td>
+<td><p>Full VAE forward pass: encode → reparameterize → decode.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reparameterize</span></code></a>(mu, logvar)</p></td>
-<td><p></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.get_final_lr" title="ciss_vae.classes.vae.CISSVAE.get_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_final_lr</span></code></a>()</p></td>
+<td><p>Returns the learning rate stored with self.set_final_lr/</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">route_through_layers</span></code></a>(x, cluster_labels, ...)</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reparameterize</span></code></a>(mu, logvar)</p></td>
+<td><p>Reparameterization trick: <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">mu</span> <span class="pre">+</span> <span class="pre">eps</span> <span class="pre">*</span> <span class="pre">exp(0.5</span> <span class="pre">*</span> <span class="pre">logvar)</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">route_through_layers</span></code></a>(x, cluster_labels, ...)</p></td>
+<td><p>Apply a sequence of shared/unshared layers according to <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_final_lr" title="ciss_vae.classes.vae.CISSVAE.set_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_final_lr</span></code></a>(final_lr)</p></td>
+<td><p>Stores final lr from initial training loop in model attributes to be accessed in refit loop.</p></td>
 </tr>
 </tbody>
 </table>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.route_through_layers">
 <span class="sig-name descname"><span class="pre">route_through_layers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shared_layers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unshared_layers</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.route_through_layers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Apply a sequence of shared/unshared layers according to <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code>.</p>
+<p>For each position <code class="docutils literal notranslate"><span class="pre">i</span></code>:
+* if <code class="docutils literal notranslate"><span class="pre">layer_type_list[i]</span></code> is shared → apply <code class="docutils literal notranslate"><span class="pre">shared_layers[i_shared]</span></code> to all rows;
+* if unshared → for each cluster <code class="docutils literal notranslate"><span class="pre">c</span></code>, apply the <code class="docutils literal notranslate"><span class="pre">c</span></code>‑specific layer</p>
+<blockquote>
+<div><p>at that depth to the subset of rows where <code class="docutils literal notranslate"><span class="pre">cluster_labels</span> <span class="pre">==</span> <span class="pre">c</span></code>.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">d_in)</span></code>) – Input activations to be routed.</p></li>
+<li><p><strong>cluster_labels</strong> (torch.LongTensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,)</span></code>) – Cluster id per row.</p></li>
+<li><p><strong>layer_type_list</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Sequence of <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code> flags (length = number of layers at this stage).</p></li>
+<li><p><strong>shared_layers</strong> (<em>torch.nn.ModuleList</em>) – Layers used when the directive is shared (index increases only when a shared layer is consumed).</p></li>
+<li><p><strong>unshared_layers</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>torch.nn.ModuleList</em><em>] </em><em>| </em><em>torch.nn.ModuleDict</em>) – Per‑cluster lists of layers for unshared directives (index per cluster increases only when an unshared layer is consumed).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Routed activations.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If an entry in <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code> is invalid or if per‑cluster
+unshared stacks are inconsistent with the directives.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.encode">
 <span class="sig-name descname"><span class="pre">encode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.encode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.encode" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Encoder forward pass producing <code class="docutils literal notranslate"><span class="pre">mu</span></code> and <code class="docutils literal notranslate"><span class="pre">logvar</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code>) – Input batch.</p></li>
+<li><p><strong>cluster_labels</strong> (torch.LongTensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,)</span></code>) – Cluster id per row.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple <code class="docutils literal notranslate"><span class="pre">(mu,</span> <span class="pre">logvar)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.reparameterize">
 <span class="sig-name descname"><span class="pre">reparameterize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logvar</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.reparameterize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Reparameterization trick: <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">mu</span> <span class="pre">+</span> <span class="pre">eps</span> <span class="pre">*</span> <span class="pre">exp(0.5</span> <span class="pre">*</span> <span class="pre">logvar)</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mu</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">latent_dim)</span></code>) – Mean of the approximate posterior.</p></li>
+<li><p><strong>logvar</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">latent_dim)</span></code>) – Log‑variance of the approximate posterior.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sampled latent codes <code class="docutils literal notranslate"><span class="pre">z</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.decode">
 <span class="sig-name descname"><span class="pre">decode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.decode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.decode" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Decoder forward pass from latent <code class="docutils literal notranslate"><span class="pre">z</span></code> to reconstruction.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>z</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">latent_dim)</span></code>) – Latent codes.</p></li>
+<li><p><strong>cluster_labels</strong> (torch.LongTensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,)</span></code>) – Cluster id per row.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Reconstructed inputs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code></p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.forward" title="Link to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Full VAE forward pass: encode → reparameterize → decode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code>) – Input batch.</p></li>
+<li><p><strong>cluster_labels</strong> (torch.LongTensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,)</span></code>) – Cluster id per row.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple <code class="docutils literal notranslate"><span class="pre">(recon,</span> <span class="pre">mu,</span> <span class="pre">logvar)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, torch.Tensor, torch.Tensor]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.set_final_lr">
+<span class="sig-name descname"><span class="pre">set_final_lr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">final_lr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.set_final_lr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.set_final_lr" title="Link to this definition"></a></dt>
+<dd><p>Stores final lr from initial training loop in model attributes to be accessed in refit loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.get_final_lr">
+<span class="sig-name descname"><span class="pre">get_final_lr</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.get_final_lr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.get_final_lr" title="Link to this definition"></a></dt>
+<dd><p>Returns the learning rate stored with self.set_final_lr/</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -190,7 +321,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ciss_vae.run_cissvae.html" class="btn btn-neutral float-left" title="ciss_vae.run_cissvae" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../api.html" class="btn btn-neutral float-left" title="API Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="ciss_vae.classes.cluster_dataset.ClusterDataset.html" class="btn btn-neutral float-right" title="ciss_vae.classes.cluster_dataset.ClusterDataset" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
