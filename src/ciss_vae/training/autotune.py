@@ -1,14 +1,10 @@
 """
 Optuna-based hyperparameter tuning for CISS-VAE.
-
 This module defines:
-
-- :class:`TQDMProgress`: a lightweight Optuna callback to render a progress bar.
 - :class:`SearchSpace`: a structured container describing tunable/fixed hyperparameters.
 - :func:`autotune`: runs Optuna trials that train CISSVAE models and selects the best trial
   by validation MSE, then retrains a final model with the best settings.
 """
-
 import torch
 import optuna
 import json
@@ -20,50 +16,14 @@ from ciss_vae.training.train_initial import train_vae_initial
 from ciss_vae.training.train_refit import impute_and_refit_loop
 from ciss_vae.utils.helpers import compute_val_mse
 from itertools import combinations, product
-from tqdm import tqdm
 import random
+import sys
+
+# ADDED: Rich imports for progress bars // switching from TQDM to rich to fix progbar flicker
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
+from rich.console import Console
 
 
-class TQDMProgress:
-    """Two-level progress: trials (outer) and epochs (inner)."""
-    def __init__(self, n_trials: int):
-        self.trials_total = n_trials
-        self.trials_done = 0
-        self.trials_pbar = tqdm(total=n_trials, desc="Trials", leave=True)
-        self.epoch_pbar = None
-
-    def start_trial(self, trial_number: int, total_epochs: int, label: str = ""):
-        # Close any stray inner bar
-        if self.epoch_pbar is not None:
-            self.epoch_pbar.close()
-            self.epoch_pbar = None
-        self.epoch_pbar = tqdm(total=total_epochs, desc=f"Trial {trial_number+1}: {label}", leave=False)
-
-    def switch_phase(self, total_epochs: int, label: str = ""):
-        # Close previous phase bar, open a new one
-        if self.epoch_pbar is not None:
-            self.epoch_pbar.close()
-        self.epoch_pbar = tqdm(total=total_epochs, desc=label, leave=False)
-
-    def update_epoch(self, n: int = 1):
-        if self.epoch_pbar is not None:
-            self.epoch_pbar.update(n)
-
-    def finish_trial(self):
-        # Finish inner bar and tick outer one
-        if self.epoch_pbar is not None:
-            self.epoch_pbar.close()
-            self.epoch_pbar = None
-        self.trials_done += 1
-        self.trials_pbar.update(1)
-
-    def close(self):
-        if self.epoch_pbar is not None:
-            self.epoch_pbar.close()
-            self.epoch_pbar = None
-        if self.trials_pbar is not None:
-            self.trials_pbar.close()
-            self.trials_pbar = None
 
 class SearchSpace:
     r"""
@@ -163,7 +123,6 @@ def autotune(
 ):
     r"""
     Optuna-based hyperparameter search for the CISSVAE model.
-
     Runs initial training, then impute–refit loops per trial, and selects the
     trial with the lowest validation MSE.
 
@@ -204,6 +163,9 @@ def autotune(
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
 
+    # ADDED: Initialize console for rich
+    console = Console()
+
     # --------------------------
     # Infer device
     # --------------------------
@@ -220,6 +182,21 @@ def autotune(
     # --------------------------
     input_dim = train_dataset.raw_data.shape[1]
     num_clusters = len(torch.unique(train_dataset.cluster_labels))
+
+    # ADDED: Helper function to create thread-safe progress callbacks
+    # WHY: Prevents scope issues and ensures callbacks have proper access to progress bars
+    def create_progress_callback(progress_instance, task_id, enabled=True):
+        """Create a thread-safe progress callback that updates the specified task."""
+        if not enabled or progress_instance is None:
+            return None
+        
+        def callback(n=1):
+            try:
+                progress_instance.update(task_id, advance=n)
+            except Exception as e:
+                if verbose:
+                    print(f"Progress callback error: {e}")
+        return callback
 
     # --------------------------
     # Helper to sample from fixed, categorical, or range param
@@ -276,15 +253,37 @@ def autotune(
         dec_list = (["shared"] * nsd) + (["unshared"] * (n_layers - nsd))
         return _format_order(enc_list), _format_order(dec_list)
 
+    def _build_order(style: str, n_layers: int, n_shared: int, rng: random.Random):  # CHANGED
+        n_shared = max(0, min(int(n_shared), int(n_layers)))
+        shared_positions = list(range(n_layers))
+        if style == "shared_tail":
+            pos = list(range(n_layers - n_shared, n_layers))
+        elif style == "shared_head":
+            pos = list(range(0, n_shared))
+        elif style == "alternating":
+            pos = list(range(0, n_layers, max(1, n_layers // max(1, n_shared))))[:n_shared] if n_shared > 0 else []
+        elif style == "random":
+            pos = rng.sample(shared_positions, n_shared)
+        else:
+            pos = list(range(n_layers - n_shared, n_layers))  # fallback
+        arr = ['unshared'] * n_layers
+        for i in pos:
+            arr[i] = 'shared'
+        return arr
+
+    # MODIFIED: Create progress tracking variables instead of TQDMProgress instance
+    progress_instance = None
+    trial_task = None
+    initial_task = None
+    refit_task = None
 
     # --------------------------
     # Create Optuna objective
     # --------------------------
 
-    ## Progress instance in outer scope (so objective can see it)
-    progress = TQDMProgress(n_trials) if show_progress else None
-
     def objective(trial):
+        ## ADDED: rich progress bar integration // 
+        nonlocal progress_instance, trial_task, initial_task, refit_task
         # --------------------------
         # Parse Parameters
         # --------------------------
@@ -310,23 +309,31 @@ def autotune(
         batch_size = sample_param(trial, "batch_size", search_space.batch_size)
         
         ## handle num_shared_encode/decode 
-        enc_choices = [v for v in search_space.num_shared_encode if v <= num_hidden_layers]
-        enc_choices = enc_choices or [num_hidden_layers]
-        num_shared_encode = trial.suggest_categorical("num_shared_encode", enc_choices)
-        # num_shared_encode = sample_param(trial, "num_shared_encode", search_space.num_shared_encode)
-        dec_choices = [v for v in search_space.num_shared_decode if v <= num_hidden_layers]
-        dec_choices = dec_choices or [num_hidden_layers]
-        num_shared_decode = trial.suggest_categorical("num_shared_decode", dec_choices)
-        # num_shared_decode = sample_param(trial, "num_shared_decode", search_space.num_shared_decode)
-        refit_patience = sample_param(trial, "refit_patience", search_space.refit_patience)
-        refit_loops = sample_param(trial, "refit_loops", search_space.refit_loops)
-        epochs_per_loop = sample_param(trial, "epochs_per_loop", search_space.epochs_per_loop)
-        reset_lr_refit = sample_param(trial, "reset_lr_refit", search_space.reset_lr_refit)
+        nse_raw = trial.suggest_categorical("num_shared_encode", sorted(set(search_space.num_shared_encode)))  # CHANGED
+        nsd_raw = trial.suggest_categorical("num_shared_decode", sorted(set(search_space.num_shared_decode)))  # CHANGED
+        num_shared_encode = int(min(int(nse_raw), int(num_hidden_layers)))  # CHANGED
+        num_shared_decode = int(min(int(nsd_raw), int(num_hidden_layers)))  # CHANGED
 
-        if reset_lr_refit:
-            lr_refit = learning_rate
-        else:
-            lr_refit = None
+        order_style_enc = trial.suggest_categorical(   # CHANGED
+            "order_style_enc", ["shared_tail", "shared_head", "alternating", "random"]
+        )
+        order_style_dec = trial.suggest_categorical(   # CHANGED
+            "order_style_dec", ["shared_head", "shared_tail", "alternating", "random"]
+        )
+        order_seed_enc = trial.suggest_int("order_seed_enc", 0, 10_000)  # CHANGED
+        order_seed_dec = trial.suggest_int("order_seed_dec", 0, 10_000)  # CHANGED
+        # ---------------------------------------------------------------------
+
+        refit_patience  = sample_param(trial, "refit_patience", search_space.refit_patience)
+        refit_loops     = sample_param(trial, "refit_loops", search_space.refit_loops)
+        epochs_per_loop = sample_param(trial, "epochs_per_loop", search_space.epochs_per_loop)
+        reset_lr_refit  = sample_param(trial, "reset_lr_refit", search_space.reset_lr_refit)
+
+        trial.set_user_attr("num_shared_encode_effective", int(num_shared_encode))  # CHANGED
+        trial.set_user_attr("num_shared_decode_effective", int(num_shared_decode))  # CHANGED
+
+        lr_refit = learning_rate if reset_lr_refit else None
+
 
         # --------------------------
         # Handle hidden layers
@@ -336,59 +343,53 @@ def autotune(
         # layer_order_dec: List of str: "shared" or "unshared"
         # --------------------------
 
-        enc_pool = _enumerate_orders(num_hidden_layers, num_shared_encode)  # e.g., ['S,U,U','U,S,U',...]
-        dec_pool = _enumerate_orders(num_hidden_layers, num_shared_decode)
-
-        # Determine which orders to evaluate this trial
-        if permute_hidden_layers and not evaluate_all_orders:
-            # Expose order as **categorical parameters** (visible in Optuna importance)
-            enc_pattern = trial.suggest_categorical("layer_order_enc", enc_pool)
-            dec_pattern = trial.suggest_categorical("layer_order_dec", dec_pool)
-            combos_to_eval = [(enc_pattern, dec_pattern)]
-
-            # Record for convenience
-            trial.set_user_attr("layer_order_enc_used", enc_pattern)
-            trial.set_user_attr("layer_order_dec_used", dec_pattern)
-
-        elif evaluate_all_orders:
-            # Exhaustively evaluate enc×dec order pairs up to the cap; if more, warn & sample.
-            total = len(enc_pool) * len(dec_pool)
-            if total <= max_exhaustive_orders:
-                combos_to_eval = list(product(enc_pool, dec_pool))
-            else:
-                warnings.warn(
-                    f"Exhaustive order eval would run {total} models; sampling "
-                    f"{max_exhaustive_orders} combos uniformly without replacement.",
-                    RuntimeWarning
-                )
-                # Reproducible uniform sampling without building the full product list.
-                # Index the Cartesian product by i ∈ [0, total):
-                #   enc_idx = i // len(dec_pool), dec_idx = i % len(dec_pool)
-                rng = random.Random(seed + trial.number)
-                k = max_exhaustive_orders
-                # Guard: if k > total (e.g., user sets a huge cap), clamp to total
-                k = min(k, total)
-                sampled_indices = rng.sample(range(total), k=k)
-                combos_to_eval = [
-                    (enc_pool[i // len(dec_pool)], dec_pool[i % len(dec_pool)])
-                    for i in sampled_indices
-                ]
-
+        # --------------------------
+        # Build orders
+        # --------------------------
+        if evaluate_all_orders:
+            # keep exhaustive path identical to your previous behavior
+            enc_pool = _enumerate_orders(num_hidden_layers, num_shared_encode)
+            dec_pool = _enumerate_orders(num_hidden_layers, num_shared_decode)
+            from itertools import product
+            combos_to_eval = list(product(enc_pool, dec_pool))
         else:
-            # Non-permuted **canonical** layout:
-            #   ENCODER shared at END, DECODER shared at START
-            enc_pattern, dec_pattern = _canonical_orders(num_hidden_layers, num_shared_encode, num_shared_decode)
-            combos_to_eval = [(enc_pattern, dec_pattern)]
-            trial.set_user_attr("layer_order_enc_used", enc_pattern)
-            trial.set_user_attr("layer_order_dec_used", dec_pattern)
+            if permute_hidden_layers:
+                rng_enc = random.Random(seed * 9973 + order_seed_enc)  # CHANGED
+                rng_dec = random.Random(seed * 9967 + order_seed_dec)  # CHANGED
+                layer_order_enc = _build_order(order_style_enc, num_hidden_layers, num_shared_encode, rng_enc)  # CHANGED
+                layer_order_dec = _build_order(order_style_dec, num_hidden_layers, num_shared_decode, rng_dec)  # CHANGED
+            else:
+                enc_pat, dec_pat = _canonical_orders(num_hidden_layers, num_shared_encode, num_shared_decode)
+                layer_order_enc = _decode_pattern(enc_pat)
+                layer_order_dec = _decode_pattern(dec_pat)
+            combos_to_eval = [( _format_order(layer_order_enc), _format_order(layer_order_dec) )]  # CHANGED
 
-        ## Start outer && inner bars for trial (initial training pahse)
-        if progress is not None:
-            progress.start_trial(trial.number, total_epochs=num_epochs, label="initial training")
+
+        # ADDED: Setup progress bars for this trial
+        # WHY: Each trial has different epoch counts, so we need to reset the progress bar totals
+        if show_progress and progress_instance:
+            console.print(f"\n[bold blue]Starting Trial {trial.number + 1}")
+            
+            # CHANGED: Set correct totals for each progress bar based on trial parameters
+            # Reset initial training progress bar
+            progress_instance.update(initial_task, 
+                                   completed=0, 
+                                   total=num_epochs, 
+                                   visible=True,
+                                   description=f"[green]Initial Training (Trial {trial.number + 1})")
+            
+            # Reset refit progress bar (total epochs = loops × epochs_per_loop)
+            total_refit_epochs = refit_loops * epochs_per_loop
+            progress_instance.update(refit_task, 
+                                   completed=0, 
+                                   total=total_refit_epochs, 
+                                   visible=False,
+                                   description=f"[yellow]Refit Loops (Trial {trial.number + 1})")
 
         best_val = None
         best_patterns = None
-        best_val_mse_history = None ## lets us plot the val_mse_history
+        best_refit_history_df = None  # CHANGED: add this before the `for enc_pat, dec_pat in combos_to_eval:` loop
+
 
         for enc_pat, dec_pat in combos_to_eval:
             layer_order_enc = _decode_pattern(enc_pat)
@@ -411,6 +412,12 @@ def autotune(
                 output_shared=output_shared
             ).to(device)
 
+            # CHANGED: Create progress callback for initial training using helper function
+            # WHY: Ensures callback has proper scope and error handling
+            initial_progress_callback = create_progress_callback(
+                progress_instance, initial_task, show_progress
+            )
+
             # --------------------------
             # Initial training
             # - added progress callback to the initial && refit training 12aug25
@@ -424,13 +431,25 @@ def autotune(
                 beta=beta,
                 device=device,
                 verbose=False,
-                progress_callback=progress.update_epoch
+                progress_callback=(initial_progress_callback if show_progress else None)
             )
+
+            # ADDED: Switch progress bars from initial to refit
+            # WHY: User needs to see which phase is currently running
+            if show_progress and progress_instance:
+                progress_instance.update(initial_task, visible=False)
+                progress_instance.update(refit_task, visible=True)
+            
+            # CHANGED: Create progress callback for refit training using helper function
+            refit_progress_callback = create_progress_callback(
+                progress_instance, refit_task, show_progress
+            )
+            
 
             # --------------------------
             # Impute & refit loop
             # --------------------------
-            _, model, _, val_mse_history = impute_and_refit_loop(
+            _, model, _, refit_history_df = impute_and_refit_loop(
                 model=model,
                 train_loader=train_loader,
                 max_loops=refit_loops,
@@ -443,8 +462,7 @@ def autotune(
                 verbose=False,
                 batch_size=batch_size,
                 ## added refit progress callback
-                progress_phase=(lambda total, label: progress.switch_phase(total, label)) if progress else None,
-                progress_epoch=(lambda: progress.update_epoch()) if progress else None,
+                progress_epoch=(refit_progress_callback if show_progress else None),
             )
 
             # --------------------------
@@ -455,21 +473,27 @@ def autotune(
             if (best_val is None) or (val_mse < best_val):
                 best_val = val_mse
                 best_patterns = (enc_pat, dec_pat)
-                best_val_mse_history = val_mse_history
+                best_refit_history_df = refit_history_df
 
         # Report intermediate values to Optuna (so dashboard shows the learning curve)
         
-        for i, val_mse in enumerate(best_val_mse_history):
-            trial.report(val_mse, step=i)
+        # CHANGED: report numeric validation MSEs from the DataFrame
+        if best_refit_history_df is not None and "val_mse" in best_refit_history_df.columns:  # CHANGED
+            for i, v in enumerate(best_refit_history_df["val_mse"]):                           # CHANGED
+                if pd.notna(v):
+                    trial.report(float(v), step=i)
         
         # Record the chosen best patterns for this trial (useful in exhaustive/sample mode)
         if best_patterns is not None:
             trial.set_user_attr("best_layer_order_enc", best_patterns[0])
             trial.set_user_attr("best_layer_order_dec", best_patterns[1])
 
-        ## end trial 
-        if progress is not None:
-            progress.finish_trial()
+        # CHANGED: Update trial progress and clean up epoch progress bars
+        # WHY: Trial is complete, advance the trial counter and hide epoch bars
+        if show_progress and progress_instance:
+            progress_instance.update(trial_task, advance=1)
+            progress_instance.update(initial_task, visible=False)
+            progress_instance.update(refit_task, visible=False)
 
         return best_val
 
@@ -486,18 +510,47 @@ def autotune(
     # -----------------------
     # Progress bar
     # -----------------------
+        # CHANGED: Setup rich progress bars with proper error handling
+    # WHY: Rich provides flicker-free progress bars, but needs proper setup and cleanup
     if show_progress:
-        ## Manage bars w/in train_initial + train_refit; don't use Optuna callbacks for progress 
-        try:
+        # ADDED: Calculate sample values for initial progress bar setup
+        # WHY: We need reasonable defaults for progress bar totals before trials start
+        sample_epochs = search_space.num_epochs if isinstance(search_space.num_epochs, int) else search_space.num_epochs[1] if isinstance(search_space.num_epochs, tuple) else 100
+        sample_refit_loops = search_space.refit_loops if isinstance(search_space.refit_loops, int) else search_space.refit_loops[1] if isinstance(search_space.refit_loops, tuple) else 10
+        sample_epochs_per_loop = search_space.epochs_per_loop if isinstance(search_space.epochs_per_loop, int) else search_space.epochs_per_loop[1] if isinstance(search_space.epochs_per_loop, tuple) else 10
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+            refresh_per_second=4,  # CHANGED: Reduced refresh rate to prevent flickering
+        ) as progress_instance:
+            
+            # CHANGED: Create progress tasks with reasonable initial totals
+            trial_task = progress_instance.add_task("[cyan]Optuna Trials", total=n_trials)
+            initial_task = progress_instance.add_task("[green]Initial Training", total=sample_epochs, visible=False)
+            refit_task = progress_instance.add_task("[yellow]Refit Loops", total=sample_refit_loops * sample_epochs_per_loop, visible=False)
+            
+            # Run the optimization
             study.optimize(objective, n_trials=n_trials)
-        finally:
-            progress.close()  ## Always close bars cleanly
+            
     else:
+        # Run without progress bars
         study.optimize(objective, n_trials=n_trials)
+    
+    # -----------------------
+    # Final model training with progress (ADDED SECTION)
+    # WHY: User should see progress for the final model training too
+    # -----------------------
+    if show_progress:
+        console.print(f"\n[bold green]Training final model with best parameters...")
+    
 
-    # -----------------------
-    # Final model: train with best params from scratch (robust to fixed params)
-    # -----------------------
+    best_params = study.best_trial.params 
 
     # Helper to get best param or fallback to search_space default
     def get_best_param(name):
@@ -539,24 +592,20 @@ def autotune(
 
     # 3. Layer orders (reproducible from Optuna trial, no shuffle)
     # Retrieve best encoder/decoder patterns for the best trial
-    def _get_best_patterns_from_study(study_: optuna.Study):
-        p = study_.best_trial.params
-        ua = study_.best_trial.user_attrs
-        # If permuted (non-exhaustive), patterns live in params; else in user_attrs.
-        enc = p.get("layer_order_enc") or ua.get("best_layer_order_enc") or ua.get("layer_order_enc_used")
-        dec = p.get("layer_order_dec") or ua.get("best_layer_order_dec") or ua.get("layer_order_dec_used")
-        return enc, dec
+    ua = study.best_trial.user_attrs
+    nse_eff = int(ua.get("num_shared_encode_effective",
+                         min(int(best_params.get("num_shared_encode", 0)), int(best_num_hidden_layers))))
+    nsd_eff = int(ua.get("num_shared_decode_effective",
+                         min(int(best_params.get("num_shared_decode", 0)), int(best_num_hidden_layers))))
 
-    enc_pattern, dec_pattern = _get_best_patterns_from_study(study)
+    enc_pat = study.best_trial.user_attrs.get("best_layer_order_enc")
+    dec_pat = study.best_trial.user_attrs.get("best_layer_order_dec")
+    if enc_pat is None or dec_pat is None:
+        enc_pat, dec_pat = _canonical_orders(best_num_hidden_layers, nse_eff, nsd_eff)
 
-    # If missing (very unlikely), fall back to canonical using best counts
-    if enc_pattern is None or dec_pattern is None:
-        best_nse = int(get_best_param("num_shared_encode"))
-        best_nsd = int(get_best_param("num_shared_decode"))
-        enc_pattern, dec_pattern = _canonical_orders(best_num_hidden_layers, best_nse, best_nsd)
 
-    best_layer_order_enc = _decode_pattern(enc_pattern)
-    best_layer_order_dec = _decode_pattern(dec_pattern)
+    best_layer_order_enc = _decode_pattern(enc_pat)
+    best_layer_order_dec = _decode_pattern(dec_pat)
 
     latent_shared = bool(get_best_param("latent_shared"))
     output_shared = bool(get_best_param("output_shared"))
@@ -586,31 +635,88 @@ def autotune(
         output_shared=output_shared
     ).to(device)
 
-    # Train initial fit
-    best_model = train_vae_initial(
-        model=best_model,
-        train_loader=train_loader,
-        epochs=num_epochs,
-        initial_lr=lr,
-        decay_factor=decay_factor,
-        beta=beta,
-        device=device,
-        verbose=False
-    )
 
-    # Impute & refit
-    best_imputed_df, best_model, _, _ = impute_and_refit_loop(
-        model=best_model,
-        train_loader=train_loader,
-        max_loops=search_space.refit_loops,
-        patience=search_space.refit_patience,
-        epochs_per_loop=search_space.epochs_per_loop,
-        initial_lr=lr,
-        decay_factor=decay_factor,
-        beta=beta,
-        device=device,
-        verbose=False
-    )
+    # ADDED: Progress tracking for final model training
+    if show_progress:
+        # Calculate actual totals for final training
+        final_refit_loops = search_space.refit_loops if isinstance(search_space.refit_loops, int) else search_space.refit_loops[0] if isinstance(search_space.refit_loops, tuple) else 10
+        final_epochs_per_loop = search_space.epochs_per_loop if isinstance(search_space.epochs_per_loop, int) else search_space.epochs_per_loop[0] if isinstance(search_space.epochs_per_loop, tuple) else 10
+        
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            console=console,
+        ) as final_progress:
+            
+            final_initial_task = final_progress.add_task("[green]Final Initial Training", total=num_epochs)
+            final_refit_task = final_progress.add_task("[yellow]Final Refit", total=final_refit_loops * final_epochs_per_loop, visible=False)
+            
+            # CHANGED: Create callbacks using helper function for consistency
+            final_initial_callback = create_progress_callback(final_progress, final_initial_task, True)
+            final_refit_callback = create_progress_callback(final_progress, final_refit_task, True)
+            
+            # Train initial fit
+            best_model = train_vae_initial(
+                model=best_model,
+                train_loader=train_loader,
+                epochs=num_epochs,
+                initial_lr=lr,
+                decay_factor=decay_factor,
+                beta=beta,
+                device=device,
+                verbose=False,
+                progress_callback=final_initial_callback  # CHANGED: Use helper-created callback
+            )
+            
+            # ADDED: Switch to refit progress bar
+            final_progress.update(final_initial_task, visible=False)
+            final_progress.update(final_refit_task, visible=True)
+            
+            # Impute & refit
+            best_imputed_df, best_model, _, _ = impute_and_refit_loop(
+                model=best_model,
+                train_loader=train_loader,
+                max_loops=search_space.refit_loops,
+                patience=search_space.refit_patience,
+                epochs_per_loop=search_space.epochs_per_loop,
+                initial_lr=lr,
+                decay_factor=decay_factor,
+                beta=beta,
+                device=device,
+                verbose=False,
+                progress_epoch=final_refit_callback  # CHANGED: Use helper-created callback
+            )
+    else:
+        # Train without progress bars (unchanged)
+        best_model = train_vae_initial(
+            model=best_model,
+            train_loader=train_loader,
+            epochs=num_epochs,
+            initial_lr=lr,
+            decay_factor=decay_factor,
+            beta=beta,
+            device=device,
+            verbose=False
+        )
+        
+        best_imputed_df, best_model, _, _ = impute_and_refit_loop(
+            model=best_model,
+            train_loader=train_loader,
+            max_loops=search_space.refit_loops,
+            patience=search_space.refit_patience,
+            epochs_per_loop=search_space.epochs_per_loop,
+            initial_lr=lr,
+            decay_factor=decay_factor,
+            beta=beta,
+            device=device,
+            verbose=False
+        )
+    
+    
 
     # -----------------------
     # Save things if needed

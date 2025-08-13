@@ -16,7 +16,7 @@ def train_vae_initial(
     device: str = "cpu",
     verbose: bool = False,
     *,
-    return_history: bool = True,
+    return_history: bool = False,
     progress_callback = None,
 ):
     """
@@ -43,7 +43,7 @@ def train_vae_initial(
         Torch device to run training on.
     verbose : bool, default=False
         If True, prints per-epoch metrics (also stored in the history DataFrame).
-    return_history : bool, default=True
+    return_history : bool, default=False
         If True, returns a tuple (model, history_df). Otherwise returns just `model`.
         In both cases, the DataFrame is attached as `model.training_history_`.
 
