@@ -253,7 +253,8 @@ return_model = True,## model params
 epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = None, ## initial training params
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
 verbose = False,
-return_silhouettes = False
+return_silhouettes = False,
+return_history = False
 ):
     """
     End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).
@@ -332,7 +333,24 @@ return_silhouettes = False
         If True, prints progress messages during training and refitting.
     return_silhouettes : bool, default=False
         If True, returns silhouettes from clustering
+
+        return_history : bool, default=False
+    If True, returns the concatenated training history from initial training and refit loops.
+
+    Returns
+    -------
+    The return value depends on the flags `return_model`, `return_silhouettes`, and `return_history`:
+
+    Always returns: 
+     - `imputed_dataset` : pd.DataFrame - The final reconstructed data
+
+    Optional Returns:
+   
+     - `vae` : CISSVAE - The trained model (if `return_model=True`)
+     - `silh` : float or None - Silhouette score from clustering (if `return_silhouettes=True`)
+     - `combined_history_df` : pd.DataFrame - Training history with columns ["epoch", "train_loss", "train_recon", "train_kl", "val_mse", "lr", "phase", "loop"] (if `return_history=True`)
     """
+
     import torch
     from torch.utils.data import DataLoader
     from ciss_vae.classes.vae import CISSVAE
@@ -390,7 +408,7 @@ return_silhouettes = False
         debug = False
     )
 
-    vae = train_vae_initial(
+    vae, initial_history_df = train_vae_initial(
         model=vae,
         train_loader=train_loader,
         epochs=epochs,
@@ -398,10 +416,11 @@ return_silhouettes = False
         decay_factor=decay_factor,
         beta=beta,
         device=device,
-        verbose=verbose
+        verbose=verbose,
+        return_history = return_history
     )
 
-    imputed_dataset, vae, _, _ = impute_and_refit_loop(
+    imputed_dataset, vae, _, refit_history_df = impute_and_refit_loop(
         model=vae,
         train_loader=train_loader,
         max_loops=max_loops,
@@ -412,20 +431,49 @@ return_silhouettes = False
         beta=beta_refit,
         device=device,
         verbose=verbose,
-        batch_size=batch_size
+        batch_size=batch_size,
     )
+    
+    # ----------------
+    # Construct history dataframe
+    # ----------------
+    if return_history:
+        if initial_history_df is not None and refit_history_df is not None:
+            # Concatenate initial and refit histories
+            combined_history_df = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
+        elif initial_history_df is not None:
+            combined_history_df = initial_history_df
+        elif refit_history_df is not None:
+            combined_history_df = refit_history_df
+        else:
+            combined_history_df = None
+        
+    # -------------------
+    # Return statements
+    # -------------------
 
     if return_model: 
-        if return_silhouettes:
-            return imputed_dataset, vae, silh
+        if return_history:
+            if return_silhouettes:
+                return imputed_dataset, vae, silh, combined_history_df
+            else:
+                return imputed_dataset, vae, combined_history_df
         else:
-            return imputed_dataset, vae
-        
+            if return_silhouettes:
+                return imputed_dataset, vae, silh
+            else:
+                return imputed_dataset, vae
     else:
-        if return_silhouettes:
-            return imputed_dataset, silh
+        if return_history:
+            if return_silhouettes:
+                return imputed_dataset, silh, combined_history_df
+            else:
+                return imputed_dataset, combined_history_df
         else:
-            return imputed_dataset
+            if return_silhouettes:
+                return imputed_dataset, silh
+            else:
+                return imputed_dataset
 
     
 

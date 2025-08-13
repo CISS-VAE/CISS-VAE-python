@@ -143,8 +143,12 @@ def train_vae_initial(
         #-----------------------
         # Hook for progress bar
         #-----------------------
-        if progress_callback:
-            progress_callback(1)   # tick one epoch
+        if progress_callback is not None:
+            try:
+                progress_callback(n=1)
+            except Exception as e:
+                if verbose:
+                    print(f"Progress callback error: {e}")
         scheduler.step()
 
     model.set_final_lr(optimizer.param_groups[0]["lr"])
