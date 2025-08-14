@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -94,6 +95,31 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">train_vae_refit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">imputed_data</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
                     <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">progress_callback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Train the VAE model on imputed data without masking for one refit iteration.</span>
+<span class="sd">    </span>
+<span class="sd">    Performs training on the complete imputed dataset.</span>
+<span class="sd">    </span>
+<span class="sd">    :param model: VAE model to train</span>
+<span class="sd">    :type model: torch.nn.Module</span>
+<span class="sd">    :param imputed_data: DataLoader containing imputed dataset with complete values</span>
+<span class="sd">    :type imputed_data: torch.utils.data.DataLoader</span>
+<span class="sd">    :param epochs: Number of training epochs, defaults to 10</span>
+<span class="sd">    :type epochs: int, optional</span>
+<span class="sd">    :param initial_lr: Initial learning rate for the optimizer, defaults to 0.01</span>
+<span class="sd">    :type initial_lr: float, optional</span>
+<span class="sd">    :param decay_factor: Exponential decay factor for learning rate scheduler, defaults to 0.999</span>
+<span class="sd">    :type decay_factor: float, optional</span>
+<span class="sd">    :param beta: Weight for KL divergence term in loss function, defaults to 0.1</span>
+<span class="sd">    :type beta: float, optional</span>
+<span class="sd">    :param device: Device to run training on, defaults to &quot;cpu&quot;</span>
+<span class="sd">    :type device: str, optional</span>
+<span class="sd">    :param verbose: Whether to print training progress information, defaults to False</span>
+<span class="sd">    :type verbose: bool, optional</span>
+<span class="sd">    :param progress_callback: Optional callback function to report epoch progress, defaults to None</span>
+<span class="sd">    :type progress_callback: callable, optional</span>
+<span class="sd">    :return: Trained model with updated final learning rate</span>
+<span class="sd">    :rtype: torch.nn.Module</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">optimizer</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">)</span>
     <span class="n">scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">)</span>
@@ -153,21 +179,38 @@
                           <span class="n">epochs_per_loop</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">initial_lr</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span>
                           <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>
                           <span class="n">progress_epoch</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Iterative impute-refit loop with validation MSE early stopping.</span>
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    imputed_df : pd.DataFrame</span>
-<span class="sd">        Final imputed values produced by the best (early-stopped) model.</span>
-<span class="sd">    best_model : torch.nn.Module</span>
-<span class="sd">        Copy of the best-performing model encountered during the loop.</span>
-<span class="sd">    best_dataset : ClusterDataset</span>
-<span class="sd">        Copy of the dataset corresponding to `best_model`&#39;s imputations.</span>
-<span class="sd">    refit_history_df : pd.DataFrame</span>
-<span class="sd">        Per-loop history aligned to `train_vae_initial`&#39;s history schema so you</span>
-<span class="sd">        can `pd.concat([history_df, refit_history_df], ignore_index=True)` later.</span>
-
-<span class="sd">        Columns:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Iterative impute-refit loop with validation MSE early stopping.</span>
+<span class="sd">    </span>
+<span class="sd">    Performs alternating cycles of imputation (filling missing values with model predictions)</span>
+<span class="sd">    and refitting (training on the complete imputed data). Uses early stopping based on</span>
+<span class="sd">    validation MSE to prevent overfitting and selects the best performing model.</span>
+<span class="sd">    </span>
+<span class="sd">    :param model: Trained VAE model to start the impute-refit process</span>
+<span class="sd">    :type model: torch.nn.Module</span>
+<span class="sd">    :param train_loader: DataLoader for the original training dataset with missing values</span>
+<span class="sd">    :type train_loader: torch.utils.data.DataLoader</span>
+<span class="sd">    :param max_loops: Maximum number of impute-refit cycles to perform, defaults to 10</span>
+<span class="sd">    :type max_loops: int, optional</span>
+<span class="sd">    :param patience: Number of loops to wait for improvement before early stopping, defaults to 2</span>
+<span class="sd">    :type patience: int, optional</span>
+<span class="sd">    :param epochs_per_loop: Number of training epochs per refit cycle, defaults to 5</span>
+<span class="sd">    :type epochs_per_loop: int, optional</span>
+<span class="sd">    :param initial_lr: Learning rate for refit training, uses model&#39;s final LR if None, defaults to None</span>
+<span class="sd">    :type initial_lr: float, optional</span>
+<span class="sd">    :param decay_factor: Exponential decay factor for learning rate, defaults to 0.999</span>
+<span class="sd">    :type decay_factor: float, optional</span>
+<span class="sd">    :param beta: Weight for KL divergence term in loss function, defaults to 0.1</span>
+<span class="sd">    :type beta: float, optional</span>
+<span class="sd">    :param device: Device to run computations on, defaults to &quot;cpu&quot;</span>
+<span class="sd">    :type device: str, optional</span>
+<span class="sd">    :param verbose: Whether to print detailed progress information, defaults to False</span>
+<span class="sd">    :type verbose: bool, optional</span>
+<span class="sd">    :param batch_size: Batch size for refit training, defaults to 4000</span>
+<span class="sd">    :type batch_size: int, optional</span>
+<span class="sd">    :param progress_epoch: Optional callback function to report epoch progress, defaults to None</span>
+<span class="sd">    :type progress_epoch: callable, optional</span>
+<span class="sd">    :return: Tuple containing (imputed_dataframe, best_model, best_dataset, refit_history_dataframe)</span>
+<span class="sd">        refit_history_dataframe Columns:</span>
 <span class="sd">          - epoch (int)          : cumulative epoch counter (continues from initial)</span>
 <span class="sd">          - train_loss (float)   : NaN (not tracked during refit here)</span>
 <span class="sd">          - train_recon (float)  : NaN</span>
@@ -176,6 +219,8 @@
 <span class="sd">          - lr (float)           : learning rate after each refit loop</span>
 <span class="sd">          - phase (str)          : {&quot;refit_init&quot;, &quot;refit_loop&quot;}</span>
 <span class="sd">          - loop (int)           : 0 for baseline (pre-refit), then 1..k per loop</span>
+<span class="sd">    :rtype: tuple[pandas.DataFrame, torch.nn.Module, ClusterDataset, pandas.DataFrame]</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># --------------------------</span>
     <span class="c1"># Get imputed dataset, save &#39;best&#39; states of dataset, model</span>

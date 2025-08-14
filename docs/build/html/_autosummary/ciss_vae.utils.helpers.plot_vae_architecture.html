@@ -53,20 +53,19 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.run_cissvae.html">ciss_vae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html">ciss_vae.classes.cluster_dataset.ClusterDataset</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.SearchSpace.html">ciss_vae.training.autotune.SearchSpace</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.autotune.autotune.html">ciss_vae.training.autotune.autotune</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_initial.train_vae_initial.html">ciss_vae.training.train_initial.train_vae_initial</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.training.train_refit.impute_and_refit_loop.html">ciss_vae.training.train_refit.impute_and_refit_loop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l2"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">ciss_vae.utils.helpers.plot_vae_architecture</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ciss_vae.utils.helpers.plot_vae_architecture"><code class="docutils literal notranslate"><span class="pre">plot_vae_architecture()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing.html">ciss_vae.utils.run_cissvae.cluster_on_missing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.helpers.plot_vae_architecture</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.helpers.plot_vae_architecture"><code class="docutils literal notranslate"><span class="pre">plot_vae_architecture()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -107,15 +106,22 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>-</em>) – An instance of CISSVAE</p></li>
-<li><p><strong>title</strong> (<em>-</em>) – Title of plot</p></li>
-<li><p><strong>color_shared</strong> (<em>-</em>) – Color of shared hidden layers</p></li>
-<li><p><strong>color_unshared</strong> (<em>-</em>) – Color of unshared hidden layers</p></li>
-<li><p><strong>color_input</strong> (<em>-</em>) – Color of input layer</p></li>
-<li><p><strong>color_output</strong> (<em>-</em>) – Color of output layer</p></li>
-<li><p><strong>figsize</strong> (<em>-</em>) – Tuple, size of the matplotlib figure</p></li>
-<li><p><strong>return_fig</strong> (<em>-</em>) – (bool) : Set as “True” to return the fig object. Default is False</p></li>
+<li><p><strong>model</strong> (<em>nn.Module</em>) – An instance of CISSVAE model to visualize</p></li>
+<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title of the plot, defaults to None</p></li>
+<li><p><strong>color_shared</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for shared hidden layers, defaults to “skyblue”</p></li>
+<li><p><strong>color_unshared</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for unshared hidden layers, defaults to “lightcoral”</p></li>
+<li><p><strong>color_latent</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for latent layer, defaults to “gold”</p></li>
+<li><p><strong>color_input</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for input layer, defaults to “lightgreen”</p></li>
+<li><p><strong>color_output</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for output layer, defaults to “lightgreen”</p></li>
+<li><p><strong>figsize</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Size of the matplotlib figure, defaults to (16, 8)</p></li>
+<li><p><strong>return_fig</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return the figure object instead of displaying, defaults to False</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Matplotlib figure object if return_fig is True, otherwise None</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>matplotlib.figure.Figure or None</p>
 </dd>
 </dl>
 </dd></dl>

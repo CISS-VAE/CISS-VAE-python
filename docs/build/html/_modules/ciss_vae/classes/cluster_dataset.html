@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -178,19 +179,28 @@
 <div class="viewcode-block" id="ClusterDataset.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Build the dataset, apply per-cluster validation masking, and normalize.</span>
-
-<span class="sd">        Steps</span>
-<span class="sd">        -----</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the dataset, apply per-cluster validation masking, and normalize.</span>
+<span class="sd">        </span>
+<span class="sd">        Steps:</span>
 <span class="sd">        1. Convert inputs to tensors; preserve indices/column names if a DataFrame.</span>
 <span class="sd">        2. Resolve per-cluster validation proportions from ``val_proportion``.</span>
 <span class="sd">        3. For each cluster and feature, randomly mark the requested fraction of</span>
-<span class="sd">        **observed** entries as validation targets.</span>
+<span class="sd">           **observed** entries as validation targets.</span>
 <span class="sd">        4. Create ``val_data`` (validation targets only) and training ``data`` where</span>
-<span class="sd">        validation entries are set to NaN.</span>
+<span class="sd">           validation entries are set to NaN.</span>
 <span class="sd">        5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply</span>
-<span class="sd">        normalization; then replace remaining NaNs with ``replacement_value``.</span>
+<span class="sd">           normalization; then replace remaining NaNs with ``replacement_value``.</span>
+<span class="sd">        </span>
+<span class="sd">        :param data: Input matrix, shape ``(n_samples, n_features)``. May contain NaNs</span>
+<span class="sd">        :type data: pandas.DataFrame or numpy.ndarray or torch.Tensor</span>
+<span class="sd">        :param cluster_labels: Cluster assignment per sample (length ``n_samples``). If ``None``, all rows are assigned to a single cluster ``0``</span>
+<span class="sd">        :type cluster_labels: array-like or None</span>
+<span class="sd">        :param val_proportion: Per-cluster fraction of **non-missing** entries to hold out for validation, defaults to 0.1</span>
+<span class="sd">        :type val_proportion: float or collections.abc.Sequence or collections.abc.Mapping or pandas.Series, optional</span>
+<span class="sd">        :param replacement_value: Value to fill missing/held-out entries in ``self.data`` after masking, defaults to 0</span>
+<span class="sd">        :type replacement_value: float, optional</span>
+<span class="sd">        :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None</span>
+<span class="sd">        :type columns_ignore: list[str or int] or None, optional</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set columns ignore </span>
@@ -388,8 +398,10 @@
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Displays the number of samples, features, and clusters, the percentage of missing data before masking, </span>
-<span class="sd">        and the percentage of non-missing data held out for validation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Displays the number of samples, features, and clusters, the percentage of missing data before masking, and the percentage of non-missing data held out for validation.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: String representation of the dataset</span>
+<span class="sd">        :rtype: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">total_values</span> <span class="o">=</span> <span class="n">n</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span><span class="p">))</span>
@@ -419,15 +431,20 @@
 <div class="viewcode-block" id="ClusterDataset.copy">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.copy">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Creates a deep copy of the ClusterDataset method containing all attributes. </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Creates a deep copy of the ClusterDataset method containing all attributes.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: Deep copy of the dataset</span>
+<span class="sd">        :rtype: ClusterDataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Displays the number of samples, features, and clusters, the percentage of missing data, </span>
-<span class="sd">        and the percentage of non-missing data held out for validation.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Displays the number of samples, features, and clusters, the percentage of missing data before masking, and the percentage of non-missing data held out for validation.</span>
+<span class="sd">        </span>
+<span class="sd">        :return: String representation of the dataset</span>
+<span class="sd">        :rtype: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span></div>
 

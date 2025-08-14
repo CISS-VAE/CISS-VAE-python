@@ -54,6 +54,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a><ul class="current">
@@ -98,190 +99,40 @@
 <h1>ciss_vae.training.autotune.SearchSpace<a class="headerlink" href="#ciss-vae-training-autotune-searchspace" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SearchSpace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">512]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[10,</span> <span class="pre">100]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0001,</span> <span class="pre">0.001)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.9,</span> <span class="pre">0.999)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_decode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs_per_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_lr_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">SearchSpace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">512]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[10,</span> <span class="pre">100]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0001,</span> <span class="pre">0.001)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.9,</span> <span class="pre">0.999)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_decode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_shared_placement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['at_end',</span> <span class="pre">'at_start',</span> <span class="pre">'alternating',</span> <span class="pre">'random']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder_shared_placement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['at_end',</span> <span class="pre">'at_start',</span> <span class="pre">'alternating',</span> <span class="pre">'random']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs_per_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_lr_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Defines tunable and fixed hyperparameter ranges for the Optuna search.
-Parameters are specified as:
-* <strong>scalar</strong>: fixed value (e.g., <code class="docutils literal notranslate"><span class="pre">latent_dim=16</span></code>)
-* <strong>list</strong>: categorical choice (e.g., <code class="docutils literal notranslate"><span class="pre">hidden_dims=[64,</span> <span class="pre">128,</span> <span class="pre">256]</span></code>)
-* <strong>tuple</strong>: range (<code class="docutils literal notranslate"><span class="pre">(min,</span> <span class="pre">max)</span></code>) for <code class="docutils literal notranslate"><span class="pre">suggest_int</span></code>/<code class="docutils literal notranslate"><span class="pre">suggest_float</span></code>
-.. attribute:: num_hidden_layers</p>
-<blockquote>
-<div><p>Number of encoder/decoder hidden layers.</p>
+<p>Defines tunable and fixed hyperparameter ranges for the Optuna search.</p>
+<p>Parameters are specified as:
+- <strong>scalar</strong>: fixed value (e.g., <code class="docutils literal notranslate"><span class="pre">latent_dim=16</span></code>)
+- <strong>list</strong>: categorical choice (e.g., <code class="docutils literal notranslate"><span class="pre">hidden_dims=[64,</span> <span class="pre">128,</span> <span class="pre">256]</span></code>)
+- <strong>tuple</strong>: range <code class="docutils literal notranslate"><span class="pre">(min,</span> <span class="pre">max)</span></code> for <code class="docutils literal notranslate"><span class="pre">suggest_int</span></code>/<code class="docutils literal notranslate"><span class="pre">suggest_float</span></code></p>
 <dl class="field-list simple">
-<dt class="field-odd">type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | list[int] | tuple[int, int]</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_hidden_layers</strong> (<em>int</em><em> or </em><em>list</em><em>[</em><em>int</em><em>] or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Number of encoder/decoder hidden layers, defaults to (1, 4)</p></li>
+<li><p><strong>hidden_dims</strong> (<em>int</em><em> or </em><em>list</em><em>[</em><em>int</em><em>] or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Hidden dimension specification - int for repeated per layer, list for per-layer choices, tuple for range, defaults to [64, 512]</p></li>
+<li><p><strong>latent_dim</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Latent dimension size or range, defaults to [10, 100]</p></li>
+<li><p><strong>latent_shared</strong> (<em>bool</em><em> or </em><em>list</em><em>[</em><em>bool</em><em>]</em><em>, </em><em>optional</em>) – Whether latent space is shared across clusters, defaults to [True, False]</p></li>
+<li><p><strong>output_shared</strong> (<em>bool</em><em> or </em><em>list</em><em>[</em><em>bool</em><em>]</em><em>, </em><em>optional</em>) – Whether output layer is shared across clusters, defaults to [True, False]</p></li>
+<li><p><strong>lr</strong> (<em>float</em><em> or </em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Initial learning rate or range, defaults to (1e-4, 1e-3)</p></li>
+<li><p><strong>decay_factor</strong> (<em>float</em><em> or </em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>, </em><em>optional</em>) – Learning rate exponential decay factor or range, defaults to (0.9, 0.999)</p></li>
+<li><p><strong>beta</strong> (<em>float</em><em> or </em><em>tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>, </em><em>optional</em>) – KL divergence weight or range, defaults to 0.01</p></li>
+<li><p><strong>num_epochs</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Number of epochs for initial training, defaults to 1000</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Mini-batch size, defaults to 64</p></li>
+<li><p><strong>num_shared_encode</strong> (<em>list</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Candidate counts of shared encoder layers, defaults to [0, 1, 3]</p></li>
+<li><p><strong>num_shared_decode</strong> (<em>list</em><em>[</em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Candidate counts of shared decoder layers, defaults to [0, 1, 3]</p></li>
+<li><p><strong>encoder_shared_placement</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Strategy for arranging shared vs unshared layers in encoder, defaults to [“at_end”, “at_start”, “alternating”, “random”]</p></li>
+<li><p><strong>decoder_shared_placement</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Strategy for arranging shared vs unshared layers in decoder, defaults to [“at_end”, “at_start”, “alternating”, “random”]</p></li>
+<li><p><strong>refit_patience</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Early-stop patience for refit loops, defaults to 2</p></li>
+<li><p><strong>refit_loops</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Maximum number of refit loops, defaults to 100</p></li>
+<li><p><strong>epochs_per_loop</strong> (<em>int</em><em> or </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>optional</em>) – Number of epochs per refit loop, defaults to 1000</p></li>
+<li><p><strong>reset_lr_refit</strong> (<em>bool</em><em> or </em><em>list</em><em>[</em><em>bool</em><em>]</em><em>, </em><em>optional</em>) – Whether to reset learning rate before refit, defaults to [True, False]</p></li>
+</ul>
 </dd>
 </dl>
-</div></blockquote>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.hidden_dims">
-<span class="sig-name descname"><span class="pre">hidden_dims</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.hidden_dims" title="Link to this definition"></a></dt>
-<dd><p>Hidden dimension spec. If int → repeated per layer; list → per‑layer choices; tuple → range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | list[int] | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.latent_dim">
-<span class="sig-name descname"><span class="pre">latent_dim</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.latent_dim" title="Link to this definition"></a></dt>
-<dd><p>Latent size or range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.latent_shared">
-<span class="sig-name descname"><span class="pre">latent_shared</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.latent_shared" title="Link to this definition"></a></dt>
-<dd><p>Whether latent is shared (or categorical choice).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | list[bool]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.output_shared">
-<span class="sig-name descname"><span class="pre">output_shared</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.output_shared" title="Link to this definition"></a></dt>
-<dd><p>Whether output is shared (or categorical choice).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | list[bool]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.lr">
-<span class="sig-name descname"><span class="pre">lr</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.lr" title="Link to this definition"></a></dt>
-<dd><p>Initial learning rate or range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | tuple[float, float]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.decay_factor">
-<span class="sig-name descname"><span class="pre">decay_factor</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.decay_factor" title="Link to this definition"></a></dt>
-<dd><p>LR exponential decay factor or range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | tuple[float, float]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.beta">
-<span class="sig-name descname"><span class="pre">beta</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.beta" title="Link to this definition"></a></dt>
-<dd><p>KL weight or range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float | tuple[float, float]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.num_epochs">
-<span class="sig-name descname"><span class="pre">num_epochs</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.num_epochs" title="Link to this definition"></a></dt>
-<dd><p>Epochs for initial training (or range).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.batch_size">
-<span class="sig-name descname"><span class="pre">batch_size</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.batch_size" title="Link to this definition"></a></dt>
-<dd><p>Mini-batch size (or range).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.num_shared_encode">
-<span class="sig-name descname"><span class="pre">num_shared_encode</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.num_shared_encode" title="Link to this definition"></a></dt>
-<dd><p>Candidate counts of shared encoder layers.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.num_shared_decode">
-<span class="sig-name descname"><span class="pre">num_shared_decode</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.num_shared_decode" title="Link to this definition"></a></dt>
-<dd><p>Candidate counts of shared decoder layers.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list[int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.refit_patience">
-<span class="sig-name descname"><span class="pre">refit_patience</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.refit_patience" title="Link to this definition"></a></dt>
-<dd><p>Early-stop patience for refit loops (or range).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.refit_loops">
-<span class="sig-name descname"><span class="pre">refit_loops</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.refit_loops" title="Link to this definition"></a></dt>
-<dd><p>Maximum number of refit loops (or range).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.epochs_per_loop">
-<span class="sig-name descname"><span class="pre">epochs_per_loop</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.epochs_per_loop" title="Link to this definition"></a></dt>
-<dd><p>Epochs per refit loop (or range).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>int | tuple[int, int]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.reset_lr_refit">
-<span class="sig-name descname"><span class="pre">reset_lr_refit</span></span><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.reset_lr_refit" title="Link to this definition"></a></dt>
-<dd><p>Whether to reset LR before refit.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | list[bool]</p>
-</dd>
-</dl>
-</dd></dl>
-
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">512]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[10,</span> <span class="pre">100]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0001,</span> <span class="pre">0.001)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.9,</span> <span class="pre">0.999)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_decode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs_per_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_lr_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_hidden_layers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(1,</span> <span class="pre">4)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[64,</span> <span class="pre">512]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[10,</span> <span class="pre">100]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.0001,</span> <span class="pre">0.001)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(0.9,</span> <span class="pre">0.999)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">64</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_encode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_shared_decode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">3]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_shared_placement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['at_end',</span> <span class="pre">'at_start',</span> <span class="pre">'alternating',</span> <span class="pre">'random']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decoder_shared_placement</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['at_end',</span> <span class="pre">'at_start',</span> <span class="pre">'alternating',</span> <span class="pre">'random']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_patience</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">refit_loops</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs_per_loop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reset_lr_refit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[True,</span> <span class="pre">False]</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.__init__" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <p class="rubric">Methods</p>

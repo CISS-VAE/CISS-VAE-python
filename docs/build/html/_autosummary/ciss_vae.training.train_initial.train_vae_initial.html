@@ -52,6 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 </ul>
 
@@ -84,45 +85,35 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="ciss_vae.training.train_initial.train_vae_initial">
 <span class="sig-name descname"><span class="pre">train_vae_initial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">initial_lr</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.01</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decay_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.999</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">progress_callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/train_initial.html#train_vae_initial"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.train_initial.train_vae_initial" title="Link to this definition"></a></dt>
-<dd><p>Train a VAE on masked data with validation set aside inside the ClusterDataset.</p>
-<dl class="simple">
-<dt>Each sample from <cite>train_loader</cite> must yield a tuple of:</dt><dd><p>(x, cluster_id, mask, index)</p>
-</dd>
-</dl>
+<dd><p>Train a VAE on masked data with validation monitoring for initial training phase.</p>
+<p>Performs the initial training of a CISSVAE model on data with missing values using
+masked loss computation. Tracks training loss and validation MSE across epochs,
+with optional progress reporting and learning rate decay.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Your CISSVAE (or compatible) model. Must implement forward(x, cluster_id).</p></li>
-<li><p><strong>train_loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader built on a ClusterDataset that contains <cite>.val_data</cite>.</p></li>
-<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>default=10</em>) – Number of epochs for the initial training pass.</p></li>
-<li><p><strong>initial_lr</strong> (<em>float</em><em>, </em><em>default=0.01</em>) – Starting learning rate for Adam.</p></li>
-<li><p><strong>decay_factor</strong> (<em>float</em><em>, </em><em>default=0.999</em>) – ExponentialLR decay gamma applied at the end of each epoch.</p></li>
-<li><p><strong>beta</strong> (<em>float</em><em>, </em><em>default=0.1</em>) – Weight of the KL term in the VAE loss.</p></li>
-<li><p><strong>device</strong> (<em>{&quot;cpu&quot;</em><em>,</em><em>&quot;cuda&quot;}</em><em>, </em><em>default=&quot;cpu&quot;</em>) – Torch device to run training on.</p></li>
-<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, prints per-epoch metrics (also stored in the history DataFrame).</p></li>
-<li><p><strong>return_history</strong> (<em>bool</em><em>, </em><em>default=False</em>) – If True, returns a tuple (model, history_df). Otherwise returns just <cite>model</cite>.
-In both cases, the DataFrame is attached as <cite>model.training_history_</cite>.</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – CISSVAE or compatible VAE model that implements forward(x, cluster_id)</p></li>
+<li><p><strong>train_loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader built on ClusterDataset containing validation data</p></li>
+<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of training epochs, defaults to 10</p></li>
+<li><p><strong>initial_lr</strong> (<em>float</em><em>, </em><em>optional</em>) – Starting learning rate for Adam optimizer, defaults to 0.01</p></li>
+<li><p><strong>decay_factor</strong> (<em>float</em><em>, </em><em>optional</em>) – Exponential learning rate decay factor applied per epoch, defaults to 0.999</p></li>
+<li><p><strong>beta</strong> (<em>float</em><em>, </em><em>optional</em>) – Weight coefficient for KL divergence term in VAE loss, defaults to 0.1</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Device for training computations (“cpu” or “cuda”), defaults to “cpu”</p></li>
+<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to print per-epoch training metrics, defaults to False</p></li>
+<li><p><strong>return_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return training history DataFrame along with model, defaults to False</p></li>
+<li><p><strong>progress_callback</strong> (<em>callable</em><em>, </em><em>optional</em>) – Optional callback function for progress reporting, defaults to None</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul>
-<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The trained model (always).</p></li>
-<li><p><strong>history_df</strong> (<em>pd.DataFrame, optional</em>) –</p>
-<dl class="simple">
-<dt>Returned only when <cite>return_history=True</cite>. Has columns:</dt><dd><p>[“epoch”, “train_loss”, “train_recon”, “train_kl”, “val_mse”, “lr”]</p>
+<dd class="field-even"><p>Trained model, or tuple of (model, history_dataframe) if return_history=True</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.nn.Module or tuple[torch.nn.Module, pandas.DataFrame]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If dataset does not contain ‘val_data’ attribute for validation</p>
 </dd>
 </dl>
-</li>
-</ul>
-</p>
-</dd>
-</dl>
-<p class="rubric">Notes</p>
-<ul class="simple">
-<li><p>The function expects <cite>loss_function(…)</cite> and <cite>compute_val_mse(model, dataset, device)</cite>
-to be available in scope.</p></li>
-<li><p>For convenience, the history DataFrame is also attached as <cite>model.training_history_</cite>.</p></li>
-</ul>
 </dd></dl>
 
 </section>

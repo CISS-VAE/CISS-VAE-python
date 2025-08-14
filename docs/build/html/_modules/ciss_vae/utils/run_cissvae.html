@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -98,25 +99,29 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">cluster_on_missing</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">cols_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
  <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">min_cluster_size</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
  <span class="n">cluster_selection_epsilon</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">prop</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given pandas dataframe with missing data, clusters on missingness pattern and returns cluster labels.</span>
-<span class="sd">        Parameters:</span>
-<span class="sd">            - data : (pd.DataFrame) : </span>
-<span class="sd">                The original dataset</span>
-<span class="sd">            - cols_ignore : (list[str]) default=None : </span>
-<span class="sd">                List of columns to ignore when clustering.</span>
-<span class="sd">            - n_clusters : (int) default=None: </span>
-<span class="sd">                Set n_clusters to perform KMeans clustering with n_clusters clusters. If none, will use hdbscan for clustering.</span>
-<span class="sd">            - seed : (int) default=None: </span>
-<span class="sd">                Set seed. </span>
-<span class="sd">            - min_cluster_size : (int) default=None: </span>
-<span class="sd">                Set min_cluster_size for hdbscan. </span>
-<span class="sd">            - cluster_selection_epsilon : (float) default=0.25: </span>
-<span class="sd">                Set cluster_selection_epsilon for hdbscan. </span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            - clusters : cluster labels</span>
-<span class="sd">            - silhouette : silhouette score</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cluster samples based on their missingness patterns using KMeans or HDBSCAN.</span>
+<span class="sd">    </span>
+<span class="sd">    Groups samples with similar patterns of missing values to identify subpopulations</span>
+<span class="sd">    that may benefit from cluster-specific imputation strategies. Uses Jaccard distance</span>
+<span class="sd">    on binary missingness indicators.</span>
+<span class="sd">    </span>
+<span class="sd">    :param data: Input dataset containing missing values</span>
+<span class="sd">    :type data: pandas.DataFrame</span>
+<span class="sd">    :param cols_ignore: Column names to exclude from clustering analysis, defaults to None</span>
+<span class="sd">    :type cols_ignore: list[str], optional</span>
+<span class="sd">    :param n_clusters: Number of clusters for KMeans; if None, uses HDBSCAN, defaults to None</span>
+<span class="sd">    :type n_clusters: int, optional</span>
+<span class="sd">    :param seed: Random seed for reproducible clustering, defaults to None</span>
+<span class="sd">    :type seed: int, optional</span>
+<span class="sd">    :param min_cluster_size: Minimum cluster size for HDBSCAN; if None, uses data.shape[0]//25, defaults to None</span>
+<span class="sd">    :type min_cluster_size: int, optional</span>
+<span class="sd">    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25</span>
+<span class="sd">    :type cluster_selection_epsilon: float, optional</span>
+<span class="sd">    :param prop: Legacy parameter, not used, defaults to False</span>
+<span class="sd">    :type prop: bool, optional</span>
+<span class="sd">    :return: Tuple of (cluster_labels, silhouette_score)</span>
+<span class="sd">    :rtype: tuple[numpy.ndarray, float or None]</span>
+<span class="sd">    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -181,7 +186,7 @@
 
 
 <span class="c1"># --------------------</span>
-<span class="c1"># Func 1b: Cluster on proportion of missingness by biomarker</span>
+<span class="c1"># Func 1b: Cluster on proportion of missingness by feature</span>
 <span class="c1"># --------------------</span>
 <div class="viewcode-block" id="cluster_on_missing_prop">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html#ciss_vae.cluster_on_missing_prop">[docs]</a>
@@ -195,63 +200,33 @@
     <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">,</span>
     <span class="n">scale_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Cluster columns (biomarkers) using per-sample proportions of missingness.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    prop_matrix : (pd.DataFrame or np.ndarray), shape (n_samples, n_biomarkers)</span>
-<span class="sd">        Input matrix prepared by the user where:</span>
-<span class="sd">          * Each **row** is a sample (e.g., mouse, patient).</span>
-<span class="sd">          * Each **column** is a **biomarker**.</span>
-<span class="sd">          * Each entry is in **[0, 1]** and equals the **proportion of missingness</span>
-<span class="sd">            for that biomarker across all timepoints** for that sample.</span>
-
-<span class="sd">        If a DataFrame is provided, the **column order is preserved** and returned</span>
-<span class="sd">        labels are aligned to those columns (biomarkers).</span>
-
-<span class="sd">    n_clusters : int or None, default=None</span>
-<span class="sd">        If set (e.g., 3, 4, ...), use **KMeans** with exactly that many clusters.</span>
-<span class="sd">        If None, use **HDBSCAN** (data-driven number of clusters).</span>
-
-<span class="sd">    seed : int or None, default=None</span>
-<span class="sd">        Random seed for KMeans reproducibility.</span>
-
-<span class="sd">    min_cluster_size : int or None, default=None</span>
-<span class="sd">        HDBSCAN&#39;s `min_cluster_size`. If None, defaults to `max(2, n_biomarkers // 25)`.</span>
-
-<span class="sd">    cluster_selection_epsilon : float, default=0.25</span>
-<span class="sd">        HDBSCAN&#39;s `cluster_selection_epsilon`.</span>
-
-<span class="sd">    metric : {&quot;euclidean&quot;, &quot;cosine&quot;}, default=&quot;euclidean&quot;</span>
-<span class="sd">        Distance metric for HDBSCAN and silhouette scoring. (KMeans itself optimizes</span>
-<span class="sd">        Euclidean, but silhouette can still be evaluated with cosine.)</span>
-
-<span class="sd">    scale_features : bool, default=False</span>
-<span class="sd">        If True, standardize the **column vectors** (biomarkers) across samples</span>
-<span class="sd">        before clustering. Not usually needed since inputs are in [0,1], but can help</span>
-<span class="sd">        when a few rows dominate variance.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    labels : np.ndarray of shape (n_biomarkers,)</span>
-<span class="sd">        Cluster label for each **biomarker** (i.e., for each input column). HDBSCAN</span>
-<span class="sd">        may assign -1 to noise. Order matches `prop_matrix`&#39;s columns.</span>
-
-<span class="sd">    silhouette : float or None</span>
-<span class="sd">        Silhouette score of the solution using the chosen `metric`. Returns None if</span>
-<span class="sd">        it cannot be computed (e.g., single cluster or singleton clusters).</span>
-
-<span class="sd">    Notes</span>
-<span class="sd">    -----</span>
-<span class="sd">    - We cluster **columns** (biomarkers), treating each biomarker as a vector of</span>
-<span class="sd">      per-sample missingness proportions. Internally we transpose to shape</span>
-<span class="sd">      (n_biomarkers, n_samples) so each biomarker is a &quot;point&quot; in that space.</span>
-<span class="sd">    - For correlation-like behavior, `metric=&quot;cosine&quot;` is a robust choice (optionally</span>
-<span class="sd">      with `scale_features=True`).</span>
-<span class="sd">    - To compute `prop_matrix` from raw wide data with multiple timepoints, aggregate</span>
-<span class="sd">      per sample and biomarker as: proportion_missing = (# missing timepoints) / (total timepoints).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cluster data based on their per-sample missingness proportions.</span>
+<span class="sd">    </span>
+<span class="sd">    Groups data with similar patterns of missingness across samples, treating</span>
+<span class="sd">    each feature as a point in the space of per-sample missingness rates. Useful</span>
+<span class="sd">    for identifying features that are missing together systematically.</span>
+<span class="sd">    </span>
+<span class="sd">    :param prop_matrix: Matrix where rows are samples, columns are features, entries are missingness proportions [0,1]</span>
+<span class="sd">    :type prop_matrix: pandas.DataFrame or numpy.ndarray</span>
+<span class="sd">    :param n_clusters: Number of clusters for KMeans; if None, uses HDBSCAN, defaults to None</span>
+<span class="sd">    :type n_clusters: int, optional</span>
+<span class="sd">    :param seed: Random seed for KMeans reproducibility, defaults to None</span>
+<span class="sd">    :type seed: int, optional</span>
+<span class="sd">    :param min_cluster_size: HDBSCAN minimum cluster size; if None, uses max(2, n_features//25), defaults to None</span>
+<span class="sd">    :type min_cluster_size: int, optional</span>
+<span class="sd">    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25</span>
+<span class="sd">    :type cluster_selection_epsilon: float, optional</span>
+<span class="sd">    :param metric: Distance metric (&quot;euclidean&quot; or &quot;cosine&quot;), defaults to &quot;euclidean&quot;</span>
+<span class="sd">    :type metric: str, optional</span>
+<span class="sd">    :param scale_features: Whether to standardize feature vectors before clustering, defaults to False</span>
+<span class="sd">    :type scale_features: bool, optional</span>
+<span class="sd">    :return: Tuple of (feature_cluster_labels, silhouette_score)</span>
+<span class="sd">    :rtype: tuple[numpy.ndarray, float or None]</span>
+<span class="sd">    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed</span>
+<span class="sd">    :raises ValueError: If prop_matrix is not 2D or contains invalid values</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+
     <span class="c1"># --- Imports kept inside to keep optional deps optional ---</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
@@ -345,101 +320,82 @@
 <span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="n">return_history</span> <span class="o">=</span> <span class="kc">False</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    End-to-end pipeline to train a Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</span>
-
-<span class="sd">    This function handles data preparation, optional clustering, initial VAE training,</span>
-<span class="sd">    and iterative refitting loops until convergence, returning the final reconstructed data and (optionally) the trained model.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    data : pd.DataFrame | np.ndarray | torch.Tensor</span>
-<span class="sd">        Input data matrix (samples × features), may contain missing values.</span>
-<span class="sd">    val_proportion : float, default=0.1</span>
-<span class="sd">        Fraction of non-missing entries per cluster to mask for validation.</span>
-<span class="sd">    replacement_value : float, default=0.0</span>
-<span class="sd">        Value used to fill in masked entries (e.g., zero imputation).</span>
-<span class="sd">    columns_ignore : list[int|str] or None, default=None</span>
-<span class="sd">        Column names or indices to exclude from masking for valiation.</span>
-<span class="sd">    print_dataset : bool, default=True</span>
-<span class="sd">        If True, prints dataset summary.</span>
-
-<span class="sd">    clusters : array-like or None, default=None</span>
-<span class="sd">        Precomputed cluster labels per sample. If None, clustering will be performed.</span>
-<span class="sd">    n_clusters : int or None, default=None</span>
-<span class="sd">        Number of clusters to form with KMeans clustering if `clusters` is None. If None and clusters is None, will perform hdbscan clustering.</span>
-<span class="sd">    cluster_selection_epsilon : float, default=0.25</span>
-<span class="sd">        cluster_selection_epsilon for hdbscan clustering. </span>
-<span class="sd">    seed : int, default=42</span>
-<span class="sd">        Random seed for reproducibility.</span>
-<span class="sd">    missingness_proportion_matrix : pd.DataFrame | np.ndarray, default=None</span>
-<span class="sd">        Missingness proportion matrix for cluster_on_missing_prop. </span>
-<span class="sd">    scale_features : bool, default=False</span>
-<span class="sd">        If true, scales features for missingness proportion matrix. </span>
-
-<span class="sd">    hidden_dims : list of int, default=[150, 120, 60]</span>
-<span class="sd">        Sizes of hidden layers in encoder/decoder (excluding latent layer).</span>
-<span class="sd">    latent_dim : int, default=15</span>
-<span class="sd">        Dimensionality of the VAE latent space.</span>
-<span class="sd">    layer_order_enc : list of {&quot;shared&quot;,&quot;unshared&quot;}, default=[&quot;unshared&quot;,&quot;unshared&quot;,&quot;unshared&quot;]</span>
-<span class="sd">        Specify whether each encoder layer is shared across clusters or unique per cluster.</span>
-<span class="sd">    layer_order_dec : list of {&quot;shared&quot;,&quot;unshared&quot;}, default=[&quot;shared&quot;,&quot;shared&quot;,&quot;shared&quot;]</span>
-<span class="sd">        Specify whether each decoder layer is shared or unique per cluster.</span>
-<span class="sd">    latent_shared : bool, default=False</span>
-<span class="sd">        If True, latent layer weights are shared across clusters.</span>
-<span class="sd">    output_shared : bool, default=False</span>
-<span class="sd">        If True, final output layer weights are shared across clusters.</span>
-<span class="sd">    batch_size : int, default=4000</span>
-<span class="sd">        Number of samples per training batch.</span>
-<span class="sd">    return_model : bool, default=True</span>
-<span class="sd">        If True, returns the trained VAE model; otherwise returns only reconstructed data.</span>
-
-<span class="sd">    epochs : int, default=500</span>
-<span class="sd">        Number of epochs for initial training.</span>
-<span class="sd">    initial_lr : float, default=0.01</span>
-<span class="sd">        Initial learning rate for the optimizer.</span>
-<span class="sd">    decay_factor : float, default=0.999</span>
-<span class="sd">        Multiplicative factor to decay the learning rate each epoch.</span>
-<span class="sd">    beta : float, default=0.001</span>
-<span class="sd">        Weight of the KL-divergence term in the VAE loss.</span>
-<span class="sd">    device : str or torch.device or None, default=None</span>
-<span class="sd">        Device for computation (&quot;cpu&quot; or &quot;cuda&quot;). If None, auto-selects.</span>
-
-<span class="sd">    max_loops : int, default=100</span>
-<span class="sd">        Maximum number of refitting loops after initial training.</span>
-<span class="sd">    patience : int, default=2</span>
-<span class="sd">        Number of loops with no improvement before early stopping.</span>
-<span class="sd">    epochs_per_loop : int or None, default=None</span>
-<span class="sd">        Number of epochs per refit loop; if None, uses `epochs`.</span>
-<span class="sd">    initial_lr_refit : float or None, default=None</span>
-<span class="sd">        Learning rate for refit loops; if None, uses `initial_lr`.</span>
-<span class="sd">    decay_factor_refit : float or None, default=None</span>
-<span class="sd">        LR decay for refit; if None, uses `decay_factor`.</span>
-<span class="sd">    beta_refit : float or None, default=None</span>
-<span class="sd">        KL weight for refit; if None, uses `beta`.</span>
-
-<span class="sd">    verbose : bool, default=False</span>
-<span class="sd">        If True, prints progress messages during training and refitting.</span>
-<span class="sd">    return_silhouettes : bool, default=False</span>
-<span class="sd">        If True, returns silhouettes from clustering</span>
-
-<span class="sd">        return_history : bool, default=False</span>
-<span class="sd">    If True, returns the concatenated training history from initial training and refit loops.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    The return value depends on the flags `return_model`, `return_silhouettes`, and `return_history`:</span>
-
-<span class="sd">    Always returns: </span>
-<span class="sd">     - `imputed_dataset` : pd.DataFrame - The final reconstructed data</span>
-
-<span class="sd">    Optional Returns:</span>
-<span class="sd">   </span>
-<span class="sd">     - `vae` : CISSVAE - The trained model (if `return_model=True`)</span>
-<span class="sd">     - `silh` : float or None - Silhouette score from clustering (if `return_silhouettes=True`)</span>
-<span class="sd">     - `combined_history_df` : pd.DataFrame - Training history with columns [&quot;epoch&quot;, &quot;train_loss&quot;, &quot;train_recon&quot;, &quot;train_kl&quot;, &quot;val_mse&quot;, &quot;lr&quot;, &quot;phase&quot;, &quot;loop&quot;] (if `return_history=True`)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;End-to-end pipeline for Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</span>
+<span class="sd">    </span>
+<span class="sd">    Complete workflow that handles data preparation, optional clustering on missingness patterns,</span>
+<span class="sd">    initial VAE training, and iterative imputation-refitting loops until convergence. Returns</span>
+<span class="sd">    the final reconstructed dataset and optionally the trained model, clustering metrics, and training history.</span>
+<span class="sd">    </span>
+<span class="sd">    :param data: Input data matrix with potential missing values</span>
+<span class="sd">    :type data: pandas.DataFrame or numpy.ndarray or torch.Tensor</span>
+<span class="sd">    :param val_proportion: Fraction of non-missing entries per cluster to mask for validation, defaults to 0.1</span>
+<span class="sd">    :type val_proportion: float, optional</span>
+<span class="sd">    :param replacement_value: Value used to fill masked validation entries during training, defaults to 0.0</span>
+<span class="sd">    :type replacement_value: float, optional</span>
+<span class="sd">    :param columns_ignore: Column names/indices to exclude from validation masking, defaults to None</span>
+<span class="sd">    :type columns_ignore: list[int or str], optional</span>
+<span class="sd">    :param print_dataset: Whether to print dataset summary information, defaults to True</span>
+<span class="sd">    :type print_dataset: bool, optional</span>
+<span class="sd">    :param clusters: Precomputed cluster labels per sample; if None, performs clustering, defaults to None</span>
+<span class="sd">    :type clusters: array-like, optional</span>
+<span class="sd">    :param n_clusters: Number of clusters for KMeans; if None with clusters=None, uses HDBSCAN, defaults to None</span>
+<span class="sd">    :type n_clusters: int, optional</span>
+<span class="sd">    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25</span>
+<span class="sd">    :type cluster_selection_epsilon: float, optional</span>
+<span class="sd">    :param seed: Random seed for reproducibility, defaults to 42</span>
+<span class="sd">    :type seed: int, optional</span>
+<span class="sd">    :param missingness_proportion_matrix: Missingness proportion matrix for biomarker clustering, defaults to None</span>
+<span class="sd">    :type missingness_proportion_matrix: pandas.DataFrame or numpy.ndarray, optional</span>
+<span class="sd">    :param scale_features: Whether to scale features in proportion matrix clustering, defaults to False</span>
+<span class="sd">    :type scale_features: bool, optional</span>
+<span class="sd">    :param hidden_dims: Sizes of hidden layers in encoder/decoder, defaults to [150, 120, 60]</span>
+<span class="sd">    :type hidden_dims: list[int], optional</span>
+<span class="sd">    :param latent_dim: Dimensionality of VAE latent space, defaults to 15</span>
+<span class="sd">    :type latent_dim: int, optional</span>
+<span class="sd">    :param layer_order_enc: Shared/unshared specification for encoder layers, defaults to [&quot;unshared&quot;, &quot;unshared&quot;, &quot;unshared&quot;]</span>
+<span class="sd">    :type layer_order_enc: list[str], optional</span>
+<span class="sd">    :param layer_order_dec: Shared/unshared specification for decoder layers, defaults to [&quot;shared&quot;, &quot;shared&quot;, &quot;shared&quot;]</span>
+<span class="sd">    :type layer_order_dec: list[str], optional</span>
+<span class="sd">    :param latent_shared: Whether latent layer weights are shared across clusters, defaults to False</span>
+<span class="sd">    :type latent_shared: bool, optional</span>
+<span class="sd">    :param output_shared: Whether final output layer weights are shared across clusters, defaults to False</span>
+<span class="sd">    :type output_shared: bool, optional</span>
+<span class="sd">    :param batch_size: Number of samples per training batch, defaults to 4000</span>
+<span class="sd">    :type batch_size: int, optional</span>
+<span class="sd">    :param return_model: Whether to return the trained VAE model, defaults to True</span>
+<span class="sd">    :type return_model: bool, optional</span>
+<span class="sd">    :param epochs: Number of epochs for initial training phase, defaults to 500</span>
+<span class="sd">    :type epochs: int, optional</span>
+<span class="sd">    :param initial_lr: Initial learning rate for optimizer, defaults to 0.01</span>
+<span class="sd">    :type initial_lr: float, optional</span>
+<span class="sd">    :param decay_factor: Multiplicative factor for learning rate decay per epoch, defaults to 0.999</span>
+<span class="sd">    :type decay_factor: float, optional</span>
+<span class="sd">    :param beta: Weight of KL-divergence term in VAE loss, defaults to 0.001</span>
+<span class="sd">    :type beta: float, optional</span>
+<span class="sd">    :param device: Computation device (&quot;cpu&quot; or &quot;cuda&quot;); auto-selects if None, defaults to None</span>
+<span class="sd">    :type device: str or torch.device, optional</span>
+<span class="sd">    :param max_loops: Maximum number of imputation-refitting loops, defaults to 100</span>
+<span class="sd">    :type max_loops: int, optional</span>
+<span class="sd">    :param patience: Number of loops without improvement before early stopping, defaults to 2</span>
+<span class="sd">    :type patience: int, optional</span>
+<span class="sd">    :param epochs_per_loop: Epochs per refit loop; uses epochs if None, defaults to None</span>
+<span class="sd">    :type epochs_per_loop: int, optional</span>
+<span class="sd">    :param initial_lr_refit: Learning rate for refit loops; uses initial_lr if None, defaults to None</span>
+<span class="sd">    :type initial_lr_refit: float, optional</span>
+<span class="sd">    :param decay_factor_refit: LR decay for refit; uses decay_factor if None, defaults to None</span>
+<span class="sd">    :type decay_factor_refit: float, optional</span>
+<span class="sd">    :param beta_refit: KL weight for refit; uses beta if None, defaults to None</span>
+<span class="sd">    :type beta_refit: float, optional</span>
+<span class="sd">    :param verbose: Whether to print progress messages during training, defaults to False</span>
+<span class="sd">    :type verbose: bool, optional</span>
+<span class="sd">    :param return_silhouettes: Whether to return clustering silhouette score, defaults to False</span>
+<span class="sd">    :type return_silhouettes: bool, optional</span>
+<span class="sd">    :param return_history: Whether to return concatenated training history, defaults to False</span>
+<span class="sd">    :type return_history: bool, optional</span>
+<span class="sd">    :return: Returns imputed_dataset always; optionally returns model, silhouette score, and/or training history based on flags</span>
+<span class="sd">    :rtype: pandas.DataFrame or tuple containing combinations of (pandas.DataFrame, CISSVAE, float, pandas.DataFrame)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    
     <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
     <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>

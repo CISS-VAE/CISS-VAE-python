@@ -54,6 +54,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#classes">Classes</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
@@ -252,19 +253,30 @@ after validation masking; zero stds are set to 1 to avoid division by zero.</p><
 <dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">
 <span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
 <dd><p>Build the dataset, apply per-cluster validation masking, and normalize.</p>
-<section id="steps">
-<h2>Steps<a class="headerlink" href="#steps" title="Link to this heading"></a></h2>
-<ol class="arabic simple">
-<li><p>Convert inputs to tensors; preserve indices/column names if a DataFrame.</p></li>
-<li><p>Resolve per-cluster validation proportions from <code class="docutils literal notranslate"><span class="pre">val_proportion</span></code>.</p></li>
+<p>Steps:
+1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
+2. Resolve per-cluster validation proportions from <code class="docutils literal notranslate"><span class="pre">val_proportion</span></code>.
+3. For each cluster and feature, randomly mark the requested fraction of</p>
+<blockquote>
+<div><p><strong>observed</strong> entries as validation targets.</p>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">val_data</span></code> (validation targets only) and training <code class="docutils literal notranslate"><span class="pre">data</span></code> where
+validation entries are set to NaN.</p></li>
+<li><p>Compute per-feature mean/std over non-NaN entries in <code class="docutils literal notranslate"><span class="pre">data</span></code> and apply
+normalization; then replace remaining NaNs with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p></li>
 </ol>
-<p>3. For each cluster and feature, randomly mark the requested fraction of
-<strong>observed</strong> entries as validation targets.
-4. Create <code class="docutils literal notranslate"><span class="pre">val_data</span></code> (validation targets only) and training <code class="docutils literal notranslate"><span class="pre">data</span></code> where
-validation entries are set to NaN.
-5. Compute per-feature mean/std over non-NaN entries in <code class="docutils literal notranslate"><span class="pre">data</span></code> and apply
-normalization; then replace remaining NaNs with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p>
-</section>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pandas.DataFrame</em><em> or </em><em>numpy.ndarray</em><em> or </em><em>torch.Tensor</em>) – Input matrix, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>. May contain NaNs</p></li>
+<li><p><strong>cluster_labels</strong> (<em>array-like</em><em> or </em><em>None</em>) – Cluster assignment per sample (length <code class="docutils literal notranslate"><span class="pre">n_samples</span></code>). If <code class="docutils literal notranslate"><span class="pre">None</span></code>, all rows are assigned to a single cluster <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p><strong>val_proportion</strong> (<em>float</em><em> or </em><em>collections.abc.Sequence</em><em> or </em><em>collections.abc.Mapping</em><em> or </em><em>pandas.Series</em><em>, </em><em>optional</em>) – Per-cluster fraction of <strong>non-missing</strong> entries to hold out for validation, defaults to 0.1</p></li>
+<li><p><strong>replacement_value</strong> (<em>float</em><em>, </em><em>optional</em>) – Value to fill missing/held-out entries in <code class="docutils literal notranslate"><span class="pre">self.data</span></code> after masking, defaults to 0</p></li>
+<li><p><strong>columns_ignore</strong> (<em>list</em><em>[</em><em>str</em><em> or </em><em>int</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <p class="rubric">Methods</p>
@@ -282,6 +294,14 @@ normalization; then replace remaining NaNs with <code class="docutils literal no
 <dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.copy" title="Link to this definition"></a></dt>
 <dd><p>Creates a deep copy of the ClusterDataset method containing all attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Deep copy of the dataset</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset">ClusterDataset</a></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

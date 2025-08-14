@@ -51,6 +51,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -99,51 +100,57 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">itertools</span><span class="w"> </span><span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">product</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="c1"># NEW: Rich imports for track() function</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.progress</span><span class="w"> </span><span class="kn">import</span> <span class="n">track</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">Console</span>
 
 <div class="viewcode-block" id="SearchSpace">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">SearchSpace</span><span class="p">:</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Defines tunable and fixed hyperparameter ranges for the Optuna search.</span>
-<span class="sd">        Parameters are specified as:</span>
-<span class="sd">        * **scalar**: fixed value (e.g., ``latent_dim=16``)</span>
-<span class="sd">        * **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)</span>
-<span class="sd">        * **tuple**: range (``(min, max)``) for ``suggest_int``/``suggest_float``</span>
-<span class="sd">        Attributes</span>
-<span class="sd">        ----------</span>
-<span class="sd">        num_hidden_layers : int | list[int] | tuple[int, int]</span>
-<span class="sd">            Number of encoder/decoder hidden layers.</span>
-<span class="sd">        hidden_dims : int | list[int] | tuple[int, int]</span>
-<span class="sd">            Hidden dimension spec. If int → repeated per layer; list → per‑layer choices; tuple → range.</span>
-<span class="sd">        latent_dim : int | tuple[int, int]</span>
-<span class="sd">            Latent size or range.</span>
-<span class="sd">        latent_shared : bool | list[bool]</span>
-<span class="sd">            Whether latent is shared (or categorical choice).</span>
-<span class="sd">        output_shared : bool | list[bool]</span>
-<span class="sd">            Whether output is shared (or categorical choice).</span>
-<span class="sd">        lr : float | tuple[float, float]</span>
-<span class="sd">            Initial learning rate or range.</span>
-<span class="sd">        decay_factor : float | tuple[float, float]</span>
-<span class="sd">            LR exponential decay factor or range.</span>
-<span class="sd">        beta : float | tuple[float, float]</span>
-<span class="sd">            KL weight or range.</span>
-<span class="sd">        num_epochs : int | tuple[int, int]</span>
-<span class="sd">            Epochs for initial training (or range).</span>
-<span class="sd">        batch_size : int | tuple[int, int]</span>
-<span class="sd">            Mini-batch size (or range).</span>
-<span class="sd">        num_shared_encode : list[int]</span>
-<span class="sd">            Candidate counts of shared encoder layers.</span>
-<span class="sd">        num_shared_decode : list[int]</span>
-<span class="sd">            Candidate counts of shared decoder layers.</span>
-<span class="sd">        refit_patience : int | tuple[int, int]</span>
-<span class="sd">            Early-stop patience for refit loops (or range).</span>
-<span class="sd">        refit_loops : int | tuple[int, int]</span>
-<span class="sd">            Maximum number of refit loops (or range).</span>
-<span class="sd">        epochs_per_loop : int | tuple[int, int]</span>
-<span class="sd">            Epochs per refit loop (or range).</span>
-<span class="sd">        reset_lr_refit : bool | list[bool]</span>
-<span class="sd">            Whether to reset LR before refit.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines tunable and fixed hyperparameter ranges for the Optuna search.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters are specified as:</span>
+<span class="sd">    - **scalar**: fixed value (e.g., ``latent_dim=16``)</span>
+<span class="sd">    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)</span>
+<span class="sd">    - **tuple**: range ``(min, max)`` for ``suggest_int``/``suggest_float``</span>
+<span class="sd">    </span>
+<span class="sd">    :param num_hidden_layers: Number of encoder/decoder hidden layers, defaults to (1, 4)</span>
+<span class="sd">    :type num_hidden_layers: int or list[int] or tuple[int, int], optional</span>
+<span class="sd">    :param hidden_dims: Hidden dimension specification - int for repeated per layer, list for per-layer choices, tuple for range, defaults to [64, 512]</span>
+<span class="sd">    :type hidden_dims: int or list[int] or tuple[int, int], optional</span>
+<span class="sd">    :param latent_dim: Latent dimension size or range, defaults to [10, 100]</span>
+<span class="sd">    :type latent_dim: int or tuple[int, int], optional</span>
+<span class="sd">    :param latent_shared: Whether latent space is shared across clusters, defaults to [True, False]</span>
+<span class="sd">    :type latent_shared: bool or list[bool], optional</span>
+<span class="sd">    :param output_shared: Whether output layer is shared across clusters, defaults to [True, False]</span>
+<span class="sd">    :type output_shared: bool or list[bool], optional</span>
+<span class="sd">    :param lr: Initial learning rate or range, defaults to (1e-4, 1e-3)</span>
+<span class="sd">    :type lr: float or tuple[float, float], optional</span>
+<span class="sd">    :param decay_factor: Learning rate exponential decay factor or range, defaults to (0.9, 0.999)</span>
+<span class="sd">    :type decay_factor: float or tuple[float, float], optional</span>
+<span class="sd">    :param beta: KL divergence weight or range, defaults to 0.01</span>
+<span class="sd">    :type beta: float or tuple[float, float], optional</span>
+<span class="sd">    :param num_epochs: Number of epochs for initial training, defaults to 1000</span>
+<span class="sd">    :type num_epochs: int or tuple[int, int], optional</span>
+<span class="sd">    :param batch_size: Mini-batch size, defaults to 64</span>
+<span class="sd">    :type batch_size: int or tuple[int, int], optional</span>
+<span class="sd">    :param num_shared_encode: Candidate counts of shared encoder layers, defaults to [0, 1, 3]</span>
+<span class="sd">    :type num_shared_encode: list[int], optional</span>
+<span class="sd">    :param num_shared_decode: Candidate counts of shared decoder layers, defaults to [0, 1, 3]</span>
+<span class="sd">    :type num_shared_decode: list[int], optional</span>
+<span class="sd">    :param encoder_shared_placement: Strategy for arranging shared vs unshared layers in encoder, defaults to [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;]</span>
+<span class="sd">    :type encoder_shared_placement: list[str], optional</span>
+<span class="sd">    :param decoder_shared_placement: Strategy for arranging shared vs unshared layers in decoder, defaults to [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;]</span>
+<span class="sd">    :type decoder_shared_placement: list[str], optional</span>
+<span class="sd">    :param refit_patience: Early-stop patience for refit loops, defaults to 2</span>
+<span class="sd">    :type refit_patience: int or tuple[int, int], optional</span>
+<span class="sd">    :param refit_loops: Maximum number of refit loops, defaults to 100</span>
+<span class="sd">    :type refit_loops: int or tuple[int, int], optional</span>
+<span class="sd">    :param epochs_per_loop: Number of epochs per refit loop, defaults to 1000</span>
+<span class="sd">    :type epochs_per_loop: int or tuple[int, int], optional</span>
+<span class="sd">    :param reset_lr_refit: Whether to reset learning rate before refit, defaults to [True, False]</span>
+<span class="sd">    :type reset_lr_refit: bool or list[bool], optional</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="SearchSpace.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace.__init__">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -159,6 +166,8 @@
                  <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
                  <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
                  <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">encoder_shared_placement</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span>
+                 <span class="n">decoder_shared_placement</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span>
                  <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                  <span class="n">refit_loops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
                  <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
@@ -175,11 +184,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_shared_encode</span> <span class="o">=</span> <span class="n">num_shared_encode</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_shared_decode</span> <span class="o">=</span> <span class="n">num_shared_decode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">encoder_shared_placement</span> <span class="o">=</span> <span class="n">encoder_shared_placement</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder_shared_placement</span> <span class="o">=</span> <span class="n">decoder_shared_placement</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">refit_patience</span> <span class="o">=</span> <span class="n">refit_patience</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">refit_loops</span> <span class="o">=</span> <span class="n">refit_loops</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="n">epochs_per_loop</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="n">reset_lr_refit</span></div>
 </div>
+
 
 
 <div class="viewcode-block" id="autotune">
@@ -196,47 +208,58 @@
     <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
     <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">permute_hidden_layers</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">show_progress</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>  <span class="c1"># NEW: Added back progress parameter</span>
+    <span class="c1"># permute_hidden_layers: bool = True,</span>
     <span class="n">constant_layer_size</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">evaluate_all_orders</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">max_exhaustive_orders</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Optuna-based hyperparameter search for the CISSVAE model.</span>
-<span class="sd">    Runs initial training, then impute–refit loops per trial, and selects the</span>
-<span class="sd">    trial with the lowest validation MSE.</span>
-<span class="sd">    :param search_space: Hyperparameter ranges and fixed values.</span>
+<span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Optuna-based hyperparameter search for the CISSVAE model.</span>
+<span class="sd">    </span>
+<span class="sd">    Runs initial training followed by impute-refit loops per trial, selecting the</span>
+<span class="sd">    trial with the lowest validation MSE. The best model is then retrained with</span>
+<span class="sd">    optimal hyperparameters and returned along with the imputed dataset.</span>
+<span class="sd">    </span>
+<span class="sd">    :param search_space: Hyperparameter ranges and fixed values for optimization</span>
 <span class="sd">    :type search_space: SearchSpace</span>
-<span class="sd">    :param train_dataset: Dataset containing masks, normalization, and cluster labels.</span>
-<span class="sd">    :type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset</span>
-<span class="sd">    :param save_model_path: Optional path to save the best model&#39;s ``state_dict``.</span>
-<span class="sd">    :type save_model_path: str | None</span>
-<span class="sd">    :param save_search_space_path: Optional path to dump the resolved search-space.</span>
-<span class="sd">    :type save_search_space_path: str | None</span>
-<span class="sd">    :param n_trials: Number of Optuna trials to run.</span>
-<span class="sd">    :type n_trials: int</span>
-<span class="sd">    :param study_name: Name for the Optuna study.</span>
-<span class="sd">    :type study_name: str</span>
-<span class="sd">    :param device_preference: ``&quot;cuda&quot;`` or ``&quot;cpu&quot;``; falls back to CPU if CUDA unavailable.</span>
-<span class="sd">    :type device_preference: str</span>
-<span class="sd">    :param optuna_dashboard_db: RDB storage URL/file for dashboard (or ``None`` for in‑memory).</span>
-<span class="sd">    :type optuna_dashboard_db: str | None</span>
-<span class="sd">    :param load_if_exists: Load existing study with the same name from storage.</span>
-<span class="sd">    :type load_if_exists: bool</span>
-<span class="sd">    :param seed: Base RNG seed for order generation etc.</span>
-<span class="sd">    :type seed: int</span>
-<span class="sd">    :param verbose: If ``True``, prints diagnostic logs.</span>
-<span class="sd">    :type verbose: bool</span>
-<span class="sd">    :param permute_hidden_layers: If ``True``, randomize layer orders per trial.</span>
-<span class="sd">    :type permute_hidden_layers: bool</span>
-<span class="sd">    :param constant_layer_size: If ``True``, all hidden layers use the same size.</span>
-<span class="sd">    :type constant_layer_size: bool</span>
-<span class="sd">    :returns: Tuple ``(best_imputed_df, best_model, study, results_df)``</span>
-<span class="sd">    :rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)</span>
-<span class="sd">    :raises ValueError: If search space parameters are malformed or incompatible.</span>
+<span class="sd">    :param train_dataset: Dataset containing masks, normalization, and cluster labels</span>
+<span class="sd">    :type train_dataset: ClusterDataset</span>
+<span class="sd">    :param save_model_path: Optional path to save the best model&#39;s state_dict, defaults to None</span>
+<span class="sd">    :type save_model_path: str, optional</span>
+<span class="sd">    :param save_search_space_path: Optional path to dump the resolved search-space configuration, defaults to None</span>
+<span class="sd">    :type save_search_space_path: str, optional</span>
+<span class="sd">    :param n_trials: Number of Optuna trials to run, defaults to 20</span>
+<span class="sd">    :type n_trials: int, optional</span>
+<span class="sd">    :param study_name: Name identifier for the Optuna study, defaults to &quot;vae_autotune&quot;</span>
+<span class="sd">    :type study_name: str, optional</span>
+<span class="sd">    :param device_preference: Preferred device (&quot;cuda&quot; or &quot;cpu&quot;), falls back to CPU if CUDA unavailable, defaults to &quot;cuda&quot;</span>
+<span class="sd">    :type device_preference: str, optional</span>
+<span class="sd">    :param optuna_dashboard_db: RDB storage URL/file for Optuna dashboard or None for in-memory, defaults to None</span>
+<span class="sd">    :type optuna_dashboard_db: str, optional</span>
+<span class="sd">    :param load_if_exists: Whether to load existing study with the same name from storage, defaults to True</span>
+<span class="sd">    :type load_if_exists: bool, optional</span>
+<span class="sd">    :param seed: Base random number generator seed for reproducible order generation, defaults to 42</span>
+<span class="sd">    :type seed: int, optional</span>
+<span class="sd">    :param verbose: Whether to print detailed diagnostic logs during training, defaults to False</span>
+<span class="sd">    :type verbose: bool, optional</span>
+<span class="sd">    :param show_progress: Whether to display Rich progress bars during training, defaults to False</span>
+<span class="sd">    :type show_progress: bool, optional</span>
+<span class="sd">    :param constant_layer_size: Whether all hidden layers should use the same dimension size, defaults to False</span>
+<span class="sd">    :type constant_layer_size: bool, optional</span>
+<span class="sd">    :param evaluate_all_orders: Whether to permute and evaluate all possible shared/unshared layer orders, defaults to False</span>
+<span class="sd">    :type evaluate_all_orders: bool, optional</span>
+<span class="sd">    :param max_exhaustive_orders: Maximum number of layer order permutations to test when evaluate_all_orders is True, defaults to 100</span>
+<span class="sd">    :type max_exhaustive_orders: int, optional</span>
+<span class="sd">    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe)</span>
+<span class="sd">    :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame]</span>
+<span class="sd">    :raises ValueError: If search space parameters are malformed or incompatible</span>
+<span class="sd">    :raises RuntimeError: If CUDA is requested but not available and fallback fails</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
     <span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">)</span>
+    
+    <span class="c1"># NEW: Initialize Rich console</span>
+    <span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
     
     <span class="c1"># --------------------------</span>
     <span class="c1"># Infer device</span>
@@ -294,18 +317,19 @@
             <span class="n">patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">arr</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">patterns</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="nf">_canonical_orders</span><span class="p">(</span><span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nse</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">nsd</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Canonical (non-permuted) layout&quot;&quot;&quot;</span>
-        <span class="n">enc_list</span> <span class="o">=</span> <span class="p">([</span><span class="s2">&quot;unshared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">nse</span><span class="p">))</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;shared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nse</span><span class="p">)</span>
-        <span class="n">dec_list</span> <span class="o">=</span> <span class="p">([</span><span class="s2">&quot;shared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="n">nsd</span><span class="p">)</span> <span class="o">+</span> <span class="p">([</span><span class="s2">&quot;unshared&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">nsd</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">enc_list</span><span class="p">),</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">dec_list</span><span class="p">)</span>
+    <span class="c1">## don&#39;t need this since we have the things from build order</span>
+    <span class="c1"># def _canonical_orders(n_layers: int, nse: int, nsd: int):</span>
+    <span class="c1">#     &quot;&quot;&quot;Canonical (non-permuted) layout. Unshared at beginning of encoder and end of decoder&quot;&quot;&quot;</span>
+    <span class="c1">#     enc_list = ([&quot;unshared&quot;] * (n_layers - nse)) + ([&quot;shared&quot;] * nse)</span>
+    <span class="c1">#     dec_list = ([&quot;shared&quot;] * nsd) + ([&quot;unshared&quot;] * (n_layers - nsd))</span>
+    <span class="c1">#     return _format_order(enc_list), _format_order(dec_list)</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">_build_order</span><span class="p">(</span><span class="n">style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">n_shared</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">rng</span><span class="p">:</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">):</span>
         <span class="n">n_shared</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">n_shared</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)))</span>
         <span class="n">shared_positions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared_tail&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;at_end&quot;</span><span class="p">:</span>
             <span class="n">pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span> <span class="o">-</span> <span class="n">n_shared</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">))</span>
-        <span class="k">elif</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;shared_head&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;at_start&quot;</span><span class="p">:</span>
             <span class="n">pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_shared</span><span class="p">))</span>
         <span class="k">elif</span> <span class="n">style</span> <span class="o">==</span> <span class="s2">&quot;alternating&quot;</span><span class="p">:</span>
             <span class="n">pos</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_layers</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_layers</span> <span class="o">//</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_shared</span><span class="p">))))[:</span><span class="n">n_shared</span><span class="p">]</span> <span class="k">if</span> <span class="n">n_shared</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">[]</span>
@@ -318,11 +342,101 @@
             <span class="n">arr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;shared&#39;</span>
         <span class="k">return</span> <span class="n">arr</span>
     
+    <span class="c1"># ------------------------------------------------</span>
+    <span class="c1"># Wrapper for train_initial and impute_refit functions that uses track()</span>
+    <span class="c1"># ------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">train_vae_initial_with_progress</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper for train_vae_initial that uses Rich track() for progress&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+            <span class="c1"># Create a simple progress tracker using track()</span>
+            <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">track</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">),</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Initial training&quot;</span><span class="p">):</span>
+                <span class="c1"># Call the actual training function for one epoch at a time</span>
+                <span class="c1"># Note: This assumes train_vae_initial can be called with epochs=1</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+                    <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                    <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                    <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                    <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                    <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Disable verbose to avoid spam</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Call original function without progress</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">model</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">impute_and_refit_loop_with_progress</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">max_loops</span><span class="p">,</span> <span class="n">patience</span><span class="p">,</span> <span class="n">epochs_per_loop</span><span class="p">,</span> 
+                                          <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper for impute_and_refit_loop that uses Rich track() for progress&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+            <span class="c1"># Estimate total epochs for progress bar</span>
+            <span class="n">estimated_total_epochs</span> <span class="o">=</span> <span class="n">max_loops</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
+            
+            <span class="c1"># Use track() to show progress over estimated epochs</span>
+            <span class="n">epoch_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">progress_iter</span> <span class="o">=</span> <span class="n">track</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">estimated_total_epochs</span><span class="p">),</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Refit loops&quot;</span><span class="p">)</span>
+            <span class="n">progress_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">progress_iter</span><span class="p">)</span>  <span class="c1"># Convert to iterator</span>
+            
+            <span class="c1"># Create a callback that advances the progress bar</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">progress_callback</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">nonlocal</span> <span class="n">epoch_counter</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                        <span class="nb">next</span><span class="p">(</span><span class="n">progress_iter</span><span class="p">)</span>
+                        <span class="n">epoch_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                    <span class="k">pass</span>  <span class="c1"># Progress bar completed</span>
+            
+            <span class="c1"># Call the original function with progress callback</span>
+            <span class="k">return</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">max_loops</span><span class="o">=</span><span class="n">max_loops</span><span class="p">,</span>
+                <span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span>
+                <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">progress_epoch</span><span class="o">=</span><span class="n">progress_callback</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Call original function without progress</span>
+            <span class="k">return</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">max_loops</span><span class="o">=</span><span class="n">max_loops</span><span class="p">,</span>
+                <span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span>
+                <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="p">)</span>
+    
     <span class="c1"># --------------------------</span>
     <span class="c1"># Create Optuna objective</span>
     <span class="c1"># --------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="c1"># NEW: Use Rich console for trial progress</span>
+        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Starting Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="c1"># --------------------------</span>
@@ -354,10 +468,8 @@
         <span class="n">nsd_raw</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;num_shared_decode&quot;</span><span class="p">,</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">search_space</span><span class="o">.</span><span class="n">num_shared_decode</span><span class="p">)))</span>
         <span class="n">num_shared_encode</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">nse_raw</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">)))</span>
         <span class="n">num_shared_decode</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">nsd_raw</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">)))</span>
-        <span class="n">order_style_enc</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;order_style_enc&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;shared_tail&quot;</span><span class="p">,</span> <span class="s2">&quot;shared_head&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">])</span>
-        <span class="n">order_style_dec</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;order_style_dec&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;shared_head&quot;</span><span class="p">,</span> <span class="s2">&quot;shared_tail&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">])</span>
-        <span class="n">order_seed_enc</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="s2">&quot;order_seed_enc&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">)</span>
-        <span class="n">order_seed_dec</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_int</span><span class="p">(</span><span class="s2">&quot;order_seed_dec&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">10_000</span><span class="p">)</span>
+        <span class="n">encoder_shared_placement</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;encoder_shared_placement&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">encoder_shared_placement</span><span class="p">)</span>
+        <span class="n">decoder_shared_placement</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">suggest_categorical</span><span class="p">(</span><span class="s2">&quot;decoder_shared_placement&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">decoder_shared_placement</span><span class="p">)</span>
         
         <span class="n">refit_patience</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;refit_patience&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">refit_patience</span><span class="p">)</span>
         <span class="n">refit_loops</span> <span class="o">=</span> <span class="n">sample_param</span><span class="p">(</span><span class="n">trial</span><span class="p">,</span> <span class="s2">&quot;refit_loops&quot;</span><span class="p">,</span> <span class="n">search_space</span><span class="o">.</span><span class="n">refit_loops</span><span class="p">)</span>
@@ -366,33 +478,40 @@
         <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;num_shared_encode_effective&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_shared_encode</span><span class="p">))</span>
         <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;num_shared_decode_effective&quot;</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">num_shared_decode</span><span class="p">))</span>
         <span class="n">lr_refit</span> <span class="o">=</span> <span class="n">learning_rate</span> <span class="k">if</span> <span class="n">reset_lr_refit</span> <span class="k">else</span> <span class="kc">None</span>
-
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        
+        <span class="c1">## Show parameters with Rich (progress bar)</span>
+        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameters: layers=</span><span class="si">{</span><span class="n">num_hidden_layers</span><span class="si">}</span><span class="s2">, latent_dim=</span><span class="si">{</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">, lr=</span><span class="si">{</span><span class="n">learning_rate</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">, batch_size=</span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Parameters: layers=</span><span class="si">{</span><span class="n">num_hidden_layers</span><span class="si">}</span><span class="s2">, latent_dim=</span><span class="si">{</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">, lr=</span><span class="si">{</span><span class="n">learning_rate</span><span class="si">:</span><span class="s2">.2e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        
         <span class="c1"># --------------------------</span>
-        <span class="c1"># Build orders</span>
+        <span class="c1"># Build orders for shared/unshared layers</span>
         <span class="c1"># --------------------------</span>
         <span class="k">if</span> <span class="n">evaluate_all_orders</span><span class="p">:</span>
             <span class="n">enc_pool</span> <span class="o">=</span> <span class="n">_enumerate_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">)</span>
             <span class="n">dec_pool</span> <span class="o">=</span> <span class="n">_enumerate_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">)</span>
             <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">product</span><span class="p">(</span><span class="n">enc_pool</span><span class="p">,</span> <span class="n">dec_pool</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">permute_hidden_layers</span><span class="p">:</span>
-                <span class="n">rng_enc</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">*</span> <span class="mi">9973</span> <span class="o">+</span> <span class="n">order_seed_enc</span><span class="p">)</span>
-                <span class="n">rng_dec</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">*</span> <span class="mi">9967</span> <span class="o">+</span> <span class="n">order_seed_dec</span><span class="p">)</span>
-                <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">_build_order</span><span class="p">(</span><span class="n">order_style_enc</span><span class="p">,</span> <span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">,</span> <span class="n">rng_enc</span><span class="p">)</span>
-                <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">_build_order</span><span class="p">(</span><span class="n">order_style_dec</span><span class="p">,</span> <span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">,</span> <span class="n">rng_dec</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span> <span class="o">=</span> <span class="n">_canonical_orders</span><span class="p">(</span><span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">)</span>
-                <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">enc_pat</span><span class="p">)</span>
-                <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">dec_pat</span><span class="p">)</span>
-            <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_format_order</span><span class="p">(</span><span class="n">layer_order_enc</span><span class="p">),</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">layer_order_dec</span><span class="p">))]</span>
+            <span class="c1">## if max_exhaustive_orders, </span>
+            <span class="k">if</span> <span class="n">max_exhaustive_orders</span><span class="p">:</span>
+                <span class="n">rng_ord</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">*</span> <span class="mi">9912</span> <span class="o">+</span> <span class="n">seed</span><span class="p">)</span>
+                <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="n">rng_ord</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">combos_to_eval</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">max_exhaustive_orders</span><span class="p">)</span>
 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># -----------------------</span>
+            <span class="c1"># Reproducable seeds for random generated layer order</span>
+            <span class="c1"># - uses _build_order() to determine the appropriate layer orders based on enc/decoder_shared_placement</span>
+            <span class="c1"># -----------------------</span>
+            <span class="n">rng_enc</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">*</span> <span class="mi">9973</span> <span class="o">+</span> <span class="n">seed</span><span class="p">)</span>
+            <span class="n">rng_dec</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="n">seed</span> <span class="o">*</span> <span class="mi">9967</span> <span class="o">+</span> <span class="n">seed</span><span class="p">)</span>
+            <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">_build_order</span><span class="p">(</span><span class="n">encoder_shared_placement</span><span class="p">,</span> <span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_encode</span><span class="p">,</span> <span class="n">rng_enc</span><span class="p">)</span>
+            <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">_build_order</span><span class="p">(</span><span class="n">decoder_shared_placement</span><span class="p">,</span> <span class="n">num_hidden_layers</span><span class="p">,</span> <span class="n">num_shared_decode</span><span class="p">,</span> <span class="n">rng_dec</span><span class="p">)</span>
+            <span class="n">combos_to_eval</span> <span class="o">=</span> <span class="p">[(</span><span class="n">_format_order</span><span class="p">(</span><span class="n">layer_order_enc</span><span class="p">),</span> <span class="n">_format_order</span><span class="p">(</span><span class="n">layer_order_dec</span><span class="p">))]</span>
+        
         <span class="n">best_val</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">best_patterns</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">best_refit_history_df</span> <span class="o">=</span> <span class="kc">None</span>
-
+        
         <span class="c1"># --------------------------</span>
         <span class="c1"># Train each combination</span>
         <span class="c1"># --------------------------</span>
@@ -411,12 +530,9 @@
                 <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
                 <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span>
             <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Starting initial training...&quot;</span><span class="p">)</span>
-
-            <span class="c1"># Initial training</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+            
+            <span class="c1"># NEW: Use progress wrappers instead of original functions</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_initial_with_progress</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
                 <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span>
@@ -424,14 +540,10 @@
                 <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+                <span class="n">verbose_inner</span><span class="o">=</span><span class="n">verbose</span>
             <span class="p">)</span>
             
-            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Starting refit loops...&quot;</span><span class="p">)</span>
-
-            <span class="c1"># Impute &amp;&amp; refit loop</span>
-            <span class="n">_</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">refit_history_df</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">refit_history_df</span> <span class="o">=</span> <span class="n">impute_and_refit_loop_with_progress</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
                 <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
                 <span class="n">max_loops</span><span class="o">=</span><span class="n">refit_loops</span><span class="p">,</span>
@@ -441,33 +553,36 @@
                 <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">verbose_inner</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
             <span class="p">)</span>
-
+            
             <span class="c1"># Get validation MSE</span>
             <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">best_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val_mse</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">):</span>
                 <span class="n">best_val</span> <span class="o">=</span> <span class="n">val_mse</span>
                 <span class="n">best_patterns</span> <span class="o">=</span> <span class="p">(</span><span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span><span class="p">)</span>
                 <span class="n">best_refit_history_df</span> <span class="o">=</span> <span class="n">refit_history_df</span>
-
-        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        
+        <span class="c1"># NEW: Show completion with Rich</span>
+        <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - MSE: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - Validation MSE: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        
         <span class="c1"># Report intermediate values to Optuna</span>
         <span class="k">if</span> <span class="n">best_refit_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;val_mse&quot;</span> <span class="ow">in</span> <span class="n">best_refit_history_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_refit_history_df</span><span class="p">[</span><span class="s2">&quot;val_mse&quot;</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
                     <span class="n">trial</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">step</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
-
+        
         <span class="c1"># Record the chosen best patterns for this trial</span>
         <span class="k">if</span> <span class="n">best_patterns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">,</span> <span class="n">best_patterns</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_layer_order_dec&quot;</span><span class="p">,</span> <span class="n">best_patterns</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-
+        
         <span class="k">return</span> <span class="n">best_val</span>
-
+    
     <span class="c1"># -----------------------</span>
     <span class="c1"># Optuna study setup</span>
     <span class="c1"># -----------------------</span>
@@ -477,19 +592,36 @@
         <span class="n">storage</span><span class="o">=</span><span class="n">optuna_dashboard_db</span><span class="p">,</span>
         <span class="n">load_if_exists</span><span class="o">=</span><span class="n">load_if_exists</span>
     <span class="p">)</span>
-
+    
     <span class="c1"># -----------------------</span>
     <span class="c1"># Run optimization</span>
     <span class="c1"># -----------------------</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting Optuna optimization with </span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2"> trials...&quot;</span><span class="p">)</span>
+    <span class="c1"># NEW: Use Rich console for study start</span>
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold blue]Starting Optuna optimization with </span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2"> trials...&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting Optuna optimization with </span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2"> trials...&quot;</span><span class="p">)</span>
+    
     <span class="n">study</span><span class="o">.</span><span class="n">optimize</span><span class="p">(</span><span class="n">objective</span><span class="p">,</span> <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization complete. Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (MSE: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
-
+    
+    <span class="c1"># NEW: Use Rich console for completion</span>
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold green]✓ Optimization complete!&quot;</span><span class="p">)</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (MSE: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization complete. Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (MSE: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+    
     <span class="c1"># -----------------------</span>
     <span class="c1"># Final model training</span>
     <span class="c1"># -----------------------</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Training final model with best parameters...&quot;</span><span class="p">)</span>
-
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold cyan]Training final model with best parameters...&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Training final model with best parameters...&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># ---------------------</span>
+    <span class="c1"># Extract best params for final model training</span>
+    <span class="c1"># ---------------------</span>
     <span class="n">best_params</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">params</span> 
     
     <span class="k">def</span><span class="w"> </span><span class="nf">get_best_param</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -497,8 +629,8 @@
             <span class="k">return</span> <span class="n">best_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">search_space</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
-
-    <span class="c1"># Get best parameters</span>
+    
+    <span class="c1">## get num hidden layers</span>
     <span class="n">best_num_hidden_layers</span> <span class="o">=</span> <span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;num_hidden_layers&quot;</span><span class="p">)</span>
     
     <span class="k">if</span> <span class="n">constant_layer_size</span><span class="p">:</span>
@@ -523,8 +655,8 @@
                     <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="n">hdims</span><span class="p">[:</span><span class="n">best_num_hidden_layers</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">best_hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">hdims</span><span class="p">]</span> <span class="o">*</span> <span class="n">best_num_hidden_layers</span>
-
-    <span class="c1"># Get best layer orders</span>
+    
+    <span class="c1">## get layer orders</span>
     <span class="n">ua</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">user_attrs</span>
     <span class="n">nse_eff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ua</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_shared_encode_effective&quot;</span><span class="p">,</span>
                          <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">best_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_shared_encode&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="n">best_num_hidden_layers</span><span class="p">))))</span>
@@ -532,9 +664,7 @@
                          <span class="nb">min</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">best_params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;num_shared_decode&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)),</span> <span class="nb">int</span><span class="p">(</span><span class="n">best_num_hidden_layers</span><span class="p">))))</span>
     <span class="n">enc_pat</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">)</span>
     <span class="n">dec_pat</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_dec&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">enc_pat</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">dec_pat</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span> <span class="o">=</span> <span class="n">_canonical_orders</span><span class="p">(</span><span class="n">best_num_hidden_layers</span><span class="p">,</span> <span class="n">nse_eff</span><span class="p">,</span> <span class="n">nsd_eff</span><span class="p">)</span>
-
+    
     <span class="n">best_layer_order_enc</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">enc_pat</span><span class="p">)</span>
     <span class="n">best_layer_order_dec</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">dec_pat</span><span class="p">)</span>
     <span class="n">latent_shared</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;latent_shared&quot;</span><span class="p">))</span>
@@ -545,9 +675,13 @@
     <span class="n">decay_factor</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;decay_factor&quot;</span><span class="p">))</span>
     <span class="n">beta</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;beta&quot;</span><span class="p">))</span>
     <span class="n">batch_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;batch_size&quot;</span><span class="p">))</span>
-
+    <span class="n">refit_patience</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;refit_patience&quot;</span><span class="p">))</span>
+    <span class="n">refit_loops</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;refit_loops&quot;</span><span class="p">))</span>
+    <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;epochs_per_loop&quot;</span><span class="p">))</span>
+    <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">get_best_param</span><span class="p">(</span><span class="s2">&quot;reset_lr_refit&quot;</span><span class="p">))</span>
+    
     <span class="c1"># ---------------------------</span>
-    <span class="c1"># Build &amp;&amp; train final model</span>
+    <span class="c1"># Build &amp; train final model</span>
     <span class="c1"># ---------------------------</span>
     <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">best_model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
@@ -560,46 +694,95 @@
         <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
         <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span>
     <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-
-    <span class="c1"># Final training</span>
-    <span class="n">best_model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
-        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
-        <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span>
-        <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
-        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
-        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
-    <span class="p">)</span>
-
-    <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
-        <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
-        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
-        <span class="n">max_loops</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">refit_loops</span><span class="p">,</span>
-        <span class="n">patience</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">refit_patience</span><span class="p">,</span>
-        <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">search_space</span><span class="o">.</span><span class="n">epochs_per_loop</span><span class="p">,</span>
-        <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
-        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
-        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
-        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
-    <span class="p">)</span>
-
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final model training complete.&quot;</span><span class="p">)</span>
-
+    
+    <span class="c1"># NEW: Use track() for final training too</span>
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="c1"># Final initial training with progress</span>
+        <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="n">track</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">num_epochs</span><span class="p">),</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Final initial training&quot;</span><span class="p">):</span>
+            <span class="n">best_model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+                <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+                <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+                <span class="n">epochs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+                <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Final refit with progress</span>
+        <span class="n">estimated_refit_epochs</span> <span class="o">=</span> <span class="n">refit_loops</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">refit_loops</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">estimated_refit_epochs</span> <span class="o">=</span> <span class="n">refit_loops</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">epochs_per_loop</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">estimated_refit_epochs</span> <span class="o">=</span> <span class="n">refit_loops</span> <span class="o">*</span> <span class="n">epochs_per_loop</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="n">progress_iter</span> <span class="o">=</span> <span class="n">track</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">estimated_refit_epochs</span><span class="p">),</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Final refit loops&quot;</span><span class="p">)</span>
+        <span class="n">progress_iter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">progress_iter</span><span class="p">)</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">final_progress_callback</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                    <span class="nb">next</span><span class="p">(</span><span class="n">progress_iter</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+            <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+            <span class="n">max_loops</span><span class="o">=</span><span class="n">refit_loops</span><span class="p">,</span>
+            <span class="n">patience</span><span class="o">=</span><span class="n">refit_patience</span><span class="p">,</span>
+            <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+            <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+            <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">progress_epoch</span><span class="o">=</span><span class="n">final_progress_callback</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Final training without progress</span>
+        <span class="n">best_model</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+            <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+            <span class="n">epochs</span><span class="o">=</span><span class="n">num_epochs</span><span class="p">,</span>
+            <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+            <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+        
+        <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+            <span class="n">model</span><span class="o">=</span><span class="n">best_model</span><span class="p">,</span>
+            <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+            <span class="n">max_loops</span><span class="o">=</span><span class="n">refit_loops</span><span class="p">,</span>
+            <span class="n">patience</span><span class="o">=</span><span class="n">refit_patience</span><span class="p">,</span>
+            <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+            <span class="n">initial_lr</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+            <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+            <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+        <span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold green]✓ Final model training complete!&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Final model training complete.&quot;</span><span class="p">)</span>
+    
     <span class="c1"># -----------------------</span>
     <span class="c1"># Save results</span>
     <span class="c1"># -----------------------</span>
     <span class="k">if</span> <span class="n">save_model_path</span><span class="p">:</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">save_model_path</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model saved to </span><span class="si">{</span><span class="n">save_model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+    
     <span class="k">if</span> <span class="n">save_search_space_path</span><span class="p">:</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_search_space_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">search_space</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search space saved to </span><span class="si">{</span><span class="n">save_search_space_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+    
     <span class="c1"># Create results DataFrame</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">study</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
@@ -616,7 +799,7 @@
         <span class="p">)</span>
         <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
     <span class="n">results_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
-
+    
     <span class="k">return</span> <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span></div>
 
 </pre></div>
