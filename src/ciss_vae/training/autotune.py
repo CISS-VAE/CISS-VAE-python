@@ -23,59 +23,50 @@ from rich.progress import track
 from rich.console import Console
 
 class SearchSpace:
-    r"""
-        Defines tunable and fixed hyperparameter ranges for the Optuna search.
-        Parameters are specified as:
-        * **scalar**: fixed value (e.g., ``latent_dim=16``)
-        * **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)
-        * **tuple**: range (``(min, max)``) for ``suggest_int``/``suggest_float``
-        Attributes
-        ----------
-        num_hidden_layers : int | list[int] | tuple[int, int]
-            Number of encoder/decoder hidden layers.
-        hidden_dims : int | list[int] | tuple[int, int]
-            Hidden dimension spec. If int → repeated per layer; list → per‑layer choices; tuple → range.
-        latent_dim : int | tuple[int, int]
-            Latent size or range.
-        latent_shared : bool | list[bool]
-            Whether latent is shared (or categorical choice).
-        output_shared : bool | list[bool]
-            Whether output is shared (or categorical choice).
-        lr : float | tuple[float, float]
-            Initial learning rate or range.
-        decay_factor : float | tuple[float, float]
-            LR exponential decay factor or range.
-        beta : float | tuple[float, float]
-            KL weight or range.
-        num_epochs : int | tuple[int, int]
-            Epochs for initial training (or range).
-        batch_size : int | tuple[int, int]
-            Mini-batch size (or range).
-        num_shared_encode : list[int]
-            Candidate counts of shared encoder layers.
-        num_shared_decode : list[int]
-            Candidate counts of shared decoder layers.
-        encoder_shared_placement : list[str]
-            Strategy for arranging shared vs unshared layers in encoder. 
-                "shared_tail" → "at_end": Put shared layers at the end: [U,U,U,S,S]
-                "shared_head" → "at_start": Put shared layers at the start: [S,S,U,U,U]
-                "alternating" : Spread shared layers evenly: [U,S,U,S,U]
-                "random" : Random placement (uses the seed for reproducibility)
-        decoder_shared_placement : list[str]
-            Strategy for arranging shared vs unshared layers in decoder. 
-                "shared_tail" → "at_end": Put shared layers at the end: [U,U,U,S,S]
-                "shared_head" → "at_start": Put shared layers at the start: [S,S,U,U,U]
-                "alternating" : Spread shared layers evenly: [U,S,U,S,U]
-                "random" : Random placement (uses the seed for reproducibility)
-        refit_patience : int | tuple[int, int]
-            Early-stop patience for refit loops (or range).
-        refit_loops : int | tuple[int, int]
-            Maximum number of refit loops (or range).
-        epochs_per_loop : int | tuple[int, int]
-            Epochs per refit loop (or range).
-        reset_lr_refit : bool | list[bool]
-            Whether to reset LR before refit.
-        """
+    """Defines tunable and fixed hyperparameter ranges for the Optuna search.
+    
+    Parameters are specified as:
+    - **scalar**: fixed value (e.g., ``latent_dim=16``)
+    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)
+    - **tuple**: range ``(min, max)`` for ``suggest_int``/``suggest_float``
+    
+    :param num_hidden_layers: Number of encoder/decoder hidden layers, defaults to (1, 4)
+    :type num_hidden_layers: int or list[int] or tuple[int, int], optional
+    :param hidden_dims: Hidden dimension specification - int for repeated per layer, list for per-layer choices, tuple for range, defaults to [64, 512]
+    :type hidden_dims: int or list[int] or tuple[int, int], optional
+    :param latent_dim: Latent dimension size or range, defaults to [10, 100]
+    :type latent_dim: int or tuple[int, int], optional
+    :param latent_shared: Whether latent space is shared across clusters, defaults to [True, False]
+    :type latent_shared: bool or list[bool], optional
+    :param output_shared: Whether output layer is shared across clusters, defaults to [True, False]
+    :type output_shared: bool or list[bool], optional
+    :param lr: Initial learning rate or range, defaults to (1e-4, 1e-3)
+    :type lr: float or tuple[float, float], optional
+    :param decay_factor: Learning rate exponential decay factor or range, defaults to (0.9, 0.999)
+    :type decay_factor: float or tuple[float, float], optional
+    :param beta: KL divergence weight or range, defaults to 0.01
+    :type beta: float or tuple[float, float], optional
+    :param num_epochs: Number of epochs for initial training, defaults to 1000
+    :type num_epochs: int or tuple[int, int], optional
+    :param batch_size: Mini-batch size, defaults to 64
+    :type batch_size: int or tuple[int, int], optional
+    :param num_shared_encode: Candidate counts of shared encoder layers, defaults to [0, 1, 3]
+    :type num_shared_encode: list[int], optional
+    :param num_shared_decode: Candidate counts of shared decoder layers, defaults to [0, 1, 3]
+    :type num_shared_decode: list[int], optional
+    :param encoder_shared_placement: Strategy for arranging shared vs unshared layers in encoder, defaults to ["at_end", "at_start", "alternating", "random"]
+    :type encoder_shared_placement: list[str], optional
+    :param decoder_shared_placement: Strategy for arranging shared vs unshared layers in decoder, defaults to ["at_end", "at_start", "alternating", "random"]
+    :type decoder_shared_placement: list[str], optional
+    :param refit_patience: Early-stop patience for refit loops, defaults to 2
+    :type refit_patience: int or tuple[int, int], optional
+    :param refit_loops: Maximum number of refit loops, defaults to 100
+    :type refit_loops: int or tuple[int, int], optional
+    :param epochs_per_loop: Number of epochs per refit loop, defaults to 1000
+    :type epochs_per_loop: int or tuple[int, int], optional
+    :param reset_lr_refit: Whether to reset learning rate before refit, defaults to [True, False]
+    :type reset_lr_refit: bool or list[bool], optional
+    """
     def __init__(self,
                  num_hidden_layers=(1, 4),
                  hidden_dims=[64, 512],
@@ -133,41 +124,46 @@ def autotune(
     evaluate_all_orders: bool = False,
     max_exhaustive_orders: int = 100,
 ):
-    r"""
-    Optuna-based hyperparameter search for the CISSVAE model.
-    Runs initial training, then impute–refit loops per trial, and selects the
-    trial with the lowest validation MSE.
-    :param search_space: Hyperparameter ranges and fixed values.
+    r"""Optuna-based hyperparameter search for the CISSVAE model.
+    
+    Runs initial training followed by impute-refit loops per trial, selecting the
+    trial with the lowest validation MSE. The best model is then retrained with
+    optimal hyperparameters and returned along with the imputed dataset.
+    
+    :param search_space: Hyperparameter ranges and fixed values for optimization
     :type search_space: SearchSpace
-    :param train_dataset: Dataset containing masks, normalization, and cluster labels.
-    :type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset
-    :param save_model_path: Optional path to save the best model's ``state_dict``.
-    :type save_model_path: str | None
-    :param save_search_space_path: Optional path to dump the resolved search-space.
-    :type save_search_space_path: str | None
-    :param n_trials: Number of Optuna trials to run.
-    :type n_trials: int
-    :param study_name: Name for the Optuna study.
-    :type study_name: str
-    :param device_preference: ``"cuda"`` or ``"cpu"``; falls back to CPU if CUDA unavailable.
-    :type device_preference: str
-    :param optuna_dashboard_db: RDB storage URL/file for dashboard (or ``None`` for in‑memory).
-    :type optuna_dashboard_db: str | None
-    :param load_if_exists: Load existing study with the same name from storage.
-    :type load_if_exists: bool
-    :param seed: Base RNG seed for order generation etc.
-    :type seed: int
-    :param verbose: If ``True``, prints diagnostic logs.
-    :type verbose: bool
-    :param constant_layer_size: If ``True``, all hidden layers use the same size.
-    :type constant_layer_size: bool
-    :param evaluate_all_orders: If ``True`` permutes order of shared/unshared layers and evaluates all of them.
-    :type evaluate_all_orders: bool
-    :param max_exhaustive_orders: Max number of permutations to test if evaluate_all_orders is ``True``.
-    :type max_exhaustive_orders: int
-    :returns: Tuple ``(best_imputed_df, best_model, study, results_df)``
-    :rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)
-    :raises ValueError: If search space parameters are malformed or incompatible.
+    :param train_dataset: Dataset containing masks, normalization, and cluster labels
+    :type train_dataset: ClusterDataset
+    :param save_model_path: Optional path to save the best model's state_dict, defaults to None
+    :type save_model_path: str, optional
+    :param save_search_space_path: Optional path to dump the resolved search-space configuration, defaults to None
+    :type save_search_space_path: str, optional
+    :param n_trials: Number of Optuna trials to run, defaults to 20
+    :type n_trials: int, optional
+    :param study_name: Name identifier for the Optuna study, defaults to "vae_autotune"
+    :type study_name: str, optional
+    :param device_preference: Preferred device ("cuda" or "cpu"), falls back to CPU if CUDA unavailable, defaults to "cuda"
+    :type device_preference: str, optional
+    :param optuna_dashboard_db: RDB storage URL/file for Optuna dashboard or None for in-memory, defaults to None
+    :type optuna_dashboard_db: str, optional
+    :param load_if_exists: Whether to load existing study with the same name from storage, defaults to True
+    :type load_if_exists: bool, optional
+    :param seed: Base random number generator seed for reproducible order generation, defaults to 42
+    :type seed: int, optional
+    :param verbose: Whether to print detailed diagnostic logs during training, defaults to False
+    :type verbose: bool, optional
+    :param show_progress: Whether to display Rich progress bars during training, defaults to False
+    :type show_progress: bool, optional
+    :param constant_layer_size: Whether all hidden layers should use the same dimension size, defaults to False
+    :type constant_layer_size: bool, optional
+    :param evaluate_all_orders: Whether to permute and evaluate all possible shared/unshared layer orders, defaults to False
+    :type evaluate_all_orders: bool, optional
+    :param max_exhaustive_orders: Maximum number of layer order permutations to test when evaluate_all_orders is True, defaults to 100
+    :type max_exhaustive_orders: int, optional
+    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe)
+    :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame]
+    :raises ValueError: If search space parameters are malformed or incompatible
+    :raises RuntimeError: If CUDA is requested but not available and fallback fails
     """
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)

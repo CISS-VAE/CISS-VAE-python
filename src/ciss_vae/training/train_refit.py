@@ -13,6 +13,31 @@ import copy
 def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
                     decay_factor=0.999, beta=0.1,
                     device="cpu", verbose=False, progress_callback = None):
+    """Train the VAE model on imputed data without masking for one refit iteration.
+    
+    Performs training on the complete imputed dataset.
+    
+    :param model: VAE model to train
+    :type model: torch.nn.Module
+    :param imputed_data: DataLoader containing imputed dataset with complete values
+    :type imputed_data: torch.utils.data.DataLoader
+    :param epochs: Number of training epochs, defaults to 10
+    :type epochs: int, optional
+    :param initial_lr: Initial learning rate for the optimizer, defaults to 0.01
+    :type initial_lr: float, optional
+    :param decay_factor: Exponential decay factor for learning rate scheduler, defaults to 0.999
+    :type decay_factor: float, optional
+    :param beta: Weight for KL divergence term in loss function, defaults to 0.1
+    :type beta: float, optional
+    :param device: Device to run training on, defaults to "cpu"
+    :type device: str, optional
+    :param verbose: Whether to print training progress information, defaults to False
+    :type verbose: bool, optional
+    :param progress_callback: Optional callback function to report epoch progress, defaults to None
+    :type progress_callback: callable, optional
+    :return: Trained model with updated final learning rate
+    :rtype: torch.nn.Module
+    """
     model.to(device)
     optimizer = Adam(model.parameters(), lr=initial_lr)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
@@ -70,21 +95,38 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
                           epochs_per_loop=5, initial_lr=None, decay_factor=0.999,
                           beta=0.1, device="cpu", verbose=False, batch_size=4000,
                           progress_epoch=None):
-    """
-    Iterative impute-refit loop with validation MSE early stopping.
-    Returns
-    -------
-    imputed_df : pd.DataFrame
-        Final imputed values produced by the best (early-stopped) model.
-    best_model : torch.nn.Module
-        Copy of the best-performing model encountered during the loop.
-    best_dataset : ClusterDataset
-        Copy of the dataset corresponding to `best_model`'s imputations.
-    refit_history_df : pd.DataFrame
-        Per-loop history aligned to `train_vae_initial`'s history schema so you
-        can `pd.concat([history_df, refit_history_df], ignore_index=True)` later.
-
-        Columns:
+    """Iterative impute-refit loop with validation MSE early stopping.
+    
+    Performs alternating cycles of imputation (filling missing values with model predictions)
+    and refitting (training on the complete imputed data). Uses early stopping based on
+    validation MSE to prevent overfitting and selects the best performing model.
+    
+    :param model: Trained VAE model to start the impute-refit process
+    :type model: torch.nn.Module
+    :param train_loader: DataLoader for the original training dataset with missing values
+    :type train_loader: torch.utils.data.DataLoader
+    :param max_loops: Maximum number of impute-refit cycles to perform, defaults to 10
+    :type max_loops: int, optional
+    :param patience: Number of loops to wait for improvement before early stopping, defaults to 2
+    :type patience: int, optional
+    :param epochs_per_loop: Number of training epochs per refit cycle, defaults to 5
+    :type epochs_per_loop: int, optional
+    :param initial_lr: Learning rate for refit training, uses model's final LR if None, defaults to None
+    :type initial_lr: float, optional
+    :param decay_factor: Exponential decay factor for learning rate, defaults to 0.999
+    :type decay_factor: float, optional
+    :param beta: Weight for KL divergence term in loss function, defaults to 0.1
+    :type beta: float, optional
+    :param device: Device to run computations on, defaults to "cpu"
+    :type device: str, optional
+    :param verbose: Whether to print detailed progress information, defaults to False
+    :type verbose: bool, optional
+    :param batch_size: Batch size for refit training, defaults to 4000
+    :type batch_size: int, optional
+    :param progress_epoch: Optional callback function to report epoch progress, defaults to None
+    :type progress_epoch: callable, optional
+    :return: Tuple containing (imputed_dataframe, best_model, best_dataset, refit_history_dataframe)
+        refit_history_dataframe Columns:
           - epoch (int)          : cumulative epoch counter (continues from initial)
           - train_loss (float)   : NaN (not tracked during refit here)
           - train_recon (float)  : NaN
@@ -93,6 +135,8 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
           - lr (float)           : learning rate after each refit loop
           - phase (str)          : {"refit_init", "refit_loop"}
           - loop (int)           : 0 for baseline (pre-refit), then 1..k per loop
+    :rtype: tuple[pandas.DataFrame, torch.nn.Module, ClusterDataset, pandas.DataFrame]
+
     """
     # --------------------------
     # Get imputed dataset, save 'best' states of dataset, model

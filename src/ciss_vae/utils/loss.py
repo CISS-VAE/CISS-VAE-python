@@ -3,22 +3,26 @@ import torch.nn.functional as F
 
 def loss_function(cluster, mask, recon_x, x, mu, 
 logvar, beta=0.001, return_components=False):
-    """
-    VAE loss function with masking and KL annealing.
-
-    Parameters:
-    - cluster: LongTensor (batch_size,) of cluster labels.
-    - mask: FloatTensor (batch_size, input_dim), 1s where observed, 0s where missing.
-    - recon_x: FloatTensor (batch_size, input_dim), model reconstruction output.
-    - x: FloatTensor (batch_size, input_dim), original input.
-    - mu: FloatTensor (batch_size, latent_dim), encoder means.
-    - logvar: FloatTensor (batch_size, latent_dim), encoder log-variances.
-    - beta: float, KL loss multiplier (e.g., for β-VAE).
-    - return_components: bool, return (total, mse, kl) if True.
-
-    Returns:
-    - total_loss if return_components is False
-    - (total_loss, mse_loss, kl_loss) if return_components is True
+    """VAE loss function with masking and KL annealing.
+    
+    :param cluster: Cluster labels, shape ``(batch_size,)``
+    :type cluster: torch.LongTensor
+    :param mask: Binary mask where 1s indicate observed values and 0s indicate missing values, shape ``(batch_size, input_dim)``
+    :type mask: torch.FloatTensor
+    :param recon_x: Model reconstruction output, shape ``(batch_size, input_dim)``
+    :type recon_x: torch.FloatTensor
+    :param x: Original input, shape ``(batch_size, input_dim)``
+    :type x: torch.FloatTensor
+    :param mu: Encoder means, shape ``(batch_size, latent_dim)``
+    :type mu: torch.FloatTensor
+    :param logvar: Encoder log-variances, shape ``(batch_size, latent_dim)``
+    :type logvar: torch.FloatTensor
+    :param beta: KL loss multiplier (e.g., for β-VAE), defaults to 0.001
+    :type beta: float, optional
+    :param return_components: If True, return individual loss components, defaults to False
+    :type return_components: bool, optional
+    :return: Total loss if ``return_components`` is False, otherwise tuple ``(total_loss, mse_loss, kl_loss)``
+    :rtype: torch.Tensor or tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     """
     # --------------------------
     # Calculate Losses
@@ -39,22 +43,24 @@ logvar, beta=0.001, return_components=False):
 
 def loss_function_nomask(cluster, recon_x, x, mu, 
 logvar, beta=0.001, return_components=False):
-    """
-    VAE loss function with masking and KL annealing.
-
-    Parameters:
-    - cluster: LongTensor (batch_size,) of cluster labels.
-    - mask: FloatTensor (batch_size, input_dim), 1s where observed, 0s where missing.
-    - recon_x: FloatTensor (batch_size, input_dim), model reconstruction output.
-    - x: FloatTensor (batch_size, input_dim), original input.
-    - mu: FloatTensor (batch_size, latent_dim), encoder means.
-    - logvar: FloatTensor (batch_size, latent_dim), encoder log-variances.
-    - beta: float, KL loss multiplier (e.g., for β-VAE).
-    - return_components: bool, return (total, mse, kl) if True.
-
-    Returns:
-    - total_loss if return_components is False
-    - (total_loss, mse_loss, kl_loss) if return_components is True
+    """VAE loss function without masking and with KL annealing.
+    
+    :param cluster: Cluster labels, shape ``(batch_size,)``
+    :type cluster: torch.LongTensor
+    :param recon_x: Model reconstruction output, shape ``(batch_size, input_dim)``
+    :type recon_x: torch.FloatTensor
+    :param x: Original input, shape ``(batch_size, input_dim)``
+    :type x: torch.FloatTensor
+    :param mu: Encoder means, shape ``(batch_size, latent_dim)``
+    :type mu: torch.FloatTensor
+    :param logvar: Encoder log-variances, shape ``(batch_size, latent_dim)``
+    :type logvar: torch.FloatTensor
+    :param beta: KL loss multiplier (e.g., for β-VAE), defaults to 0.001
+    :type beta: float, optional
+    :param return_components: If True, return individual loss components, defaults to False
+    :type return_components: bool, optional
+    :return: Total loss if ``return_components`` is False, otherwise tuple ``(total_loss, mse_loss, kl_loss)``
+    :rtype: torch.Tensor or tuple[torch.Tensor, torch.Tensor, torch.Tensor]
     """
     # --------------------------
     # Calculate Losses

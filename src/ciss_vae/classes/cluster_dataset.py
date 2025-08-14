@@ -93,19 +93,28 @@ class ClusterDataset(Dataset):
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
     def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
-        """
-        Build the dataset, apply per-cluster validation masking, and normalize.
-
-        Steps
-        -----
+        """Build the dataset, apply per-cluster validation masking, and normalize.
+        
+        Steps:
         1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
         2. Resolve per-cluster validation proportions from ``val_proportion``.
         3. For each cluster and feature, randomly mark the requested fraction of
-        **observed** entries as validation targets.
+           **observed** entries as validation targets.
         4. Create ``val_data`` (validation targets only) and training ``data`` where
-        validation entries are set to NaN.
+           validation entries are set to NaN.
         5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply
-        normalization; then replace remaining NaNs with ``replacement_value``.
+           normalization; then replace remaining NaNs with ``replacement_value``.
+        
+        :param data: Input matrix, shape ``(n_samples, n_features)``. May contain NaNs
+        :type data: pandas.DataFrame or numpy.ndarray or torch.Tensor
+        :param cluster_labels: Cluster assignment per sample (length ``n_samples``). If ``None``, all rows are assigned to a single cluster ``0``
+        :type cluster_labels: array-like or None
+        :param val_proportion: Per-cluster fraction of **non-missing** entries to hold out for validation, defaults to 0.1
+        :type val_proportion: float or collections.abc.Sequence or collections.abc.Mapping or pandas.Series, optional
+        :param replacement_value: Value to fill missing/held-out entries in ``self.data`` after masking, defaults to 0
+        :type replacement_value: float, optional
+        :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None
+        :type columns_ignore: list[str or int] or None, optional
         """
 
         ## set columns ignore 
@@ -302,8 +311,10 @@ class ClusterDataset(Dataset):
         )
 
     def __repr__(self):
-        """ Displays the number of samples, features, and clusters, the percentage of missing data before masking, 
-        and the percentage of non-missing data held out for validation.
+        """Displays the number of samples, features, and clusters, the percentage of missing data before masking, and the percentage of non-missing data held out for validation.
+        
+        :return: String representation of the dataset
+        :rtype: str
         """
         n, p = self.data.shape
         total_values = n * (p-len(self.columns_ignore))
@@ -331,13 +342,18 @@ class ClusterDataset(Dataset):
     # Added copy method
     # ----------------------------------------
     def copy(self):
-        """ Creates a deep copy of the ClusterDataset method containing all attributes. 
+        """Creates a deep copy of the ClusterDataset method containing all attributes.
+        
+        :return: Deep copy of the dataset
+        :rtype: ClusterDataset
         """
         return copy.deepcopy(self)
 
 
     def __str__(self):
-        """ Displays the number of samples, features, and clusters, the percentage of missing data, 
-        and the percentage of non-missing data held out for validation.
+        """Displays the number of samples, features, and clusters, the percentage of missing data before masking, and the percentage of non-missing data held out for validation.
+        
+        :return: String representation of the dataset
+        :rtype: str
         """
         return self.__repr__()

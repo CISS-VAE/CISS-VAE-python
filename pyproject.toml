@@ -12,7 +12,11 @@ license = "MIT"
 
 authors = [
 { name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" },
-{ name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" }
+{ name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" },
+{ name = "Kenneth Seier" },
+{ name = "Katherine S. Panageas" },
+{ name = "Mithat G¨onen" },
+{ name = "Yuan Chen", email = "cheny19@mskcc.org" }
  
 ]
 dependencies = [

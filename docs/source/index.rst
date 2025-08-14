@@ -21,6 +21,7 @@ The CISS-VAE package also offers the :py:func:`ciss_vae.training.autotune.autotu
    :caption: Contents:
 
    vignette
+   missingness_prop_vignette
    api
 
 

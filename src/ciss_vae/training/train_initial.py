@@ -19,47 +19,35 @@ def train_vae_initial(
     return_history: bool = False,
     progress_callback = None,
 ):
-    """
-    Train a VAE on masked data with validation set aside inside the ClusterDataset.
-
-    Each sample from `train_loader` must yield a tuple of:
-        (x, cluster_id, mask, index)
-
-    Parameters
-    ----------
-    model : torch.nn.Module
-        Your CISSVAE (or compatible) model. Must implement forward(x, cluster_id).
-    train_loader : torch.utils.data.DataLoader
-        DataLoader built on a ClusterDataset that contains `.val_data`.
-    epochs : int, default=10
-        Number of epochs for the initial training pass.
-    initial_lr : float, default=0.01
-        Starting learning rate for Adam.
-    decay_factor : float, default=0.999
-        ExponentialLR decay gamma applied at the end of each epoch.
-    beta : float, default=0.1
-        Weight of the KL term in the VAE loss.
-    device : {"cpu","cuda"}, default="cpu"
-        Torch device to run training on.
-    verbose : bool, default=False
-        If True, prints per-epoch metrics (also stored in the history DataFrame).
-    return_history : bool, default=False
-        If True, returns a tuple (model, history_df). Otherwise returns just `model`.
-        In both cases, the DataFrame is attached as `model.training_history_`.
-
-    Returns
-    -------
-    model : torch.nn.Module
-        The trained model (always).
-    history_df : pd.DataFrame, optional
-        Returned only when `return_history=True`. Has columns:
-            ["epoch", "train_loss", "train_recon", "train_kl", "val_mse", "lr"]
-
-    Notes
-    -----
-    - The function expects `loss_function(...)` and `compute_val_mse(model, dataset, device)`
-      to be available in scope.
-    - For convenience, the history DataFrame is also attached as `model.training_history_`.
+    """Train a VAE on masked data with validation monitoring for initial training phase.
+    
+    Performs the initial training of a CISSVAE model on data with missing values using
+    masked loss computation. Tracks training loss and validation MSE across epochs,
+    with optional progress reporting and learning rate decay.
+    
+    :param model: CISSVAE or compatible VAE model that implements forward(x, cluster_id)
+    :type model: torch.nn.Module
+    :param train_loader: DataLoader built on ClusterDataset containing validation data
+    :type train_loader: torch.utils.data.DataLoader
+    :param epochs: Number of training epochs, defaults to 10
+    :type epochs: int, optional
+    :param initial_lr: Starting learning rate for Adam optimizer, defaults to 0.01
+    :type initial_lr: float, optional
+    :param decay_factor: Exponential learning rate decay factor applied per epoch, defaults to 0.999
+    :type decay_factor: float, optional
+    :param beta: Weight coefficient for KL divergence term in VAE loss, defaults to 0.1
+    :type beta: float, optional
+    :param device: Device for training computations ("cpu" or "cuda"), defaults to "cpu"
+    :type device: str, optional
+    :param verbose: Whether to print per-epoch training metrics, defaults to False
+    :type verbose: bool, optional
+    :param return_history: Whether to return training history DataFrame along with model, defaults to False
+    :type return_history: bool, optional
+    :param progress_callback: Optional callback function for progress reporting, defaults to None
+    :type progress_callback: callable, optional
+    :return: Trained model, or tuple of (model, history_dataframe) if return_history=True
+    :rtype: torch.nn.Module or tuple[torch.nn.Module, pandas.DataFrame]
+    :raises ValueError: If dataset does not contain 'val_data' attribute for validation
     """
 
     model.to(device)

@@ -15,18 +15,28 @@ color_input = "lightgreen",
 color_output = "lightgreen",
 figsize=(16, 8),
 return_fig = False):
-    """
-    Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.
-
-    Parameters:   
-        - model: An instance of CISSVAE  
-        - title: Title of plot   
-        - color_shared: Color of shared hidden layers    
-        - color_unshared: Color of unshared hidden layers    
-        - color_input: Color of input layer    
-        - color_output: Color of output layer     
-        - figsize: Tuple, size of the matplotlib figure
-        - return_fig : (bool) : Set as "True" to return the fig object. Default is False    
+    """Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.
+    
+    :param model: An instance of CISSVAE model to visualize
+    :type model: nn.Module
+    :param title: Title of the plot, defaults to None
+    :type title: str, optional
+    :param color_shared: Color for shared hidden layers, defaults to "skyblue"
+    :type color_shared: str, optional
+    :param color_unshared: Color for unshared hidden layers, defaults to "lightcoral"
+    :type color_unshared: str, optional
+    :param color_latent: Color for latent layer, defaults to "gold"
+    :type color_latent: str, optional
+    :param color_input: Color for input layer, defaults to "lightgreen"
+    :type color_input: str, optional
+    :param color_output: Color for output layer, defaults to "lightgreen"
+    :type color_output: str, optional
+    :param figsize: Size of the matplotlib figure, defaults to (16, 8)
+    :type figsize: tuple, optional
+    :param return_fig: Whether to return the figure object instead of displaying, defaults to False
+    :type return_fig: bool, optional
+    :return: Matplotlib figure object if return_fig is True, otherwise None
+    :rtype: matplotlib.figure.Figure or None
     """
     fig, ax = plt.subplots(figsize=figsize)
 
@@ -186,12 +196,19 @@ return_fig = False):
 
 
 def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
-    """Given trained model and cluster dataset object, get imputed dataset.
-    Args:
-        model: Trained CISSVAE model (should be in eval() mode)
-        data_loader: DataLoader for the original ClusterDataset 
-    Returns:
-        imputed_df: pandas DataFrame of imputed (unscaled) data
+    """Given trained model and cluster dataset object, get imputed dataset as pandas DataFrame.
+    
+    Reconstructs missing values using the trained VAE model and returns the complete dataset
+    with original scaling restored and validation entries replaced with true values.
+    
+    :param model: Trained CISSVAE model (should be in eval() mode)
+    :type model: CISSVAE
+    :param data_loader: DataLoader for the original ClusterDataset
+    :type data_loader: torch.utils.data.DataLoader
+    :param device: Device to run computations on, defaults to "cpu"
+    :type device: str, optional
+    :return: DataFrame containing imputed (unscaled) data with original row ordering
+    :rtype: pandas.DataFrame
     """
     dataset = data_loader.dataset
     # -------------------------------
@@ -248,17 +265,20 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     
 
 def get_imputed(model, data_loader, device="cpu"):
-    """
-    Returns a ClusterDataset where originally missing values have been replaced
-    with the model's reconstructed outputs. Validation-masked values are also filled.
-
-    Parameters:
-    - model: trained VAE model
-    - data_loader: DataLoader for the original ClusterDataset
-    - device: torch device ("cpu" or "cuda")
-
-    Returns:
-    - ClusterDataset with reconstructed values filled in
+    """Returns a ClusterDataset where originally missing values have been replaced with model reconstructions.
+    
+    Processes the dataset through the trained VAE model to reconstruct missing values,
+    including validation-masked entries. The returned dataset maintains the same structure
+    as the original but with missing values filled in.
+    
+    :param model: Trained VAE model
+    :type model: nn.Module
+    :param data_loader: DataLoader for the original ClusterDataset
+    :type data_loader: torch.utils.data.DataLoader
+    :param device: Torch device for computations, defaults to "cpu"
+    :type device: str, optional
+    :return: ClusterDataset with reconstructed values filled in at originally missing positions
+    :rtype: ClusterDataset
     """
     model.eval()
     dataset = data_loader.dataset
@@ -306,8 +326,21 @@ def get_imputed(model, data_loader, device="cpu"):
 
 
 def compute_val_mse(model, dataset, device="cpu"):
-    """
-    Compute MSE on validation-masked entries using consistent model predictions.
+    """Compute MSE on validation-masked entries using consistent model predictions.
+    
+    Evaluates model performance by computing mean squared error between model predictions
+    and true values at validation-masked positions. The model output is denormalized
+    before comparison with the original validation data.
+    
+    :param model: Trained model in evaluation mode
+    :type model: nn.Module
+    :param dataset: Dataset containing validation masks and true values
+    :type dataset: ClusterDataset
+    :param device: Device for computations, defaults to "cpu"
+    :type device: str, optional
+    :return: Mean squared error on validation entries
+    :rtype: float
+    :raises ValueError: If no validation entries are found in the dataset
     """
     model.eval()
 
@@ -353,17 +386,19 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error
 
 def evaluate_imputation(imputed_df, df_complete, df_missing):
-    """
-    Compare imputed values to true values at originally missing positions.
-
-    Parameters:
-    - imputed_df: DataFrame with imputed values (same shape as df_complete)
-    - df_complete: DataFrame with true values (ground truth, no NaNs)
-    - df_missing: DataFrame with NaNs at original missing locations
-
-    Returns:
-    - mse: Mean squared error at imputed (originally missing) positions
-    - comparison_df: DataFrame with row, column, true, imputed, and squared error
+    """Compare imputed values to true values at originally missing positions.
+    
+    Calculates mean squared error between imputed and true values specifically at locations
+    that were originally missing, providing a detailed comparison DataFrame for analysis.
+    
+    :param imputed_df: DataFrame with imputed values (same shape as df_complete)
+    :type imputed_df: pandas.DataFrame
+    :param df_complete: DataFrame with true values (ground truth, no NaNs)
+    :type df_complete: pandas.DataFrame
+    :param df_missing: DataFrame with NaNs at original missing locations
+    :type df_missing: pandas.DataFrame
+    :return: Tuple containing MSE value and detailed comparison DataFrame
+    :rtype: tuple[float, pandas.DataFrame]
     """
     # Boolean DataFrame: True where value was originally missing
     missing_mask = df_missing.isna()
@@ -390,3 +425,56 @@ def evaluate_imputation(imputed_df, df_complete, df_missing):
     mse = errors.mean()
     print(f"[INFO] MSE on originally missing entries: {mse:.6f}")
     return mse, comparison_df
+
+
+def get_val_comp_df(model, dataset, device="cpu"):
+    """Get model predictions, denormalize them, and return as DataFrame with cluster labels.
+    
+    Runs the model on the full dataset to generate predictions, denormalizes the output
+    using the dataset's feature statistics, and returns the results as a pandas DataFrame
+    with cluster labels included.
+    
+    :param model: Trained model in evaluation mode
+    :type model: nn.Module
+    :param dataset: Dataset containing normalized data and feature statistics
+    :type dataset: ClusterDataset
+    :param device: Device for computations, defaults to "cpu"
+    :type device: str, optional
+    :return: DataFrame containing denormalized predictions and cluster labels
+    :rtype: pandas.DataFrame
+    """
+    model.eval()
+    
+    # Get inputs and labels
+    full_x = dataset.data.to(device)                       # (N, D), normalized
+    full_cluster = dataset.cluster_labels.to(device)       # (N,)
+    
+    # Get model predictions
+    with torch.no_grad():
+        recon_x, _, _ = model(full_x, full_cluster)        # (N, D), normalized output
+    
+    # Retrieve per-feature stats for denormalization
+    means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
+    stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)    # (D,)
+    
+    # Denormalize model output
+    recon_x_denorm = recon_x * stds + means               # (N, D), denormalized
+    
+    # Convert to numpy/CPU
+    predictions = recon_x_denorm.cpu().numpy()            # (N, D)
+    cluster_labels = full_cluster.cpu().numpy()           # (N,)
+    
+    # Create DataFrame
+    # Assuming dataset has feature names, otherwise use generic names
+    if hasattr(dataset, 'feature_names') and dataset.feature_names is not None:
+        feature_names = dataset.feature_names
+    else:
+        feature_names = [f"feature_{i}" for i in range(predictions.shape[1])]
+    
+    # Create DataFrame with predictions
+    df = pd.DataFrame(predictions, columns=feature_names)
+    
+    # Add cluster labels as a column
+    df['cluster'] = cluster_labels
+    
+    return df
