@@ -25,6 +25,7 @@ dependencies = [
   "torch>=2.0",
   "optuna>=4.3",
   "rich",
+  "typing",
   "matplotlib",
   "scikit-learn"
 ]
