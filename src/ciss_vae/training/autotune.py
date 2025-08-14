@@ -55,6 +55,18 @@ class SearchSpace:
             Candidate counts of shared encoder layers.
         num_shared_decode : list[int]
             Candidate counts of shared decoder layers.
+        encoder_shared_placement : list[str]
+            Strategy for arranging shared vs unshared layers in encoder. 
+                "shared_tail" → "at_end": Put shared layers at the end: [U,U,U,S,S]
+                "shared_head" → "at_start": Put shared layers at the start: [S,S,U,U,U]
+                "alternating" : Spread shared layers evenly: [U,S,U,S,U]
+                "random" : Random placement (uses the seed for reproducibility)
+        decoder_shared_placement : list[str]
+            Strategy for arranging shared vs unshared layers in decoder. 
+                "shared_tail" → "at_end": Put shared layers at the end: [U,U,U,S,S]
+                "shared_head" → "at_start": Put shared layers at the start: [S,S,U,U,U]
+                "alternating" : Spread shared layers evenly: [U,S,U,S,U]
+                "random" : Random placement (uses the seed for reproducibility)
         refit_patience : int | tuple[int, int]
             Early-stop patience for refit loops (or range).
         refit_loops : int | tuple[int, int]
@@ -77,6 +89,8 @@ class SearchSpace:
                  batch_size=64,
                  num_shared_encode=[0, 1, 3],
                  num_shared_decode=[0, 1, 3],
+                 encoder_shared_placement=["at_end", "at_start", "alternating", "random"],
+                 decoder_shared_placement=["at_end", "at_start", "alternating", "random"],
                  refit_patience=2,
                  refit_loops=100,
                  epochs_per_loop = 1000,
@@ -93,6 +107,8 @@ class SearchSpace:
         self.batch_size = batch_size
         self.num_shared_encode = num_shared_encode
         self.num_shared_decode = num_shared_decode
+        self.encoder_shared_placement = encoder_shared_placement
+        self.decoder_shared_placement = decoder_shared_placement
         self.refit_patience = refit_patience
         self.refit_loops = refit_loops
         self.epochs_per_loop = epochs_per_loop
@@ -111,8 +127,8 @@ def autotune(
     load_if_exists=True,
     seed = 42,
     verbose = False,
-    show_progress = True,  # NEW: Added back progress parameter
-    permute_hidden_layers: bool = True,
+    show_progress = False,  # NEW: Added back progress parameter
+    # permute_hidden_layers: bool = True,
     constant_layer_size: bool = False,
     evaluate_all_orders: bool = False,
     max_exhaustive_orders: int = 100,
@@ -121,6 +137,37 @@ def autotune(
     Optuna-based hyperparameter search for the CISSVAE model.
     Runs initial training, then impute–refit loops per trial, and selects the
     trial with the lowest validation MSE.
+    :param search_space: Hyperparameter ranges and fixed values.
+    :type search_space: SearchSpace
+    :param train_dataset: Dataset containing masks, normalization, and cluster labels.
+    :type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset
+    :param save_model_path: Optional path to save the best model's ``state_dict``.
+    :type save_model_path: str | None
+    :param save_search_space_path: Optional path to dump the resolved search-space.
+    :type save_search_space_path: str | None
+    :param n_trials: Number of Optuna trials to run.
+    :type n_trials: int
+    :param study_name: Name for the Optuna study.
+    :type study_name: str
+    :param device_preference: ``"cuda"`` or ``"cpu"``; falls back to CPU if CUDA unavailable.
+    :type device_preference: str
+    :param optuna_dashboard_db: RDB storage URL/file for dashboard (or ``None`` for in‑memory).
+    :type optuna_dashboard_db: str | None
+    :param load_if_exists: Load existing study with the same name from storage.
+    :type load_if_exists: bool
+    :param seed: Base RNG seed for order generation etc.
+    :type seed: int
+    :param verbose: If ``True``, prints diagnostic logs.
+    :type verbose: bool
+    :param constant_layer_size: If ``True``, all hidden layers use the same size.
+    :type constant_layer_size: bool
+    :param evaluate_all_orders: If ``True`` permutes order of shared/unshared layers and evaluates all of them.
+    :type evaluate_all_orders: bool
+    :param max_exhaustive_orders: Max number of permutations to test if evaluate_all_orders is ``True``.
+    :type max_exhaustive_orders: int
+    :returns: Tuple ``(best_imputed_df, best_model, study, results_df)``
+    :rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)
+    :raises ValueError: If search space parameters are malformed or incompatible.
     """
     import warnings
     warnings.filterwarnings("ignore", category=UserWarning)
@@ -184,18 +231,19 @@ def autotune(
             patterns.append(",".join(arr))
         return patterns
     
-    def _canonical_orders(n_layers: int, nse: int, nsd: int):
-        """Canonical (non-permuted) layout"""
-        enc_list = (["unshared"] * (n_layers - nse)) + (["shared"] * nse)
-        dec_list = (["shared"] * nsd) + (["unshared"] * (n_layers - nsd))
-        return _format_order(enc_list), _format_order(dec_list)
+    ## don't need this since we have the things from build order
+    # def _canonical_orders(n_layers: int, nse: int, nsd: int):
+    #     """Canonical (non-permuted) layout. Unshared at beginning of encoder and end of decoder"""
+    #     enc_list = (["unshared"] * (n_layers - nse)) + (["shared"] * nse)
+    #     dec_list = (["shared"] * nsd) + (["unshared"] * (n_layers - nsd))
+    #     return _format_order(enc_list), _format_order(dec_list)
     
     def _build_order(style: str, n_layers: int, n_shared: int, rng: random.Random):
         n_shared = max(0, min(int(n_shared), int(n_layers)))
         shared_positions = list(range(n_layers))
-        if style == "shared_tail":
+        if style == "at_end":
             pos = list(range(n_layers - n_shared, n_layers))
-        elif style == "shared_head":
+        elif style == "at_start":
             pos = list(range(0, n_shared))
         elif style == "alternating":
             pos = list(range(0, n_layers, max(1, n_layers // max(1, n_shared))))[:n_shared] if n_shared > 0 else []
@@ -208,7 +256,9 @@ def autotune(
             arr[i] = 'shared'
         return arr
     
-    # NEW: Create a wrapper for training functions that uses track()
+    # ------------------------------------------------
+    # Wrapper for train_initial and impute_refit functions that uses track()
+    # ------------------------------------------------
     def train_vae_initial_with_progress(model, train_loader, epochs, initial_lr, decay_factor, beta, device, verbose_inner=False):
         """Wrapper for train_vae_initial that uses Rich track() for progress"""
         if show_progress:
@@ -332,10 +382,8 @@ def autotune(
         nsd_raw = trial.suggest_categorical("num_shared_decode", sorted(set(search_space.num_shared_decode)))
         num_shared_encode = int(min(int(nse_raw), int(num_hidden_layers)))
         num_shared_decode = int(min(int(nsd_raw), int(num_hidden_layers)))
-        order_style_enc = trial.suggest_categorical("order_style_enc", ["shared_tail", "shared_head", "alternating", "random"])
-        order_style_dec = trial.suggest_categorical("order_style_dec", ["shared_head", "shared_tail", "alternating", "random"])
-        order_seed_enc = trial.suggest_int("order_seed_enc", 0, 10_000)
-        order_seed_dec = trial.suggest_int("order_seed_dec", 0, 10_000)
+        encoder_shared_placement = trial.suggest_categorical("encoder_shared_placement", search_space.encoder_shared_placement)
+        decoder_shared_placement = trial.suggest_categorical("decoder_shared_placement", search_space.decoder_shared_placement)
         
         refit_patience = sample_param(trial, "refit_patience", search_space.refit_patience)
         refit_loops = sample_param(trial, "refit_loops", search_space.refit_loops)
@@ -345,29 +393,33 @@ def autotune(
         trial.set_user_attr("num_shared_decode_effective", int(num_shared_decode))
         lr_refit = learning_rate if reset_lr_refit else None
         
-        # NEW: Show parameters with Rich
+        ## Show parameters with Rich (progress bar)
         if show_progress:
             console.print(f"Parameters: layers={num_hidden_layers}, latent_dim={latent_dim}, lr={learning_rate:.2e}, batch_size={batch_size}")
         elif verbose:
             print(f"  Parameters: layers={num_hidden_layers}, latent_dim={latent_dim}, lr={learning_rate:.2e}")
         
         # --------------------------
-        # Build orders
+        # Build orders for shared/unshared layers
         # --------------------------
         if evaluate_all_orders:
             enc_pool = _enumerate_orders(num_hidden_layers, num_shared_encode)
             dec_pool = _enumerate_orders(num_hidden_layers, num_shared_decode)
             combos_to_eval = list(product(enc_pool, dec_pool))
+            ## if max_exhaustive_orders, 
+            if max_exhaustive_orders:
+                rng_ord = random.Random(seed * 9912 + seed)
+                combos_to_eval = rng_ord.sample(combos_to_eval, k=max_exhaustive_orders)
+
         else:
-            if permute_hidden_layers:
-                rng_enc = random.Random(seed * 9973 + order_seed_enc)
-                rng_dec = random.Random(seed * 9967 + order_seed_dec)
-                layer_order_enc = _build_order(order_style_enc, num_hidden_layers, num_shared_encode, rng_enc)
-                layer_order_dec = _build_order(order_style_dec, num_hidden_layers, num_shared_decode, rng_dec)
-            else:
-                enc_pat, dec_pat = _canonical_orders(num_hidden_layers, num_shared_encode, num_shared_decode)
-                layer_order_enc = _decode_pattern(enc_pat)
-                layer_order_dec = _decode_pattern(dec_pat)
+            # -----------------------
+            # Reproducable seeds for random generated layer order
+            # - uses _build_order() to determine the appropriate layer orders based on enc/decoder_shared_placement
+            # -----------------------
+            rng_enc = random.Random(seed * 9973 + seed)
+            rng_dec = random.Random(seed * 9967 + seed)
+            layer_order_enc = _build_order(encoder_shared_placement, num_hidden_layers, num_shared_encode, rng_enc)
+            layer_order_dec = _build_order(decoder_shared_placement, num_hidden_layers, num_shared_decode, rng_dec)
             combos_to_eval = [(_format_order(layer_order_enc), _format_order(layer_order_dec))]
         
         best_val = None
@@ -481,6 +533,9 @@ def autotune(
     else:
         print("Training final model with best parameters...")
     
+    # ---------------------
+    # Extract best params for final model training
+    # ---------------------
     best_params = study.best_trial.params 
     
     def get_best_param(name):
@@ -489,7 +544,7 @@ def autotune(
         else:
             return getattr(search_space, name)
     
-    # Get best parameters
+    ## get num hidden layers
     best_num_hidden_layers = get_best_param("num_hidden_layers")
     
     if constant_layer_size:
@@ -515,7 +570,7 @@ def autotune(
             else:
                 best_hidden_dims = [hdims] * best_num_hidden_layers
     
-    # Get best layer orders
+    ## get layer orders
     ua = study.best_trial.user_attrs
     nse_eff = int(ua.get("num_shared_encode_effective",
                          min(int(best_params.get("num_shared_encode", 0)), int(best_num_hidden_layers))))
@@ -523,8 +578,6 @@ def autotune(
                          min(int(best_params.get("num_shared_decode", 0)), int(best_num_hidden_layers))))
     enc_pat = study.best_trial.user_attrs.get("best_layer_order_enc")
     dec_pat = study.best_trial.user_attrs.get("best_layer_order_dec")
-    if enc_pat is None or dec_pat is None:
-        enc_pat, dec_pat = _canonical_orders(best_num_hidden_layers, nse_eff, nsd_eff)
     
     best_layer_order_enc = _decode_pattern(enc_pat)
     best_layer_order_dec = _decode_pattern(dec_pat)
@@ -536,6 +589,10 @@ def autotune(
     decay_factor = float(get_best_param("decay_factor"))
     beta = float(get_best_param("beta"))
     batch_size = int(get_best_param("batch_size"))
+    refit_patience = bool(get_best_param("refit_patience"))
+    refit_loops = int(get_best_param("refit_loops"))
+    epochs_per_loop = int(get_best_param("epochs_per_loop"))
+    reset_lr_refit = bool(get_best_param("reset_lr_refit"))
     
     # ---------------------------
     # Build & train final model
@@ -568,11 +625,11 @@ def autotune(
             )
         
         # Final refit with progress
-        estimated_refit_epochs = search_space.refit_loops * search_space.epochs_per_loop
-        if isinstance(search_space.refit_loops, tuple):
-            estimated_refit_epochs = search_space.refit_loops[0] * search_space.epochs_per_loop
-        if isinstance(search_space.epochs_per_loop, tuple):
-            estimated_refit_epochs = search_space.refit_loops * search_space.epochs_per_loop[0]
+        estimated_refit_epochs = refit_loops * epochs_per_loop
+        if isinstance(refit_loops, tuple):
+            estimated_refit_epochs = refit_loops[0] * epochs_per_loop
+        if isinstance(epochs_per_loop, tuple):
+            estimated_refit_epochs = refit_loops * epochs_per_loop[0]
         
         progress_iter = track(range(estimated_refit_epochs), description="Final refit loops")
         progress_iter = iter(progress_iter)
@@ -587,9 +644,9 @@ def autotune(
         best_imputed_df, best_model, _, _ = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
-            max_loops=search_space.refit_loops,
-            patience=search_space.refit_patience,
-            epochs_per_loop=search_space.epochs_per_loop,
+            max_loops=refit_loops,
+            patience=refit_patience,
+            epochs_per_loop=epochs_per_loop,
             initial_lr=lr,
             decay_factor=decay_factor,
             beta=beta,
@@ -613,9 +670,9 @@ def autotune(
         best_imputed_df, best_model, _, _ = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
-            max_loops=search_space.refit_loops,
-            patience=search_space.refit_patience,
-            epochs_per_loop=search_space.epochs_per_loop,
+            max_loops=refit_loops,
+            patience=refit_patience,
+            epochs_per_loop=epochs_per_loop,
             initial_lr=lr,
             decay_factor=decay_factor,
             beta=beta,
@@ -657,421 +714,4 @@ def autotune(
         rows.append(row)
     results_df = pd.DataFrame(rows)
     
-    return best_imputed_df, best_model, study, results_df
-    r"""
-    Optuna-based hyperparameter search for the CISSVAE model.
-    Runs initial training, then impute–refit loops per trial, and selects the
-    trial with the lowest validation MSE.
-    :param search_space: Hyperparameter ranges and fixed values.
-    :type search_space: SearchSpace
-    :param train_dataset: Dataset containing masks, normalization, and cluster labels.
-    :type train_dataset: ciss_vae.classes.cluster_dataset.ClusterDataset
-    :param save_model_path: Optional path to save the best model's ``state_dict``.
-    :type save_model_path: str | None
-    :param save_search_space_path: Optional path to dump the resolved search-space.
-    :type save_search_space_path: str | None
-    :param n_trials: Number of Optuna trials to run.
-    :type n_trials: int
-    :param study_name: Name for the Optuna study.
-    :type study_name: str
-    :param device_preference: ``"cuda"`` or ``"cpu"``; falls back to CPU if CUDA unavailable.
-    :type device_preference: str
-    :param optuna_dashboard_db: RDB storage URL/file for dashboard (or ``None`` for in‑memory).
-    :type optuna_dashboard_db: str | None
-    :param load_if_exists: Load existing study with the same name from storage.
-    :type load_if_exists: bool
-    :param seed: Base RNG seed for order generation etc.
-    :type seed: int
-    :param verbose: If ``True``, prints diagnostic logs.
-    :type verbose: bool
-    :param permute_hidden_layers: If ``True``, randomize layer orders per trial.
-    :type permute_hidden_layers: bool
-    :param constant_layer_size: If ``True``, all hidden layers use the same size.
-    :type constant_layer_size: bool
-    :returns: Tuple ``(best_imputed_df, best_model, study, results_df)``
-    :rtype: (pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame)
-    :raises ValueError: If search space parameters are malformed or incompatible.
-    """
-    import warnings
-    warnings.filterwarnings("ignore", category=UserWarning)
-    
-    # --------------------------
-    # Infer device
-    # --------------------------
-    if device_preference == "cuda" and not torch.cuda.is_available():
-        print("[Warning] CUDA requested but not available. Falling back to CPU.")
-        device = torch.device("cpu")
-    else:
-        device = torch.device(device_preference)
-    direction="minimize"
-    
-    # --------------------------
-    # Infer input dim and num clusters
-    # --------------------------
-    input_dim = train_dataset.raw_data.shape[1]
-    num_clusters = len(torch.unique(train_dataset.cluster_labels))
-    
-    # --------------------------
-    # Helper to sample from fixed, categorical, or range param
-    # --------------------------
-    def sample_param(trial, name, value):
-        if isinstance(value, (int, float, bool, str)):
-            return value
-        elif isinstance(value, list):
-            return trial.suggest_categorical(name, value)
-        elif isinstance(value, tuple):
-            if all(isinstance(v, int) for v in value):
-                return trial.suggest_int(name, value[0], value[1])
-            elif all(isinstance(v, float) for v in value):
-                return trial.suggest_float(name, value[0], value[1], log=value[0] > 0)
-        raise ValueError(f"Unsupported parameter format for '{name}': {value}")
-    
-    # --------------------------
-    # Helpers to format order of shared/unshared + control for enumerating or sampling form orders
-    # --------------------------
-    def _format_order(order_list):
-        """['shared','unshared',...] → 'S,U,...' (stable, readable, categorical)"""
-        abbrev = {'shared': 'S', 'unshared': 'U'}
-        return ",".join(abbrev[x] for x in order_list)
-    
-    def _decode_pattern(p: str):
-        """'S,U,S' → ['shared','unshared','shared']"""
-        m = {'S': 'shared', 'U': 'unshared'}
-        return [m[x] for x in str(p).split(",")]
-    
-    def _enumerate_orders(n_layers: int, n_shared: int):
-        """Deterministically enumerate **all** valid orders (no randomness)."""
-        if n_layers < 0 or n_shared < 0 or n_shared > n_layers:
-            return []
-        patterns = []
-        for idxs in combinations(range(n_layers), n_shared):
-            arr = ['U'] * n_layers
-            for i in idxs:
-                arr[i] = 'S'
-            patterns.append(",".join(arr))
-        return patterns
-    
-    def _canonical_orders(n_layers: int, nse: int, nsd: int):
-        """Canonical (non-permuted) layout"""
-        enc_list = (["unshared"] * (n_layers - nse)) + (["shared"] * nse)
-        dec_list = (["shared"] * nsd) + (["unshared"] * (n_layers - nsd))
-        return _format_order(enc_list), _format_order(dec_list)
-    
-    def _build_order(style: str, n_layers: int, n_shared: int, rng: random.Random):
-        n_shared = max(0, min(int(n_shared), int(n_layers)))
-        shared_positions = list(range(n_layers))
-        if style == "shared_tail":
-            pos = list(range(n_layers - n_shared, n_layers))
-        elif style == "shared_head":
-            pos = list(range(0, n_shared))
-        elif style == "alternating":
-            pos = list(range(0, n_layers, max(1, n_layers // max(1, n_shared))))[:n_shared] if n_shared > 0 else []
-        elif style == "random":
-            pos = rng.sample(shared_positions, n_shared)
-        else:
-            pos = list(range(n_layers - n_shared, n_layers))  # fallback
-        arr = ['unshared'] * n_layers
-        for i in pos:
-            arr[i] = 'shared'
-        return arr
-    
-    # --------------------------
-    # Create Optuna objective
-    # --------------------------
-    def objective(trial):
-        if verbose:
-            print(f"\nStarting Trial {trial.number + 1}/{n_trials}")
-        
-        # --------------------------
-        # Parse Parameters
-        # --------------------------
-        num_hidden_layers = sample_param(trial, "num_hidden_layers", search_space.num_hidden_layers)
-        
-        # ---- Hidden dimensions ----
-        if constant_layer_size:
-            base_dim = sample_param(trial, "hidden_dim_constant", search_space.hidden_dims)
-            hidden_dims = [base_dim] * num_hidden_layers
-        else:
-            hidden_dims = [
-                sample_param(trial, f"hidden_dim_{i}", search_space.hidden_dims)
-                for i in range(num_hidden_layers)
-            ]
-        
-        latent_dim = sample_param(trial, "latent_dim", search_space.latent_dim)
-        latent_shared = sample_param(trial, "latent_shared", search_space.latent_shared)
-        output_shared = sample_param(trial, "output_shared", search_space.output_shared)
-        learning_rate = sample_param(trial, "lr", search_space.lr)
-        decay_factor = sample_param(trial, "decay_factor", search_space.decay_factor)
-        beta = sample_param(trial, "beta", search_space.beta)
-        num_epochs = sample_param(trial, "num_epochs", search_space.num_epochs)
-        batch_size = sample_param(trial, "batch_size", search_space.batch_size)
-        
-        # Handle num_shared_encode/decode 
-        nse_raw = trial.suggest_categorical("num_shared_encode", sorted(set(search_space.num_shared_encode)))
-        nsd_raw = trial.suggest_categorical("num_shared_decode", sorted(set(search_space.num_shared_decode)))
-        num_shared_encode = int(min(int(nse_raw), int(num_hidden_layers)))
-        num_shared_decode = int(min(int(nsd_raw), int(num_hidden_layers)))
-        order_style_enc = trial.suggest_categorical("order_style_enc", ["shared_tail", "shared_head", "alternating", "random"])
-        order_style_dec = trial.suggest_categorical("order_style_dec", ["shared_head", "shared_tail", "alternating", "random"])
-        order_seed_enc = trial.suggest_int("order_seed_enc", 0, 10_000)
-        order_seed_dec = trial.suggest_int("order_seed_dec", 0, 10_000)
-        
-        refit_patience = sample_param(trial, "refit_patience", search_space.refit_patience)
-        refit_loops = sample_param(trial, "refit_loops", search_space.refit_loops)
-        epochs_per_loop = sample_param(trial, "epochs_per_loop", search_space.epochs_per_loop)
-        reset_lr_refit = sample_param(trial, "reset_lr_refit", search_space.reset_lr_refit)
-        trial.set_user_attr("num_shared_encode_effective", int(num_shared_encode))
-        trial.set_user_attr("num_shared_decode_effective", int(num_shared_decode))
-        lr_refit = learning_rate if reset_lr_refit else None
-
-        if verbose:
-            print(f"  Parameters: layers={num_hidden_layers}, latent_dim={latent_dim}, lr={learning_rate:.2e}")
-
-        # --------------------------
-        # Build orders
-        # --------------------------
-        if evaluate_all_orders:
-            enc_pool = _enumerate_orders(num_hidden_layers, num_shared_encode)
-            dec_pool = _enumerate_orders(num_hidden_layers, num_shared_decode)
-            combos_to_eval = list(product(enc_pool, dec_pool))
-        else:
-            if permute_hidden_layers:
-                rng_enc = random.Random(seed * 9973 + order_seed_enc)
-                rng_dec = random.Random(seed * 9967 + order_seed_dec)
-                layer_order_enc = _build_order(order_style_enc, num_hidden_layers, num_shared_encode, rng_enc)
-                layer_order_dec = _build_order(order_style_dec, num_hidden_layers, num_shared_decode, rng_dec)
-            else:
-                enc_pat, dec_pat = _canonical_orders(num_hidden_layers, num_shared_encode, num_shared_decode)
-                layer_order_enc = _decode_pattern(enc_pat)
-                layer_order_dec = _decode_pattern(dec_pat)
-            combos_to_eval = [(_format_order(layer_order_enc), _format_order(layer_order_dec))]
-
-        best_val = None
-        best_patterns = None
-        best_refit_history_df = None
-
-        # --------------------------
-        # Train each combination
-        # --------------------------
-        for enc_pat, dec_pat in combos_to_eval:
-            layer_order_enc = _decode_pattern(enc_pat)
-            layer_order_dec = _decode_pattern(dec_pat)
-            
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-            model = CISSVAE(
-                input_dim=input_dim,
-                hidden_dims=hidden_dims,
-                layer_order_enc=layer_order_enc,
-                layer_order_dec=layer_order_dec,
-                latent_shared=latent_shared,
-                num_clusters=num_clusters,
-                latent_dim=latent_dim,
-                output_shared=output_shared
-            ).to(device)
-
-            if verbose:
-                print(f"  Starting initial training...")
-
-            # Initial training
-            model = train_vae_initial(
-                model=model,
-                train_loader=train_loader,
-                epochs=num_epochs,
-                initial_lr=learning_rate,
-                decay_factor=decay_factor,
-                beta=beta,
-                device=device,
-                verbose=verbose
-            )
-            
-            if verbose:
-                print(f"  Starting refit loops...")
-
-            # Impute && refit loop
-            _, model, _, refit_history_df = impute_and_refit_loop(
-                model=model,
-                train_loader=train_loader,
-                max_loops=refit_loops,
-                patience=refit_patience,
-                epochs_per_loop=epochs_per_loop,
-                initial_lr=lr_refit,
-                decay_factor=decay_factor,
-                beta=beta,
-                device=device,
-                verbose=verbose,
-                batch_size=batch_size,
-            )
-
-            # Get validation MSE
-            val_mse = compute_val_mse(model, train_loader.dataset, device)
-            if (best_val is None) or (val_mse < best_val):
-                best_val = val_mse
-                best_patterns = (enc_pat, dec_pat)
-                best_refit_history_df = refit_history_df
-
-        if verbose:
-            print(f"  Trial {trial.number + 1} complete - Validation MSE: {best_val:.6f}")
-
-        # Report intermediate values to Optuna
-        if best_refit_history_df is not None and "val_mse" in best_refit_history_df.columns:
-            for i, v in enumerate(best_refit_history_df["val_mse"]):
-                if pd.notna(v):
-                    trial.report(float(v), step=i)
-
-        # Record the chosen best patterns for this trial
-        if best_patterns is not None:
-            trial.set_user_attr("best_layer_order_enc", best_patterns[0])
-            trial.set_user_attr("best_layer_order_dec", best_patterns[1])
-
-        return best_val
-
-    # -----------------------
-    # Optuna study setup
-    # -----------------------
-    study = optuna.create_study(
-        direction=direction,
-        study_name=study_name,
-        storage=optuna_dashboard_db,
-        load_if_exists=load_if_exists
-    )
-
-    # -----------------------
-    # Run optimization
-    # -----------------------
-    print(f"Starting Optuna optimization with {n_trials} trials...")
-    study.optimize(objective, n_trials=n_trials)
-    print(f"Optimization complete. Best trial: {study.best_trial.number} (MSE: {study.best_value:.6f})")
-
-    # -----------------------
-    # Final model training
-    # -----------------------
-    print("Training final model with best parameters...")
-
-    best_params = study.best_trial.params 
-    
-    def get_best_param(name):
-        if name in best_params:
-            return best_params[name]
-        else:
-            return getattr(search_space, name)
-
-    # Get best parameters
-    best_num_hidden_layers = get_best_param("num_hidden_layers")
-    
-    if constant_layer_size:
-        if "hidden_dim_constant" in best_params:
-            base_dim = best_params["hidden_dim_constant"]
-        else:
-            base_dim = getattr(search_space, "hidden_dims", 64)
-            if isinstance(base_dim, (list, tuple)):
-                base_dim = base_dim[0]
-        best_hidden_dims = [int(base_dim)] * best_num_hidden_layers
-    else:
-        if f"hidden_dim_0" in best_params:
-            best_hidden_dims = [best_params[f"hidden_dim_{i}"] for i in range(best_num_hidden_layers)]
-        else:
-            hdims = get_best_param("hidden_dims")
-            if isinstance(hdims, list):
-                if len(hdims) == 1:
-                    best_hidden_dims = hdims * best_num_hidden_layers
-                elif len(hdims) < best_num_hidden_layers:
-                    best_hidden_dims = (hdims * best_num_hidden_layers)[:best_num_hidden_layers]
-                else:
-                    best_hidden_dims = hdims[:best_num_hidden_layers]
-            else:
-                best_hidden_dims = [hdims] * best_num_hidden_layers
-
-    # Get best layer orders
-    ua = study.best_trial.user_attrs
-    nse_eff = int(ua.get("num_shared_encode_effective",
-                         min(int(best_params.get("num_shared_encode", 0)), int(best_num_hidden_layers))))
-    nsd_eff = int(ua.get("num_shared_decode_effective",
-                         min(int(best_params.get("num_shared_decode", 0)), int(best_num_hidden_layers))))
-    enc_pat = study.best_trial.user_attrs.get("best_layer_order_enc")
-    dec_pat = study.best_trial.user_attrs.get("best_layer_order_dec")
-    if enc_pat is None or dec_pat is None:
-        enc_pat, dec_pat = _canonical_orders(best_num_hidden_layers, nse_eff, nsd_eff)
-
-    best_layer_order_enc = _decode_pattern(enc_pat)
-    best_layer_order_dec = _decode_pattern(dec_pat)
-    latent_shared = bool(get_best_param("latent_shared"))
-    output_shared = bool(get_best_param("output_shared"))
-    latent_dim = int(get_best_param("latent_dim"))
-    num_epochs = int(get_best_param("num_epochs"))
-    lr = float(get_best_param("lr"))
-    decay_factor = float(get_best_param("decay_factor"))
-    beta = float(get_best_param("beta"))
-    batch_size = int(get_best_param("batch_size"))
-
-    # ---------------------------
-    # Build && train final model
-    # ---------------------------
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    best_model = CISSVAE(
-        input_dim=input_dim,
-        hidden_dims=best_hidden_dims,
-        layer_order_enc=best_layer_order_enc,
-        layer_order_dec=best_layer_order_dec,
-        latent_shared=latent_shared,
-        num_clusters=num_clusters,
-        latent_dim=latent_dim,
-        output_shared=output_shared
-    ).to(device)
-
-    # Final training
-    best_model = train_vae_initial(
-        model=best_model,
-        train_loader=train_loader,
-        epochs=num_epochs,
-        initial_lr=lr,
-        decay_factor=decay_factor,
-        beta=beta,
-        device=device,
-        verbose=verbose
-    )
-
-    best_imputed_df, best_model, _, _ = impute_and_refit_loop(
-        model=best_model,
-        train_loader=train_loader,
-        max_loops=search_space.refit_loops,
-        patience=search_space.refit_patience,
-        epochs_per_loop=search_space.epochs_per_loop,
-        initial_lr=lr,
-        decay_factor=decay_factor,
-        beta=beta,
-        device=device,
-        verbose=verbose
-    )
-
-    print("Final model training complete.")
-
-    # -----------------------
-    # Save results
-    # -----------------------
-    if save_model_path:
-        torch.save(best_model.state_dict(), save_model_path)
-        print(f"Model saved to {save_model_path}")
-
-    if save_search_space_path:
-        with open(save_search_space_path, "w") as f:
-            json.dump(search_space.__dict__, f, indent=4)
-        print(f"Search space saved to {save_search_space_path}")
-
-    # Create results DataFrame
-    rows = []
-    for t in study.trials:
-        row = {"trial_number": t.number, "val_mse": t.value, **t.params}
-        row["layer_order_enc_used"] = (
-            t.params.get("layer_order_enc")
-            or t.user_attrs.get("best_layer_order_enc")
-            or t.user_attrs.get("layer_order_enc_used")
-        )
-        row["layer_order_dec_used"] = (
-            t.params.get("layer_order_dec")
-            or t.user_attrs.get("best_layer_order_dec")
-            or t.user_attrs.get("layer_order_dec_used")
-        )
-        rows.append(row)
-    results_df = pd.DataFrame(rows)
-
     return best_imputed_df, best_model, study, results_df
