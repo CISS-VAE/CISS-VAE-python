@@ -51,3 +51,5 @@ target-version = ["py38"]
 where = ["./src"]
 include = ["ciss_vae*"]
 
+[tool.setuptools.package-data]
+your_package = ["data/*.csv"]

@@ -52,8 +52,16 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 # Quickstart
 
-If you already know what parameters you want for your model (or do not
-want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
+You can use your own dataset or load the example dataset included with this package. 
+
+To load the sample dataset:
+
+``` python
+from ciss_vae.data import load_example_dataset
+df_missing, df_complete, clusters = load_example_dataset()
+```
+
+If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
 
 Your input dataset should be one of the following:
 
@@ -82,10 +90,7 @@ from ciss_vae.utils.run_cissvae import run_cissvae
 # optional, display vae architecture
 from ciss_vae.utils.helpers import plot_vae_architecture
 
-data = pd.read_csv("/data/test_data.csv")
-
-clusters = data.clusters
-data = data.drop(columns = ["clusters", "Unnamed: 0"])
+df_missing, _, clusters = load_example_dataset()
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
@@ -95,7 +100,7 @@ imputed_data, vae = run_cissvae(data = data,
     print_dataset = True, 
 
 ## Cluster params
-    clusters = None, ## Where your cluster list goes. If none, will do clustering for you  
+    clusters = clusters, ## Where your cluster list goes. If none, will do clustering for you  
     n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
     cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN 
     seed = 42,
@@ -144,12 +149,19 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
-![Output of plot_vae_architecture](image-1.png)
+![Output of plot_vae_architecture](image-1v2.png)
 
 # Hyperparameter Tuning with Optuna
 
 The {py:func}`ciss_vae.training.autotune.autotune` function lets you tune the model's hyperparameters with
 optuna to get the best possible model.
+
+To load the sample dataset:
+
+``` python
+from ciss_vae.data import load_example_dataset
+df_missing, df_complete, clusters = load_example_dataset()
+```
 
 ## Dataset Preparation
 
@@ -177,7 +189,7 @@ You can use the built-in function:
 ``` python
 from ciss_vae.utils import cluster_on_missing
 
-clusters = cluster_on_missing(data, cols_ignore=None, n_clusters=None, seed=42)
+clusters = cluster_on_missing(df_missing, cols_ignore=None, n_clusters=None, seed=42)
 ```
 
 This function uses HDBSCAN clustering to detect structure in binary
@@ -193,6 +205,8 @@ pattern.
 You should store your cluster labels separately for input into the model
 constructor.
 
+**To cluster on proportion of missingness, see (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.**
+
 # Creating a `ClusterDataset` object
 
 Once you've computed the cluster labels, you'll convert your dataset
@@ -204,7 +218,7 @@ from ciss_vae.training.autotune import SearchSpace, autotune
 
 dataset = ClusterDataset(data = data,
 cluster_labels = clusters,
-val_proportion = 0.1, ## 10% non-missing data is default.
+val_proportion = 0.1, ## 10% non-missing data is default. You can also input a list if you want different val_proportions for each cluster
 replacement_value = 0, ## value to replace all missing data with before running model. Could be set to 0 or random
 columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entries demographic columns for validation
 )
@@ -226,7 +240,7 @@ Types of parameters:
 
 searchspace = SearchSpace(
                  num_hidden_layers=(1, 4), ## Set number of hidden layers
-                 hidden_dims=[64, 512],
+                 hidden_dims=[64, 512], ## Allowable dimensions of hidden layers
                  latent_dim=[10, 100],
                  latent_shared=[True, False],
                  output_shared=[True,False],
@@ -237,6 +251,8 @@ searchspace = SearchSpace(
                  batch_size=64,
                  num_shared_encode=[0, 1, 3],
                  num_shared_decode=[0, 1, 3],
+                 encoder_shared_placement = ["at_end", "at_start", "alternating", "random"], ## where should the shared layers be placed in the encoder
+                 decoder_shared_placement = ["at_end", "at_start", "alternating", "random"], ## where should the shared layers be placed in the decoder
                  refit_patience=2,
                  refit_loops=100,
                  epochs_per_loop = 1000,
@@ -246,6 +262,19 @@ searchspace = SearchSpace(
 ## Run the `autotune` function:
 
 Once the search space is set, the autotune function can be run.
+
+There are a few options for running the autotune function, depending on your goals.   
+    1. Default:     
+        - Tune on a random sample of parameters from the SearchSpace obbject. This is the traditional autotune behavior.   
+        - For this behavior, set `constant_layer_size=False` and `evaluate_all_orders=False`.  
+    2. Tune with constant layer size:  
+        - All layers will be the same size. The size will be one selected from searchspace. 
+        (ex: if `searchspace.num_hidden_layers` = [64, 512], all layers will be 64 or all layers will be 512),  
+        - For this behavior, set `constant_layer_size=False`  
+    3. Tune for all permutations of shared layer placement:  
+        - Will tune all possible layer orders/placements. Use `max_exhaustive_orders` to set a cap on the number of permutations to try.  
+        - For this behavior, set `evaluate_all_orders=True`  
+
 
 ``` python
 
@@ -272,9 +301,11 @@ to visualize the importance of your tuning parameters. If you use VSCode
 or [Positron](https://positron.posit.co/download.html) there is an
 extension for viewing optuna dashboards in your development environment.
 
-To use optuna dashboard, set your database in the autotune function. You
-can have multiple autotune 'studies' in the same database and compare
-them.
+The optuna database file can be opened via commandline as well. (tutorial)[https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html#command-line-interface]  
+
+
+To use optuna dashboard, set your database url in the autotune function. You
+can have multiple autotune 'studies' in the same database.
 
 ``` python
 best_imputed_df,  best_model, study, results_df = autotune(
