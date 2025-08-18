@@ -33,5 +33,6 @@ Utilities & Helpers
    run_cissvae.run_cissvae
    run_cissvae.cluster_on_missing
    run_cissvae.cluster_on_missing_prop
+   matrix.make_missingness_prop_matrix
    helpers.get_imputed_df
    helpers.plot_vae_architecture

@@ -65,6 +65,16 @@ Your input dataset should be one of the following:
 
 Missing values should be represented using np.nan or None.
 
+**Assigning cluster labels**  
+There are three options for assigning cluster labels for your data:  
+    1. Manually assign cluster labels. You can assign your own cluster labels and provide them to the function via the `clusters` argument.   
+    2. Assign clusters by missingness pattern. To automatically assign clusters via the pattern of missingness in the data, set `clusters = None`.   
+    To use Kmeans clustering, set n_clusters to the number of clusters you want. To use HDBSCAN clustering, leave `n_clusters = None`.   
+    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix`   argument. To use Kmeans clustering, set n_clusters to the number of clusters you want. To use HDBSCAN clustering, leave `n_clusters = None`.     
+        For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.   
+
+To run with default parameters:
+
 ``` python
 import pandas as pd
 from ciss_vae.utils.run_cissvae import run_cissvae
@@ -79,7 +89,7 @@ data = data.drop(columns = ["clusters", "Unnamed: 0"])
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
-    val_percent = 0.1, ## Fraction of non-missing data held out for validation
+    val_proportion = 0.1, ## Fraction of non-missing data held out for validation. Can input a list here if you want different proportions for different clusters. 
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
@@ -89,6 +99,7 @@ imputed_data, vae = run_cissvae(data = data,
     n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
     cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN 
     seed = 42,
+    missingness_proportion_matrix = None,
     
 ## VAE model params
     hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
@@ -118,6 +129,7 @@ imputed_data, vae = run_cissvae(data = data,
 ## Other params
     verbose = False, 
     return_silhouettes = False, ## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return "None"
+    return_history = False, ## if true, will return training MSE history as pandas dataframe
 )
 
 ## OPTIONAL - PLOT VAE ARCHITECTURE
@@ -192,7 +204,7 @@ from ciss_vae.training.autotune import SearchSpace, autotune
 
 dataset = ClusterDataset(data = data,
 cluster_labels = clusters,
-val_percent = 0.1, ## 10% non-missing data is default.
+val_proportion = 0.1, ## 10% non-missing data is default.
 replacement_value = 0, ## value to replace all missing data with before running model. Could be set to 0 or random
 columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entries demographic columns for validation
 )
