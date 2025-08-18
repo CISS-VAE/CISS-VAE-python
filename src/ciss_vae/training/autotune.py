@@ -378,6 +378,7 @@ def autotune(
         nsd_raw = trial.suggest_categorical("num_shared_decode", sorted(set(search_space.num_shared_decode)))
         num_shared_encode = int(min(int(nse_raw), int(num_hidden_layers)))
         num_shared_decode = int(min(int(nsd_raw), int(num_hidden_layers)))
+
         encoder_shared_placement = trial.suggest_categorical("encoder_shared_placement", search_space.encoder_shared_placement)
         decoder_shared_placement = trial.suggest_categorical("decoder_shared_placement", search_space.decoder_shared_placement)
         
@@ -385,8 +386,10 @@ def autotune(
         refit_loops = sample_param(trial, "refit_loops", search_space.refit_loops)
         epochs_per_loop = sample_param(trial, "epochs_per_loop", search_space.epochs_per_loop)
         reset_lr_refit = sample_param(trial, "reset_lr_refit", search_space.reset_lr_refit)
+
         trial.set_user_attr("num_shared_encode_effective", int(num_shared_encode))
         trial.set_user_attr("num_shared_decode_effective", int(num_shared_decode))
+
         lr_refit = learning_rate if reset_lr_refit else None
         
         ## Show parameters with Rich (progress bar)
@@ -402,9 +405,10 @@ def autotune(
             enc_pool = _enumerate_orders(num_hidden_layers, num_shared_encode)
             dec_pool = _enumerate_orders(num_hidden_layers, num_shared_decode)
             combos_to_eval = list(product(enc_pool, dec_pool))
-            ## if max_exhaustive_orders, 
-            if max_exhaustive_orders:
-                rng_ord = random.Random(seed * 9912 + seed)
+
+            # FIXED: Apply max_exhaustive_orders limit !!
+            if len(combos_to_eval) > max_exhaustive_orders:
+                rng_ord = random.Random(seed * 9912 + trial.number)  # Use trial number for reproducibility
                 combos_to_eval = rng_ord.sample(combos_to_eval, k=max_exhaustive_orders)
 
         else:
@@ -441,7 +445,7 @@ def autotune(
                 output_shared=output_shared
             ).to(device)
             
-            # NEW: Use progress wrappers instead of original functions
+            ## Use progress wrappers instead of original functions
             model = train_vae_initial_with_progress(
                 model=model,
                 train_loader=train_loader,
@@ -474,7 +478,7 @@ def autotune(
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = refit_history_df
         
-        # NEW: Show completion with Rich
+        # Show completion with Rich
         if show_progress:
             console.print(f"✓ Trial {trial.number + 1} complete - MSE: {best_val:.4f}")
         elif verbose:
@@ -503,10 +507,12 @@ def autotune(
         load_if_exists=load_if_exists
     )
     
+    study.set_metric_names(["Validation MSE"]) 
+    
     # -----------------------
     # Run optimization
     # -----------------------
-    # NEW: Use Rich console for study start
+    # Use Rich console for study start
     if show_progress:
         console.print(f"[bold blue]Starting Optuna optimization with {n_trials} trials...")
     else:
@@ -514,7 +520,7 @@ def autotune(
     
     study.optimize(objective, n_trials=n_trials)
     
-    # NEW: Use Rich console for completion
+    # Use Rich console for completion
     if show_progress:
         console.print(f"\n[bold green]✓ Optimization complete!")
         console.print(f"Best trial: {study.best_trial.number} (MSE: {study.best_value:.6f})")
@@ -577,6 +583,7 @@ def autotune(
     
     best_layer_order_enc = _decode_pattern(enc_pat)
     best_layer_order_dec = _decode_pattern(dec_pat)
+
     latent_shared = bool(get_best_param("latent_shared"))
     output_shared = bool(get_best_param("output_shared"))
     latent_dim = int(get_best_param("latent_dim"))
@@ -605,7 +612,7 @@ def autotune(
         output_shared=output_shared
     ).to(device)
     
-    # NEW: Use track() for final training too
+    # Use track() for final training too
     if show_progress:
         # Final initial training with progress
         for epoch in track(range(num_epochs), description="Final initial training"):
