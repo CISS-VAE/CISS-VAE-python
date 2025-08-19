@@ -228,7 +228,8 @@ epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = Non
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
 verbose = False,
 return_silhouettes = False,
-return_history = False
+return_history = False, 
+return_dataset = False,
 ):
     """End-to-end pipeline for Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).
     
@@ -407,28 +408,26 @@ return_history = False
     # Return statements
     # -------------------
 
-    if return_model: 
-        if return_history:
-            if return_silhouettes:
-                return imputed_dataset, vae, silh, combined_history_df
-            else:
-                return imputed_dataset, vae, combined_history_df
-        else:
-            if return_silhouettes:
-                return imputed_dataset, vae, silh
-            else:
-                return imputed_dataset, vae
+    # Build return tuple dynamically
+    return_items = [imputed_dataset]
+
+    if return_model:
+        return_items.append(vae)
+
+    if return_dataset:
+        return_items.append(dataset)
+
+    if return_silhouettes:
+        return_items.append(silh)
+
+    if return_history:
+        return_items.append(combined_history_df)
+
+    # Return as tuple if multiple items, single item otherwise
+    if len(return_items) == 1:
+        return return_items[0]
     else:
-        if return_history:
-            if return_silhouettes:
-                return imputed_dataset, silh, combined_history_df
-            else:
-                return imputed_dataset, combined_history_df
-        else:
-            if return_silhouettes:
-                return imputed_dataset, silh
-            else:
-                return imputed_dataset
+        return tuple(return_items)
 
     
 

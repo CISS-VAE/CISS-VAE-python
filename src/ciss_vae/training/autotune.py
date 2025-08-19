@@ -123,6 +123,8 @@ def autotune(
     constant_layer_size: bool = False,
     evaluate_all_orders: bool = False,
     max_exhaustive_orders: int = 100,
+    return_history: bool = False,
+
 ):
     r"""Optuna-based hyperparameter search for the CISSVAE model.
     
@@ -160,8 +162,12 @@ def autotune(
     :type evaluate_all_orders: bool, optional
     :param max_exhaustive_orders: Maximum number of layer order permutations to test when evaluate_all_orders is True, defaults to 100
     :type max_exhaustive_orders: int, optional
-    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe)
-    :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame]
+    :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False
+    :type return_history: bool, optional
+    
+    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])
+    :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]
+    
     :raises ValueError: If search space parameters are malformed or incompatible
     :raises RuntimeError: If CUDA is requested but not available and fallback fails
     """
@@ -600,6 +606,9 @@ def autotune(
     # ---------------------------
     # Build & train final model
     # ---------------------------
+    # ---------------------------
+    # Build & train final model
+    # ---------------------------
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     best_model = CISSVAE(
         input_dim=input_dim,
@@ -612,20 +621,44 @@ def autotune(
         output_shared=output_shared
     ).to(device)
     
+    # Initialize history tracking for final model
+    final_model_history = None
+    
     # Use track() for final training too
     if show_progress:
         # Final initial training with progress
-        for epoch in track(range(num_epochs), description="Final initial training"):
-            best_model = train_vae_initial(
-                model=best_model,
-                train_loader=train_loader,
-                epochs=1,
-                initial_lr=lr,
-                decay_factor=decay_factor,
-                beta=beta,
-                device=device,
-                verbose=False
-            )
+        if return_history:
+            initial_history_list = []
+            for epoch in track(range(num_epochs), description="Final initial training"):
+                result = train_vae_initial(
+                    model=best_model,
+                    train_loader=train_loader,
+                    epochs=1,
+                    initial_lr=lr,
+                    decay_factor=decay_factor,
+                    beta=beta,
+                    device=device,
+                    verbose=False,
+                    return_history=True
+                )
+                if isinstance(result, tuple):
+                    best_model, epoch_history = result
+                    initial_history_list.append(epoch_history)
+                else:
+                    best_model = result
+        else:
+            for epoch in track(range(num_epochs), description="Final initial training"):
+                best_model = train_vae_initial(
+                    model=best_model,
+                    train_loader=train_loader,
+                    epochs=1,
+                    initial_lr=lr,
+                    decay_factor=decay_factor,
+                    beta=beta,
+                    device=device,
+                    verbose=False,
+                    return_history=False
+                )
         
         # Final refit with progress
         estimated_refit_epochs = refit_loops * epochs_per_loop
@@ -644,7 +677,7 @@ def autotune(
             except StopIteration:
                 pass
         
-        best_imputed_df, best_model, _, _ = impute_and_refit_loop(
+        best_imputed_df, best_model, _, refit_history_df = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
             max_loops=refit_loops,
@@ -657,20 +690,50 @@ def autotune(
             verbose=verbose,
             progress_epoch=final_progress_callback
         )
+        
+        # Combine initial and refit histories if requested
+        if return_history:
+            if initial_history_list:
+                initial_history_df = pd.concat(initial_history_list, ignore_index=True)
+                if refit_history_df is not None:
+                    final_model_history = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
+                else:
+                    final_model_history = initial_history_df
+            else:
+                final_model_history = refit_history_df
     else:
         # Final training without progress
-        best_model = train_vae_initial(
-            model=best_model,
-            train_loader=train_loader,
-            epochs=num_epochs,
-            initial_lr=lr,
-            decay_factor=decay_factor,
-            beta=beta,
-            device=device,
-            verbose=verbose
-        )
+        if return_history:
+            result = train_vae_initial(
+                model=best_model,
+                train_loader=train_loader,
+                epochs=num_epochs,
+                initial_lr=lr,
+                decay_factor=decay_factor,
+                beta=beta,
+                device=device,
+                verbose=verbose,
+                return_history=True
+            )
+            if isinstance(result, tuple):
+                best_model, initial_history_df = result
+            else:
+                best_model = result
+                initial_history_df = None
+        else:
+            best_model = train_vae_initial(
+                model=best_model,
+                train_loader=train_loader,
+                epochs=num_epochs,
+                initial_lr=lr,
+                decay_factor=decay_factor,
+                beta=beta,
+                device=device,
+                verbose=verbose,
+                return_history=False
+            )
         
-        best_imputed_df, best_model, _, _ = impute_and_refit_loop(
+        best_imputed_df, best_model, _, refit_history_df = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
             max_loops=refit_loops,
@@ -682,12 +745,22 @@ def autotune(
             device=device,
             verbose=verbose
         )
+        
+        # Combine initial and refit histories if requested
+        if return_history:
+            if initial_history_df is not None and refit_history_df is not None:
+                final_model_history = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
+            elif initial_history_df is not None:
+                final_model_history = initial_history_df
+            elif refit_history_df is not None:
+                final_model_history = refit_history_df
     
     if show_progress:
         console.print("[bold green]✓ Final model training complete!")
     else:
         print("Final model training complete.")
-    
+
+
     # -----------------------
     # Save results
     # -----------------------
@@ -717,4 +790,8 @@ def autotune(
         rows.append(row)
     results_df = pd.DataFrame(rows)
     
-    return best_imputed_df, best_model, study, results_df
+    # Return results based on return_history parameter
+    if return_history:
+        return best_imputed_df, best_model, study, results_df, final_model_history
+    else:
+        return best_imputed_df, best_model, study, results_df
