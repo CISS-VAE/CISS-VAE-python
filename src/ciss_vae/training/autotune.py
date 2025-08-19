@@ -695,7 +695,24 @@ def autotune(
         if return_history:
             if initial_history_list:
                 initial_history_df = pd.concat(initial_history_list, ignore_index=True)
+                
+                # Ensure proper epoch numbering
+                if 'epoch' in initial_history_df.columns:
+                    # Check if epochs need to be renumbered (all zeros or sequential from 0)
+                    if initial_history_df['epoch'].nunique() == 1 and initial_history_df['epoch'].iloc[0] == 0:
+                        # All epochs are 0, renumber from 1
+                        initial_history_df['epoch'] = range(1, len(initial_history_df) + 1)
+                    elif initial_history_df['epoch'].min() == 0:
+                        # Epochs start from 0, shift to start from 1
+                        initial_history_df['epoch'] = initial_history_df['epoch'] + 1
+                
                 if refit_history_df is not None:
+                    refit_history_df = refit_history_df.copy()
+                    # Adjust refit history epochs to continue from initial training
+                    max_initial_epoch = initial_history_df['epoch'].max() if 'epoch' in initial_history_df.columns else len(initial_history_df)
+                    if 'epoch' in refit_history_df.columns:
+                        refit_history_df['epoch'] = refit_history_df['epoch'] + max_initial_epoch
+                    
                     final_model_history = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
                 else:
                     final_model_history = initial_history_df
