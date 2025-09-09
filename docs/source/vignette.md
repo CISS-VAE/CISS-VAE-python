@@ -16,6 +16,8 @@ parameters you want to use, you can use the {py:func}`ciss_vae.utils.run_cissvae
 run the model once for the given set of parameters. If you want to tune
 the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
 
+The R package associated with this model can be found at `rCISS-VAE <https://ciss-vae.github.io/rCISS-VAE/>`_.
+
 # Installation
 
 The CISS-VAE package is currently available for python, with an R
