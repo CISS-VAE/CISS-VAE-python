@@ -23,9 +23,7 @@ def make_missingness_prop_matrix(
     # Optional: explicit mapping column -> feature (overrides regex if provided)
     wide_col_to_feature: Optional[Mapping[str, str]] = None,
     # ---- General controls ----
-    min_timepoints_per_feature: int = 1,
-    drop_features_below_min: bool = True,
-    sort_features: bool = True,
+    min_timepoints_per_feature: int = 1
 ) -> pd.DataFrame:
     """Build a matrix of missingness proportions across timepoints for each sample-feature combination.
     
@@ -56,10 +54,6 @@ def make_missingness_prop_matrix(
     :type wide_col_to_feature: Mapping[str, str], optional
     :param min_timepoints_per_feature: Minimum number of timepoints required per feature, defaults to 1
     :type min_timepoints_per_feature: int, optional
-    :param drop_features_below_min: Whether to exclude features with insufficient timepoints, defaults to True
-    :type drop_features_below_min: bool, optional
-    :param sort_features: Whether to sort output columns alphabetically by feature name, defaults to True
-    :type sort_features: bool, optional
     :return: Matrix with samples as rows, features as columns, and missingness proportions as values
     :rtype: pandas.DataFrame
     :raises ValueError: If format is not "wide" or "long", or if required parameters for chosen format are missing
@@ -75,8 +69,6 @@ def make_missingness_prop_matrix(
     def _finalize(df_props: pd.DataFrame) -> pd.DataFrame:
         # Clip to [0,1] for safety; ensure numeric dtype
         df_props = df_props.astype(float).clip(lower=0.0, upper=1.0)
-        if sort_features:
-            df_props = df_props.reindex(sorted(df_props.columns), axis=1)
         return df_props
 
     # ======================================================================================
@@ -131,10 +123,6 @@ def make_missingness_prop_matrix(
         for col, bm in col_to_bm.items():
             groups.setdefault(bm, []).append(col)
 
-        # Optionally drop features with too few timepoints
-        if drop_features_below_min:
-            groups = {bm: cols for bm, cols in groups.items()
-                      if len(cols) >= min_timepoints_per_feature}
 
         if len(groups) == 0:
             raise ValueError("No feature groups could be formed from wide data.")
@@ -195,12 +183,6 @@ def make_missingness_prop_matrix(
     # count of rows per cell in the grid (denominator), missing count (numerator)
     denom = grp[vcol].size()
     num_missing = grp[vcol].apply(lambda s: s.isna().sum())
-
-    # If dropping features with too few timepoints, enforce per (sample, feature)
-    if drop_features_below_min:
-        valid_mask = denom >= min_timepoints_per_feature
-        denom = denom.where(valid_mask)
-        num_missing = num_missing.where(valid_mask)
 
     # Compute proportion (safe division)
     prop = (num_missing / denom).rename("prop_missing")

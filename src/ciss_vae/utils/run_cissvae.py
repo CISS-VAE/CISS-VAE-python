@@ -100,9 +100,7 @@ def cluster_on_missing(data, cols_ignore = None,
 
     return clusters, silhouette
 
-# --------------------
-# Func 1b: Cluster on proportion of missingness by feature
-# --------------------
+
 def cluster_on_missing_prop(
     prop_matrix: Union[pd.DataFrame, np.ndarray],
     *,
@@ -113,34 +111,33 @@ def cluster_on_missing_prop(
     metric: str = "euclidean",
     scale_features: bool = False,
 ) -> Tuple[np.ndarray, Optional[float]]:
-    """Cluster data based on their per-sample missingness proportions.
-    
-    Groups data with similar patterns of missingness across samples, treating
-    each feature as a point in the space of per-sample missingness rates. Useful
-    for identifying features that are missing together systematically.
-    
-    :param prop_matrix: Matrix where rows are samples, columns are features, entries are missingness proportions [0,1]
-    :type prop_matrix: pandas.DataFrame or numpy.ndarray
-    :param n_clusters: Number of clusters for KMeans; if None, uses HDBSCAN, defaults to None
-    :type n_clusters: int, optional
-    :param seed: Random seed for KMeans reproducibility, defaults to None
-    :type seed: int, optional
-    :param min_cluster_size: HDBSCAN minimum cluster size; if None, uses max(2, n_features//25), defaults to None
-    :type min_cluster_size: int, optional
-    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25
-    :type cluster_selection_epsilon: float, optional
-    :param metric: Distance metric ("euclidean" or "cosine"), defaults to "euclidean"
-    :type metric: str, optional
-    :param scale_features: Whether to standardize feature vectors before clustering, defaults to False
-    :type scale_features: bool, optional
-    :return: Tuple of (feature_cluster_labels, silhouette_score)
-    :rtype: tuple[numpy.ndarray, float or None]
-    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed
-    :raises ValueError: If prop_matrix is not 2D or contains invalid values
+    """Cluster **samples** based on their per-feature missingness proportions.
+
+    Parameters
+    ----------
+    prop_matrix : (n_samples, n_features)
+        Rows = samples, columns = features; entries are proportions in [0, 1].
+    n_clusters : int or None
+        If None -> HDBSCAN; else KMeans(n_clusters).
+    seed : int or None
+        Random seed for KMeans.
+    min_cluster_size : int or None
+        HDBSCAN min cluster size; defaults to max(2, n_samples//25).
+    cluster_selection_epsilon : float
+        HDBSCAN epsilon.
+    metric : {"euclidean","cosine"}
+        Distance metric.
+    scale_features : bool
+        If True, Standardize columns (features) before clustering.
+
+    Returns
+    -------
+    labels : np.ndarray, shape (n_samples,)
+        Cluster label per sample (-1 for noise with HDBSCAN).
+    silhouette : float or None
+        Silhouette score if ≥2 clusters and all cluster sizes ≥2.
     """
-
-
-    # --- Imports kept inside to keep optional deps optional ---
+    # Optional deps kept inside
     try:
         from sklearn.cluster import KMeans
         from sklearn.metrics import silhouette_score
@@ -152,69 +149,66 @@ def cluster_on_missing_prop(
             "Install with: pip install ciss_vae[clustering]"
         ) from e
 
-    # --- Convert to array; capture column names to preserve alignment ---
+    # Convert to array and keep sample ids if present
     if isinstance(prop_matrix, pd.DataFrame):
-        col_names: Sequence[str] = list(prop_matrix.columns)
-        X = prop_matrix.to_numpy(copy=True)
+        sample_ids: Sequence[str] = list(prop_matrix.index)
+        X = prop_matrix.to_numpy(copy=True, dtype=float)
     else:
         X = np.asarray(prop_matrix, dtype=float).copy()
-        col_names = [f"col_{j}" for j in range(X.shape[1])]
+        sample_ids = [f"row_{i}" for i in range(X.shape[0])]
 
     if X.ndim != 2:
-        raise ValueError("prop_matrix must be 2D (n_samples × n_biomarkers).")
+        raise ValueError("prop_matrix must be 2D (n_samples × n_features).")
 
-    n_samples, n_features = X.shape  # features = biomarkers
+    n_samples, n_features = X.shape
 
-    # --- Sanity checks; clip to [0,1] if slightly out of bounds ---
+    # Sanity: finite and within [0,1]
     if not np.isfinite(X).all():
         raise ValueError("prop_matrix contains non-finite values (NaN/Inf).")
     if (X < 0).any() or (X > 1).any():
         X = np.clip(X, 0.0, 1.0)
 
-    # --- Each column (biomarker) is a point in R^(n_samples) ---
-    X_cols = X.T  # shape: (n_biomarkers, n_samples)
+    # —— Cluster SAMPLES: each row is a point in R^(n_features) ——
+    X_rows = X  # shape: (n_samples, n_features)
 
     if scale_features:
-        X_cols = StandardScaler().fit_transform(X_cols)
+        X_rows = StandardScaler().fit_transform(X_rows)
 
     if min_cluster_size is None:
-        min_cluster_size = max(2, n_features // 25)
+        min_cluster_size = max(2, n_samples // 25)
 
     metric = metric.lower()
     if metric not in {"euclidean", "cosine"}:
         raise ValueError("metric must be 'euclidean' or 'cosine'.")
 
-    # --- Clustering ---
+    # Clustering
     if n_clusters is None:
         clusterer = hdbscan.HDBSCAN(
             metric=metric,
             min_cluster_size=min_cluster_size,
             cluster_selection_epsilon=cluster_selection_epsilon,
         )
-        labels = clusterer.fit_predict(X_cols)
-        X_for_sil = X_cols
+        labels = clusterer.fit_predict(X_rows)
+        X_for_sil = X_rows
         sil_metric = metric
     else:
-        # sklearn>=1.4 supports n_init="auto"; fall back if needed
         n_init = "auto"
         try:
             _ = KMeans(n_clusters=2, n_init=n_init)
         except TypeError:
             n_init = 10
         km = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=seed)
-        labels = km.fit_predict(X_cols)
-        X_for_sil = X_cols
+        labels = km.fit_predict(X_rows)
+        X_for_sil = X_rows
         sil_metric = metric
 
-    # --- Silhouette (only if ≥2 clusters and no singletons) ---
+    # Silhouette if valid
     unique, counts = np.unique(labels, return_counts=True)
-    if len(unique) > 1 and np.all(counts >= 2):
+    silhouette = None
+    if len(unique) > 1 and np.all(counts[counts > 0] >= 2):
         silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
-    else:
-        silhouette = None
 
     return labels, silhouette
-
 # --------------------
 # Func 2: Make dataset & run VAE
 # --------------------

@@ -1,6 +1,6 @@
 # Using `make_missingness_prop_matrix`: A Complete Guide
 
-The `make_missingness_prop_matrix` function creates a matrix showing the proportion of missing values for each sample-feature combination across multiple timepoints. This matrix can then be used for **feature clustering** with `cluster_on_missing_prop()` or as input to the complete CISS-VAE pipeline via `run_cissvae()`.
+The `make_missingness_prop_matrix()` function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for **sample clustering** with `cluster_on_missing_prop()` or as input to the complete CISS-VAE pipeline via `run_cissvae()`.
 
 ## Overview
 
@@ -84,6 +84,17 @@ prop_matrix = make_missingness_prop_matrix(
 )
 ```
 
+**Output:**
+
+```
+    weight  height
+ID                
+A      0.0     0.0
+B      0.5     0.5
+C      0.5     0.5
+```
+
+
 ### Example 3: Explicit Column Mapping
 
 ```python
@@ -112,6 +123,17 @@ prop_matrix = make_missingness_prop_matrix(
     sample_col="subject",
     wide_col_to_feature=column_mapping
 )
+
+print(prop_matrix)
+```
+
+**Output**
+
+```
+          glucose  insulin
+subject                   
+S1       0.333333      0.0
+S2       0.333333      0.5
 ```
 
 ### Example 4: MultiIndex Columns
@@ -131,11 +153,23 @@ data_multi = pd.DataFrame({
     ('insulin', 't1'): [np.nan, 5.2]
 }, index=['mouse1', 'mouse2'])
 
+data_multi.columns = columns
+
 prop_matrix = make_missingness_prop_matrix(
     data_multi,
     format="wide",
     wide_multiindex_feature_level="feature"  # Use 'feature' level
 )
+
+print(prop_matrix)
+```
+
+**Output**
+
+```
+        glucose  insulin
+mouse1      0.0      0.5
+mouse2      0.5      0.0
 ```
 
 ---
@@ -210,40 +244,24 @@ M2          1.0  0.666667  # height missing at d2,d3; weight missing at d1,d2
 
 ---
 
-## Advanced Options
+## Integration with Sample Clustering
 
-### Filtering Features
-
-```python
-# Only keep features with at least 3 timepoints
-prop_matrix = make_missingness_prop_matrix(
-    data_wide,
-    format="wide",
-    sample_col="sample_id",
-    min_timepoints_per_feature=3,
-    drop_features_below_min=True  # Exclude features with < 3 timepoints
-)
-```
-
-### Controlling Output
-
-```python
-prop_matrix = make_missingness_prop_matrix(
-    data_wide,
-    format="wide", 
-    sample_col="sample_id",
-    sort_features=False  # Keep original feature order
-)
-```
-
----
-
-## Integration with Feature Clustering
-
-The primary use case is to cluster **features** (not samples) based on their missingness patterns using `cluster_on_missing_prop`:
+The primary use case is to cluster **samples** based on their missingness patterns using `cluster_on_missing_prop`:
 
 ```python
 from ciss_vae.utils.run_cissvae import cluster_on_missing_prop
+
+data_wide = pd.DataFrame({
+    'sample_id':  ['mouse1', 'mouse2', 'mouse3', 'mouse4', 'mouse5'],
+    'glucose_t0': [100,      95,       np.nan,   102,      98     ],
+    'glucose_t1': [110,      np.nan,   105,      108,      np.nan ],
+    'glucose_t2': [115,      100,      107,   118,   112    ],
+    'insulin_t0': [5.2,      4.8,      np.nan,      np.nan,   5.1    ],
+    'insulin_t1': [np.nan,   np.nan,   5.5,      5.3,      5.4    ],
+    'insulin_t2': [6.0,      5.1,      np.nan,   np.nan,      np.nan ],
+})
+
+print(data_wide)
 
 # Create missingness proportion matrix
 prop_matrix = make_missingness_prop_matrix(
@@ -252,24 +270,21 @@ prop_matrix = make_missingness_prop_matrix(
     sample_col="sample_id"
 )
 
-# Cluster features based on similar missingness patterns across samples
-feature_clusters, silhouette = cluster_on_missing_prop(
+print(prop_matrix)
+
+# Cluster samples based on similar missingness patterns across features
+clusters, silhouette = cluster_on_missing_prop(
     prop_matrix,
     n_clusters=2,
     metric="cosine",
     scale_features=True
 )
 
-print("Feature clusters:", feature_clusters)
+print("Clusters:", clusters)
 print("Silhouette score:", silhouette)
 
-# Map cluster labels back to feature names
-feature_names = prop_matrix.columns
-for i, feature in enumerate(feature_names):
-    print(f"{feature}: Cluster {feature_clusters[i]}")
 ```
 
-**Key Point**: `cluster_on_missing_prop` clusters the **columns** (features) of the proportion matrix, treating each feature as a point in the space defined by its missingness pattern across all samples.
 
 ---
 
@@ -280,17 +295,6 @@ The proportion matrix can be used directly in the complete CISS-VAE pipeline via
 ```python
 from ciss_vae.utils.run_cissvae import run_cissvae
 
-# Option 1: Let run_cissvae create the proportion matrix internally
-# (if your main data follows the standard wide format)
-imputed_data, model = run_cissvae(
-    data=data_wide.drop('sample_id', axis=1),  # Remove ID column
-    missingness_proportion_matrix=None,  # Will cluster on raw missingness patterns
-    n_clusters=2,
-    verbose=True
-)
-
-# Option 2: Provide a custom proportion matrix
-# (useful for complex longitudinal data or custom feature groupings)
 prop_matrix = make_missingness_prop_matrix(
     data_wide,
     format="wide", 
@@ -345,18 +349,14 @@ prop_matrix = make_missingness_prop_matrix(
 print("Missingness Proportion Matrix:")
 print(prop_matrix.head())
 
-# 3. Cluster features by missingness patterns
-feature_clusters, sil_score = cluster_on_missing_prop(
+# 3. Cluster by missingness patterns
+clusters, sil_score = cluster_on_missing_prop(
     prop_matrix,
     n_clusters=2,
     metric="cosine",
     scale_features=True,
     seed=42
 )
-
-print(f"\nFeature Clustering Results (Silhouette: {sil_score:.3f}):")
-for i, feature in enumerate(prop_matrix.columns):
-    print(f"  {feature}: Cluster {feature_clusters[i]}")
 
 # 4. Run complete CISS-VAE pipeline
 main_data = data.drop('patient_id', axis=1)
@@ -445,18 +445,19 @@ imputed_omics, model = run_cissvae(
 
 ## Tips and Best Practices
 
-1. **Feature vs Sample Clustering**: Remember that `cluster_on_missing_prop` clusters **features** (columns), not samples (rows). This identifies groups of features that have similar missingness patterns across your sample population.
+1. **Sample Clustering**: `cluster_on_missing_prop` clusters **samples (rows)** based on their missingness profiles across features. This groups subjects with similar patterns of missing data.
 
-2. **Choose the right format**: Use wide format for data that's naturally wide (e.g., Excel exports). Use long format when you have explicit time series data.
+2. **Data format**: Provide the input as a matrix or DataFrame with **rows = samples** and **columns = features**, where entries are missingness proportions in `[0, 1]`.
 
-3. **Regex patterns**: The default regex `r"^(?P<feature>.+?)_(?P<time>[^_]+)$"` assumes `feature_timepoint` naming. Adjust for your naming convention.
+3. **Regex helpers (optional)**: If you need to parse wide column names like `feature_timepoint`, adjust your regex (default `r"^(?P<feature>.+?)_(?P<time>[^_]+)$"`) to match your naming convention before constructing the matrix.
 
-4. **Expected timepoints**: In long format, always specify `expected_timepoints` if you know the complete time grid, otherwise missing timepoints won't be counted.
+4. **Expected timepoints**: When starting from long-format data, always specify the complete set of `expected_timepoints` before pivoting to wide format. Otherwise, unobserved timepoints won’t be registered as missing.
 
-5. **Feature filtering**: Use `min_timepoints_per_feature` to exclude features with insufficient temporal coverage.
+5. **Feature filtering**: Apply a threshold like `min_timepoints_per_feature` during preprocessing to exclude features that don’t have sufficient data across samples.
 
-6. **Scaling for clustering**: When using `cluster_on_missing_prop`, consider setting `scale_features=True` if your features have very different scales of missingness.
+6. **Scaling**: Use `scale_features=True` if features differ greatly in their overall missingness rates. This standardizes the columns so no single feature dominates the clustering.
 
-7. **Metric selection**: For proportion data, `metric="cosine"` often works better than `"euclidean"` as it focuses on the pattern rather than magnitude of missingness.
+7. **Metric selection**: For proportion vectors, `metric="cosine"` often highlights **pattern similarity** in missingness more effectively than `"euclidean"`.
 
-The resulting feature clusters can help inform the CISS-VAE model about which features should share parameters, leading to more effective imputation of missing values in longitudinal datasets.
+
+
