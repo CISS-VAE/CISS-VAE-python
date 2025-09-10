@@ -32,7 +32,7 @@ dependencies = [
 
 [project.optional-dependencies]
 clustering = [
-    "hdbscan"
+    "hdbscan", "leidenalg", "python-igraph"
 ]
 dev = ["pytest", "black", "mypy"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]

@@ -4,22 +4,120 @@ from typing import Optional, Sequence, Tuple, Union
 import pandas as pd
 import numpy as np
 
-#from ciss_vae.utils.helpers import plot_vae_architecture
+##  helper function for getting leiden clusters from knn graph
 
+def _leiden_from_knn(
+    X: np.ndarray,
+    *,
+    metric: str,
+    k: int = 15,
+    resolution: float = 0.5,
+    objective: str = "CPM",  # {"CPM","RB","Modularity"}
+    seed: Optional[int] = None,
+    weight_scheme: str = "auto",  # "auto", "heat", "inv", "1-minus"
+):
+    """
+    Build a kNN graph on X and run Leiden. Returns integer labels.
+    """
+    try:
+        from sklearn.neighbors import NearestNeighbors
+        import igraph as ig
+        import leidenalg as la
+    except ImportError as e:
+        raise ImportError(
+            "Leiden path requires: scikit-learn, python-igraph, and leidenalg.\n"
+            "Install with: pip install python-igraph leidenalg scikit-learn"
+        ) from e
+
+    metric = metric.lower()
+    # Build kNN graph with distances
+    # Use brute for metrics like 'jaccard'/'cosine' to be safe and consistent
+    algo = "auto" if metric in {"euclidean"} else "brute"
+    nn = NearestNeighbors(n_neighbors=k, metric=metric, algorithm=algo)
+    nn.fit(X)
+    A = nn.kneighbors_graph(n_neighbors=k, mode="distance", include_self=False)  # CSR sparse, stores distances
+
+    # Convert distances to similarity weights for Leiden
+    d = A.data
+    if weight_scheme == "auto":
+        if metric in {"jaccard", "cosine"}:
+            w = 1.0 - d
+            if metric == "cosine":
+                # cosine similarity can be negative if vectors aren't normalized
+                w = np.clip(w, 0.0, None)
+        elif metric == "euclidean":
+            # Heat kernel based on median neighbor distance
+            sigma = np.median(d) + 1e-12
+            w = np.exp(-(d / sigma) ** 2)
+        else:
+            # Fallback: inverse distance
+            w = 1.0 / (d + 1e-12)
+    elif weight_scheme == "1-minus":
+        w = 1.0 - d
+    elif weight_scheme == "heat":
+        sigma = np.median(d) + 1e-12
+        w = np.exp(-(d / sigma) ** 2)
+    elif weight_scheme == "inv":
+        w = 1.0 / (d + 1e-12)
+    else:
+        raise ValueError("Unknown weight_scheme.")
+
+    # Replace distances with weights
+    from scipy.sparse import csr_matrix
+    W = csr_matrix((w, A.indices, A.indptr), shape=A.shape)
+    # Symmetrize by taking the maximum weight in either direction
+    W = W.maximum(W.T)
+
+    # Build igraph
+    coo = W.tocoo()
+    mask = coo.row < coo.col  # undirected: take upper triangle once
+    edges = list(zip(coo.row[mask].tolist(), coo.col[mask].tolist()))
+    weights = coo.data[mask].astype(float)
+
+    import igraph as ig
+    import leidenalg as la
+
+    g = ig.Graph(n=W.shape[0], edges=edges, directed=False)
+    g.es["weight"] = list(map(float, weights))
+
+    if seed is not None:
+        la.Optimiser().set_rng_seed(int(seed))
+
+    obj = objective.lower()
+    if obj == "cpm":
+        part = la.find_partition(
+            g, la.CPMVertexPartition, weights="weight", resolution_parameter=resolution
+        )
+    elif obj in {"rb", "rbconfig", "rbconfiguration"}:
+        part = la.find_partition(
+            g, la.RBConfigurationVertexPartition, weights="weight", resolution_parameter=resolution
+        )
+    else:
+        # Modularity (no resolution parameter in standard form)
+        part = la.find_partition(g, la.ModularityVertexPartition, weights="weight")
+
+    labels = np.asarray(part.membership, dtype=int)
+    return labels
 
 # -------------------
 # Func 1: Cluster on missingness
 # -------------------
 ## hdbscan if no k specified
 
-def cluster_on_missing(data, cols_ignore = None, 
- n_clusters = None, seed = None, min_cluster_size = None, 
- cluster_selection_epsilon = 0.25, prop = False):
-    """Cluster samples based on their missingness patterns using KMeans or HDBSCAN.
+def cluster_on_missing(
+    data, 
+    cols_ignore = None, 
+    n_clusters = None, 
+    ## if n_clusters = None use leiden. 
+    k_neighbors: int = 15,
+    leiden_resolution: float = 0.5,
+    leiden_objective: str = "CPM",):
+    """Cluster samples based on their missingness patterns using KMeans or Leiden.
     
-    Groups samples with similar patterns of missing values to identify subpopulations
-    that may benefit from cluster-specific imputation strategies. Uses Jaccard distance
-    on binary missingness indicators.
+    When n_clusters is None, uses Leiden on a kNN graph built from Jaccard distances
+    over the binary missingness mask. Otherwise uses KMeans(n_clusters).
+    
+    Returns (labels, silhouette). Silhouette uses Jaccard for the mask.
     
     :param data: Input dataset containing missing values
     :type data: pandas.DataFrame
@@ -29,76 +127,63 @@ def cluster_on_missing(data, cols_ignore = None,
     :type n_clusters: int, optional
     :param seed: Random seed for reproducible clustering, defaults to None
     :type seed: int, optional
-    :param min_cluster_size: Minimum cluster size for HDBSCAN; if None, uses data.shape[0]//25, defaults to None
-    :type min_cluster_size: int, optional
-    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25
-    :type cluster_selection_epsilon: float, optional
-    :param prop: Legacy parameter, not used, defaults to False
-    :type prop: bool, optional
+    :param k_neighbors: Number of nearest neighbors for leiden knn
+    :type k_neighbors: int, optional
+    :param leiden_resolution: Resolution for leiden clustering. Default 0.5
+    :type leiden_resolution: float, optional
+    :param leiden_objective: One of {"CPM","RB","Modularity"}. Default CPM
+    :type prop: str, {"CPM","RB","Modularity"}
     :return: Tuple of (cluster_labels, silhouette_score)
     :rtype: tuple[numpy.ndarray, float or None]
     :raises ImportError: If scikit-learn or hdbscan dependencies are not installed
     """
-
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import pairwise_distances, silhouette_score
-        from sklearn.preprocessing import StandardScaler
-        import hdbscan
+        from sklearn.metrics import silhouette_score
     except ImportError as e:
         raise ImportError(
-            "This function requires optional dependencies (scikit-learn and hdbscan). "
-            "Install them with: pip install ciss_vae[clustering]"
+            "This function requires scikit-learn. Install with: pip install scikit-learn"
         ) from e
 
-    # -----------------
-    # Step 1: Get mask matrix (1=missing, 0=observed)
-    # -----------------
+    # Step 1: Binary mask (1=missing, 0=observed) as boolean
     if cols_ignore is not None:
-        mask_matrix =  data.drop(columns=cols_ignore).isna().astype(int)
+        mask_matrix = data.drop(columns=cols_ignore).isna().to_numpy(dtype=bool)
     else:
-        mask_matrix = data.isna().astype(int)
-
-    if min_cluster_size is None:
-        min_cluster_size = data.shape[0] // 25 
-
-    ## Get number of samples
-    n_samples = mask_matrix.shape[0]
-    
+        mask_matrix = data.isna().to_numpy(dtype=bool)
 
     if n_clusters is None:
-        method = "hdbscan"
-
-        ## Create mask matrix (1 = missing, 0 = observed), drop ignored columns
-        mask_matrix = mask_matrix.astype(bool).values
-
-        ## Jaccard requires boolean/binary NumPy array
-        dists = pairwise_distances(mask_matrix, metric="jaccard")
-
-        ## Run HDBSCAN with precomputed distance matrix
-        clusterer = hdbscan.HDBSCAN(metric='precomputed', min_cluster_size=min_cluster_size,
-        cluster_selection_epsilon = cluster_selection_epsilon)
-        clusters = clusterer.fit_predict(dists)
-
-        ## Get silhouette 
-        sil_metric = "precomputed"
-        x_for_sil = dists
-
-    else: 
-        method = "kmeans"
-        clusters = KMeans(n_clusters = n_clusters, random_state=seed).fit(mask_matrix).labels_
+        # Leiden on Jaccard
+        labels = _leiden_from_knn(
+            mask_matrix,
+            metric="jaccard",
+            k=k_neighbors,
+            resolution=leiden_resolution,
+            objective=leiden_objective,
+            seed=seed,
+            weight_scheme="1-minus",  # Jaccard similarity = 1 - distance
+        )
+        X_for_sil = mask_matrix
         sil_metric = "jaccard"
-        x_for_sil = mask_matrix
-
-    # Compute silhouette score if possible
-    unique_labels = set(clusters)
-    if len(unique_labels) > 1 and all(list(clusters).count(l) > 1 for l in unique_labels):
-        silhouette = silhouette_score(x_for_sil, clusters, metric=sil_metric)
     else:
-        silhouette = None  # cannot compute silhouette with a single cluster or singleton clusters
+        # KMeans on the binary mask
+        n_init = "auto"
+        try:
+            _ = KMeans(n_clusters=2, n_init=n_init)
+        except TypeError:
+            n_init = 10
+        km = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=seed)
+        labels = km.fit_predict(mask_matrix.astype(float))
+        X_for_sil = mask_matrix
+        sil_metric = "jaccard"
 
+    # Silhouette if ≥2 clusters and all cluster sizes ≥2
+    unique, counts = np.unique(labels, return_counts=True)
+    silhouette = None
+    if len(unique) > 1 and np.all(counts >= 2):
+        from sklearn.metrics import silhouette_score
+        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
 
-    return clusters, silhouette
+    return labels, silhouette
 
 
 def cluster_on_missing_prop(
@@ -106,43 +191,45 @@ def cluster_on_missing_prop(
     *,
     n_clusters: Optional[int] = None,
     seed: Optional[int] = None,
-    min_cluster_size: Optional[int] = None,
-    cluster_selection_epsilon: float = 0.25,
-    metric: str = "euclidean",
+    # Leiden params (used when n_clusters is None)
+    k_neighbors: int = 15,
+    leiden_resolution: float = 0.5,
+    leiden_objective: str = "CPM",
+    metric: str = "jaccard",
     scale_features: bool = False,
 ) -> Tuple[np.ndarray, Optional[float]]:
     """Cluster **samples** based on their per-feature missingness proportions.
 
-    Parameters
-    ----------
-    prop_matrix : (n_samples, n_features)
-        Rows = samples, columns = features; entries are proportions in [0, 1].
-    n_clusters : int or None
-        If None -> HDBSCAN; else KMeans(n_clusters).
-    seed : int or None
-        Random seed for KMeans.
-    min_cluster_size : int or None
-        HDBSCAN min cluster size; defaults to max(2, n_samples//25).
-    cluster_selection_epsilon : float
-        HDBSCAN epsilon.
-    metric : {"euclidean","cosine"}
-        Distance metric.
-    scale_features : bool
-        If True, Standardize columns (features) before clustering.
+    If n_clusters is None -> Leiden on a kNN graph.
+    Else -> KMeans(n_clusters).
 
-    Returns
-    -------
-    labels : np.ndarray, shape (n_samples,)
-        Cluster label per sample (-1 for noise with HDBSCAN).
-    silhouette : float or None
-        Silhouette score if ≥2 clusters and all cluster sizes ≥2.
+    Returns (labels, silhouette). Silhouette uses Jaccard for the mask.
+    
+    :param data: Input dataset containing missing values
+    :type data: pandas.DataFrame
+    :param cols_ignore: Column names to exclude from clustering analysis, defaults to None
+    :type cols_ignore: list[str], optional
+    :param n_clusters: Number of clusters for KMeans; if None, uses HDBSCAN, defaults to None
+    :type n_clusters: int, optional
+    :param seed: Random seed for reproducible clustering, defaults to None
+    :type seed: int, optional
+    :param k_neighbors: Number of nearest neighbors for leiden knn
+    :type k_neighbors: int, optional
+    :param leiden_resolution: Resolution for leiden clustering. Default 0.5
+    :type leiden_resolution: float, optional
+    :param leiden_objective: One of {"CPM","RB","Modularity"}. Default CPM
+    :type leiden_objective: str, {"CPM","RB","Modularity"}
+    :param metric: Default "jaccard"
+    :type metric: str
+    :return: Tuple of (cluster_labels, silhouette_score)
+    :rtype: tuple[numpy.ndarray, float or None]
+    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed
     """
     # Optional deps kept inside
     try:
         from sklearn.cluster import KMeans
         from sklearn.metrics import silhouette_score
         from sklearn.preprocessing import StandardScaler
-        import hdbscan  # type: ignore
     except ImportError as e:
         raise ImportError(
             "Optional dependencies required: scikit-learn and hdbscan.\n"
@@ -183,12 +270,16 @@ def cluster_on_missing_prop(
 
     # Clustering
     if n_clusters is None:
-        clusterer = hdbscan.HDBSCAN(
+        # Leiden on Jaccard
+        labels = _leiden_from_knn(
+            X_rows,
             metric=metric,
-            min_cluster_size=min_cluster_size,
-            cluster_selection_epsilon=cluster_selection_epsilon,
+            k=k_neighbors,
+            resolution=leiden_resolution,
+            objective=leiden_objective,
+            seed=seed,
+            weight_scheme="1-minus",  # Jaccard similarity = 1 - distance
         )
-        labels = clusterer.fit_predict(X_rows)
         X_for_sil = X_rows
         sil_metric = metric
     else:
@@ -214,7 +305,9 @@ def cluster_on_missing_prop(
 # --------------------
 
 def run_cissvae(data, val_proportion = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, ## dataset params
-clusters = None, n_clusters = None, cluster_selection_epsilon = 0.25, seed = 42, missingness_proportion_matrix = None, scale_features = False,## clustering params
+clusters = None, n_clusters = None,     k_neighbors: int = 15,
+    leiden_resolution: float = 0.5,
+    leiden_objective: str = "CPM", seed = 42, missingness_proportion_matrix = None, scale_features = False,## clustering params
 hidden_dims = [150, 120, 60], latent_dim = 15, layer_order_enc = ["unshared", "unshared", "unshared"],
 layer_order_dec=["shared", "shared",  "shared"], latent_shared=False, output_shared=False, batch_size = 4000,
 return_model = True,## model params
@@ -245,8 +338,12 @@ return_dataset = False,
     :type clusters: array-like, optional
     :param n_clusters: Number of clusters for KMeans; if None with clusters=None, uses HDBSCAN, defaults to None
     :type n_clusters: int, optional
-    :param cluster_selection_epsilon: HDBSCAN cluster selection threshold, defaults to 0.25
-    :type cluster_selection_epsilon: float, optional
+    :param k_neighbors: Number of nearest neighbors for leiden knn
+    :type k_neighbors: int, optional
+    :param leiden_resolution: Resolution for leiden clustering. Default 0.5
+    :type leiden_resolution: float, optional
+    :param leiden_objective: One of {"CPM","RB","Modularity"}. Default CPM
+    :type leiden_objective: str, {"CPM","RB","Modularity"}
     :param seed: Random seed for reproducibility, defaults to 42
     :type seed: int, optional
     :param missingness_proportion_matrix: Missingness proportion matrix for biomarker clustering, defaults to None
@@ -331,9 +428,23 @@ return_dataset = False,
     # ------------
     if clusters is None:
         if missingness_proportion_matrix is None:
-            clusters, silh = cluster_on_missing(data, cols_ignore = columns_ignore, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon = cluster_selection_epsilon)
+            clusters, silh = cluster_on_missing(
+                data, 
+                cols_ignore = columns_ignore, 
+                n_clusters = n_clusters, 
+                seed = seed, 
+                k_neighbors = k_neighbors,
+                leiden_resolution = leiden_resolution,
+                leiden_objective = leiden_objective)
         else:
-            clusters, silh = cluster_on_missing_prop(prop_matrix = missingness_proportion_matrix, n_clusters = n_clusters, seed = seed, cluster_selection_epsilon=cluster_selection_epsilon, scale_features = scale_features)
+            clusters, silh = cluster_on_missing_prop(
+                prop_matrix = missingness_proportion_matrix, 
+                n_clusters = n_clusters, 
+                seed = seed, 
+                k_neighbors = k_neighbors,
+                leiden_resolution = leiden_resolution,
+                leiden_objective = leiden_objective, 
+                scale_features = scale_features)
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
