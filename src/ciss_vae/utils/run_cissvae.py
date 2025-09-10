@@ -102,7 +102,7 @@ def _leiden_from_knn(
 # -------------------
 # Func 1: Cluster on missingness
 # -------------------
-## hdbscan if no k specified
+## leiden if no k specified
 
 def cluster_on_missing(
     data, 
@@ -135,7 +135,7 @@ def cluster_on_missing(
     :type prop: str, {"CPM","RB","Modularity"}
     :return: Tuple of (cluster_labels, silhouette_score)
     :rtype: tuple[numpy.ndarray, float or None]
-    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed
+    :raises ImportError: If scikit-learn or other dependencies are not installed
     """
     try:
         from sklearn.cluster import KMeans
@@ -223,7 +223,7 @@ def cluster_on_missing_prop(
     :type metric: str
     :return: Tuple of (cluster_labels, silhouette_score)
     :rtype: tuple[numpy.ndarray, float or None]
-    :raises ImportError: If scikit-learn or hdbscan dependencies are not installed
+    :raises ImportError: If scikit-learn or other dependencies are not installed
     """
     # Optional deps kept inside
     try:
@@ -232,7 +232,7 @@ def cluster_on_missing_prop(
         from sklearn.preprocessing import StandardScaler
     except ImportError as e:
         raise ImportError(
-            "Optional dependencies required: scikit-learn and hdbscan.\n"
+            "Optional dependencies required: scikit-learn and leidenalg.\n"
             "Install with: pip install ciss_vae[clustering]"
         ) from e
 
@@ -314,6 +314,7 @@ return_model = True,## model params
 epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = None, ## initial training params
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
 verbose = False,
+return_clusters = True,
 return_silhouettes = False,
 return_history = False, 
 return_dataset = False,
@@ -390,11 +391,15 @@ return_dataset = False,
     :type beta_refit: float, optional
     :param verbose: Whether to print progress messages during training, defaults to False
     :type verbose: bool, optional
+    :param return_clusters: Whether to return list of clusters, defaults to True
+    :type return_clusters: bool, optional
     :param return_silhouettes: Whether to return clustering silhouette score, defaults to False
     :type return_silhouettes: bool, optional
+    :param return_dataset: Whether to return full Clusterdataset object, defaults to False
+    :type return_dataset: bool, optional
     :param return_history: Whether to return concatenated training history, defaults to False
     :type return_history: bool, optional
-    :return: Returns imputed_dataset always; optionally returns model, silhouette score, and/or training history based on flags
+    :return: Returns imputed_dataset always; optionally returns model, clusters, silhouette score, and/or training history based on flags
     :rtype: pandas.DataFrame or tuple containing combinations of (pandas.DataFrame, CISSVAE, float, pandas.DataFrame)
     """
     
@@ -436,6 +441,11 @@ return_dataset = False,
                 k_neighbors = k_neighbors,
                 leiden_resolution = leiden_resolution,
                 leiden_objective = leiden_objective)
+            
+            if(verbose):
+                nclusfound = len(np.unique(clusters))
+                print(f"There were {nclusfound} clusters, with an average silhouette score of {silh}")
+
         else:
             clusters, silh = cluster_on_missing_prop(
                 prop_matrix = missingness_proportion_matrix, 
@@ -445,6 +455,10 @@ return_dataset = False,
                 leiden_resolution = leiden_resolution,
                 leiden_objective = leiden_objective, 
                 scale_features = scale_features)
+
+            if(verbose):
+                nclusfound = len(np.unique(clusters))
+                print(f"There were {nclusfound} clusters, with an average silhouette score of {silh}")
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
@@ -521,6 +535,9 @@ return_dataset = False,
 
     if return_dataset:
         return_items.append(dataset)
+
+    if return_clusters:
+        return_items.append(clusters)
 
     if return_silhouettes:
         return_items.append(silh)
