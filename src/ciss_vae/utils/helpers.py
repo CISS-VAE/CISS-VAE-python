@@ -235,8 +235,24 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     val_data_tensor = dataset.val_data.to(x_all_denorm.device)
     val_mask_tensor = ~torch.isnan(val_data_tensor)
 
-    # Overwrite imputed values with ground truth at validation positions
-    x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
+    # NEW 11SEP2025: Only replace validation entries that are NOT in do_not_impute positions
+    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
+        do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
+        # Only replace validation values where do_not_impute allows it
+        valid_replacement_mask = val_mask_tensor & (do_not_impute_mask == 1)
+        x_all_denorm[valid_replacement_mask] = val_data_tensor[valid_replacement_mask]
+    else:
+        # Original behavior if no do_not_impute mask
+        # Overwrite imputed values with ground truth at validation positions
+        x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
+    
+    # NEW 11SEP2025: Set do_not_impute positions to NaN
+    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
+        do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
+        # Set positions where do_not_impute == 0 to NaN
+        x_all_denorm[do_not_impute_mask == 0] = float('nan')
+
+
 
     x_all_denorm_np = x_all_denorm.detach().cpu().numpy()  # Now safe to convert
 
@@ -288,6 +304,10 @@ def get_imputed(model, data_loader, device="cpu"):
     all_masks = []
     all_indices = []
 
+    ## NEW 11SEP2025 - Collect do_not_impute masks if they exist
+    all_do_not_impute = []
+    has_do_not_impute = hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None
+
     with torch.no_grad():
         for batch in data_loader:
             x_batch, cluster_batch, mask_batch, idx_batch = batch
@@ -302,24 +322,51 @@ def get_imputed(model, data_loader, device="cpu"):
             all_masks.append(mask_batch.cpu())
             all_indices.append(idx_batch)
 
+            ## NEW 11SEP2025 - Add do_not_impute mask thingie
+
+            if has_do_not_impute:
+                do_not_impute_batch = dataset.do_not_impute[idx_batch]
+                all_do_not_impute.append(do_not_impute_batch)
+
     # Concatenate all batches
     recon_all = torch.cat(all_recon, dim=0)
     mask_all = torch.cat(all_masks, dim=0)
     idx_all = torch.cat(all_indices, dim=0)
 
+    ## NEW 11SEP2025 - do_not_impute
+    if has_do_not_impute:
+        do_not_impute_all = torch.cat(all_do_not_impute, dim=0)
+
     # Restore correct row order
     recon_sorted = torch.zeros_like(dataset.data)
     recon_sorted[idx_all] = recon_all
 
+    ## NEW 11SEP2025 - do_not_impute
+    if has_do_not_impute:
+        do_not_impute_sorted = torch.zeros_like(dataset.do_not_impute)
+        do_not_impute_sorted[idx_all] = do_not_impute_all
+
     # Replace only missing values in a clone of the original data
     new_data = dataset.data.clone()
     missing_mask = ~dataset.masks  # True where values were missing
-    new_data[missing_mask] = recon_sorted[missing_mask]
+
+    ## NEW 11SEP2025 - do_not_impute
+    if has_do_not_impute:
+        # Only impute where: (1) value was missing AND (2) do_not_impute allows it
+        can_impute_mask = missing_mask & (dataset.do_not_impute == 1)
+        new_data[can_impute_mask] = recon_sorted[can_impute_mask]
+    else:
+        # Original behavior if no do_not_impute mask
+        new_data[missing_mask] = recon_sorted[missing_mask]
 
     # Create new dataset object
     new_dataset = copy.deepcopy(dataset)
     new_dataset.data = new_data
     new_dataset.indices = dataset.indices  # keep full index
+
+    ## NEW 11SEP2025 - do_not_impute
+    if has_do_not_impute:
+        new_dataset.do_not_impute = dataset.do_not_impute.clone()
     return new_dataset
 
 
@@ -364,13 +411,27 @@ def compute_val_mse(model, dataset, device="cpu"):
         print("[DEBUG] recon_x_denorm (first 2 rows):")
         print(recon_x_denorm[:2])
 
+    ## NEW 11SEP2025 - do_not_impute
+    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
+        do_not_impute_mask = dataset.do_not_impute.to(device)
+        # Only compute error on validation entries that are NOT in do_not_impute
+        final_mask = val_mask & (do_not_impute_mask == 1)
+    else:
+        final_mask = val_mask
+
     # Only compute error on masked validation entries
     squared_error = (recon_x_denorm - val_data) ** 2
-    masked_error = squared_error[val_mask]
+    masked_error = squared_error[final_mask]
 
     if getattr(model, "debug", False):
         print(f"[DEBUG] squared_error (first 2 rows): {squared_error[:2]}")
         print(f"[DEBUG] val_mask (first 2 rows): {val_mask[:2]}")
+        print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
+
+        ## NEW 11SEP2025 - do_not_impute
+        if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
+            print(f"[DEBUG] do_not_impute_mask (first 2 rows): {do_not_impute_mask[:2]}")
+            print(f"[DEBUG] final_mask (first 2 rows): {final_mask[:2]}")
         print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
 
     if masked_error.numel() == 0:
