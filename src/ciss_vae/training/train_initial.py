@@ -59,6 +59,7 @@ def train_vae_initial(
     if not hasattr(dataset, "val_data"):
         raise ValueError("Dataset must include 'val_data' for validation-based early stopping.")
 
+
     # Container to collect per-epoch metrics
     history = {
         "epoch": [],
@@ -76,17 +77,23 @@ def train_vae_initial(
 
 
         for batch in train_loader:
-            x_batch, cluster_batch, mask_batch, _ = batch
+            x_batch, cluster_batch, mask_batch, idx_batch = batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
             mask_batch = mask_batch.to(device)
+            
+            if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
+                do_not_impute_batch = dataset.do_not_impute[idx_batch].to(device).float()
+            else:
+                do_not_impute_batch = None
 
             recon_x, mu, logvar = model(x_batch, cluster_batch)
 
             loss, recon_loss, kl_loss = loss_function(
                 cluster_batch, mask_batch, recon_x, x_batch, mu, logvar,
                 beta=beta,
-                return_components=True
+                return_components=True,
+                do_not_impute_mask=do_not_impute_batch
             )
 
 

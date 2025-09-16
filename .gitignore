@@ -55,6 +55,7 @@ cover/
 # Translations
 *.mo
 *.pot
+*.txt
 
 # Django stuff:
 *.log
@@ -211,3 +212,5 @@ __marimo__/
 !conf.py
 
 CISS-VAE-python/VOID_vignettes
+test_results.txt
+test_cvg.txt

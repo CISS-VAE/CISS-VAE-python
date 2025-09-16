@@ -40,10 +40,10 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 > **Note**
 >
 > If you want run_cissvae to handle clustering, please install the
-> clustering dependencies scikit-learn and hdbscan with pip.
+> clustering dependencies scikit-learn, leidenalg, python-igraph with pip.
 >
 > ``` bash
-> pip install scikit-learn hdbscan
+> pip install scikit-learn leidenalg python-igraph
 >
 > OR
 >
@@ -79,8 +79,8 @@ Missing values should be represented using np.nan or None.
 There are three options for assigning cluster labels for your data:  
     1. Manually assign cluster labels. You can assign your own cluster labels and provide them to the function via the `clusters` argument.   
     2. Assign clusters by missingness pattern. To automatically assign clusters via the pattern of missingness in the data, set `clusters = None`.   
-    To use Kmeans clustering, set n_clusters to the number of clusters you want. To use HDBSCAN clustering, leave `n_clusters = None`.   
-    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix`   argument. To use Kmeans clustering, set n_clusters to the number of clusters you want. To use HDBSCAN clustering, leave `n_clusters = None`.     
+    To use Kmeans clustering, set n_clusters to the number of clusters you want. To use Leiden Clustering clustering, leave `n_clusters = None`.   
+    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix`   argument. To use Kmeans clustering, set n_clusters to the number of clusters you want. To use Leiden Clustering clustering, leave `n_clusters = None`.     
         For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.   
 
 To run with default parameters:
@@ -103,8 +103,12 @@ imputed_data, vae = run_cissvae(data = data,
 
 ## Cluster params
     clusters = clusters, ## Where your cluster list goes. If none, will do clustering for you  
-    n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
-    cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN 
+    n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have, enter that number here
+    # -- Params for Leiden Clustering --
+    k_neighbors = 15,
+    leiden_resolution = 0.5, ## Lower resolution = fewer clusters and bigger clusters, higher resolution = more, smaller clusters
+    leiden_objective = "CPM", 
+    # -- End Params for Leiden Clustering --
     seed = 42,
     missingness_proportion_matrix = None,
     
@@ -153,6 +157,8 @@ plot_vae_architecture(model = vae,
 ```
 ![Output of plot_vae_architecture](image-1v2.png)
 
+Cluster lables can be retrieved from the ClusterDataset object if returned with ``
+
 # Hyperparameter Tuning with Optuna
 
 The {py:func}`ciss_vae.training.autotune.autotune` function lets you tune the model's hyperparameters with
@@ -194,7 +200,7 @@ from ciss_vae.utils import cluster_on_missing
 clusters = cluster_on_missing(df_missing, cols_ignore=None, n_clusters=None, seed=42)
 ```
 
-This function uses HDBSCAN clustering to detect structure in binary
+This function uses Leiden Clustering clustering to detect structure in binary
 missingness masks, and will automatically determine the number of
 clusters if not specified. If n_clusters is specified, uses KMeans.
 

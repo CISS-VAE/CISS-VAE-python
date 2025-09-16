@@ -55,6 +55,9 @@ class ClusterDataset(Dataset):
         Value to fill missing/held-out entries in ``self.data`` after masking.
     columns_ignore : list[str | int] or None, default=None
         Columns to exclude from validation masking (names for DataFrame, indices otherwise).
+    do_not_impute : pandas.DataFrame | numpy.ndarray | torch.Tensor
+        Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``.
+        Should be same shape as ``data``. 
 
     Attributes
     ----------
@@ -92,7 +95,7 @@ class ClusterDataset(Dataset):
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
-    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None):
+    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, do_not_impute = None):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
         Steps:
@@ -152,6 +155,22 @@ class ClusterDataset(Dataset):
 
         self.raw_data = torch.tensor(raw_data_np, dtype=torch.float32)
 
+        # --------------------
+        # Added 'do_not_impute' matrix
+        # --------------------
+
+        if do_not_impute is not None:
+            if hasattr(do_not_impute, 'iloc'):  # pandas DataFrame
+                self.do_not_impute = do_not_impute.values.astype(np.float32)
+            elif isinstance(do_not_impute, np.ndarray):
+                self.do_not_impute = do_not_impute.astype(np.float32)
+            elif isinstance(do_not_impute, torch.Tensor):
+                self.do_not_impute = do_not_impute.cpu().numpy().astype(np.float32)
+            else:
+                raise TypeError("Unsupported do_not_impute matrix format. Must be DataFrame, ndarray, or Tensor.")
+            self.do_not_impute = torch.tensor(self.do_not_impute, dtype=torch.bool)
+        else:
+            self.do_not_impute = None
         
 
         # ----------------------------------------

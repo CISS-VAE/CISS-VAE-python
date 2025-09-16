@@ -216,6 +216,11 @@ class CISSVAE(nn.Module):
 
         if self.debug:
             input_hash = torch.arange(x.shape[0], device=x.device)
+            print(f"layer_type_list: {layer_type_list}")
+            print(f"num_clusters: {self.num_clusters}")
+            for c in range(self.num_clusters):
+                print(f"Cluster {c} unshared layers: {len(unshared_layers[str(c)])}")
+            print(f"Number of unshared layers needed: {layer_type_list.count('unshared')}")
 
         for layer_num, layer_type in enumerate(layer_type_list):
             if layer_type.lower() in ["shared", "s"]:
