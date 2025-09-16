@@ -434,10 +434,11 @@ return_model = True,## model params
 epochs = 500, initial_lr = 0.01, decay_factor = 0.999, beta= 0.001, device = None, ## initial training params
 max_loops = 100, patience = 2, epochs_per_loop = None, initial_lr_refit = None, decay_factor_refit = None, beta_refit = None, ## refit params
 verbose = False,
-return_clusters = True,
+return_clusters = False,
 return_silhouettes = False,
 return_history = False, 
 return_dataset = False,
+debug = False,
 ):
     """End-to-end pipeline for Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).
     
@@ -511,7 +512,7 @@ return_dataset = False,
     :type beta_refit: float, optional
     :param verbose: Whether to print progress messages during training, defaults to False
     :type verbose: bool, optional
-    :param return_clusters: Whether to return list of clusters, defaults to True
+    :param return_clusters: Whether to return list of clusters, defaults to False
     :type return_clusters: bool, optional
     :param return_silhouettes: Whether to return clustering silhouette score, defaults to False
     :type return_silhouettes: bool, optional
@@ -581,7 +582,7 @@ return_dataset = False,
                 print(f"There were {nclusfound} clusters, with an average silhouette score of {silh}")
 
     # --------------------------
-    # MAJOR FIX: Ensure that cluster labeling 
+    # MAJOR FIX: Ensure that cluster labeling is consistant and goes from 0 to n-1
     # --------------------------
     unique_clusters = np.unique(clusters) 
     cluster_mapping = {old_label: new_label for new_label, old_label in enumerate(unique_clusters)}
@@ -608,10 +609,11 @@ return_dataset = False,
         latent_shared = latent_shared,
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
-        debug = False
+        debug = debug
     )
 
-    vae, initial_history_df = train_vae_initial(
+    if return_history: 
+        vae, initial_history_df = train_vae_initial(
         model=vae,
         train_loader=train_loader,
         epochs=epochs,
@@ -621,7 +623,19 @@ return_dataset = False,
         device=device,
         verbose=verbose,
         return_history = return_history
-    )
+        )
+    else:
+        vae = train_vae_initial(
+        model=vae,
+        train_loader=train_loader,
+        epochs=epochs,
+        initial_lr=initial_lr,
+        decay_factor=decay_factor,
+        beta=beta,
+        device=device,
+        verbose=verbose,
+        return_history = False
+        )
 
     imputed_dataset, vae, _, refit_history_df = impute_and_refit_loop(
         model=vae,

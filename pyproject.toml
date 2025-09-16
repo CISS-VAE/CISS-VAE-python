@@ -27,14 +27,19 @@ dependencies = [
   "rich",
   "typing",
   "matplotlib",
-  "scikit-learn"
+  "scikit-learn",
 ]
 
 [project.optional-dependencies]
 clustering = [
     "hdbscan", "leidenalg", "python-igraph"
 ]
-dev = ["pytest", "black", "mypy"]
+dev = ["mypy", "pytest>=7.0.0",
+    "pytest-cov>=4.0.0", 
+    "pytest-mock>=3.10.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "pre-commit>=2.20.0"]
 docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]
 
 [project.urls]
