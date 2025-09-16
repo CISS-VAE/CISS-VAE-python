@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock, call
 import optuna
 import torch
 
-from ciss_vae.training.autotune import autotune, SearchSpace
+from ciss_vae.training.autotune import autotune as run_autotune, SearchSpace
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.classes.vae import CISSVAE
 
@@ -179,7 +179,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.5
         
-        result = autotune(
+        result = run_autotune(
             search_space=all_fixed_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -210,7 +210,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.3
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=3,
@@ -236,7 +236,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.4
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=n_trials,
@@ -262,7 +262,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.2
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -288,7 +288,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.35
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -311,7 +311,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None, pd.DataFrame({'epoch': [1, 2]}))
         mock_compute_val_mse.return_value = 0.25
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -345,7 +345,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None, mock_history_df)
         mock_compute_val_mse.return_value = 0.15
         
-        result = autotune(
+        result = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -385,7 +385,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.45
         
-        result = autotune(
+        result = run_autotune(
             search_space=search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -419,7 +419,7 @@ class TestAutoTune:
         mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
         mock_compute_val_mse.return_value = 0.3
         
-        result = autotune(
+        result = run_autotune(
             search_space=search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=1,
@@ -444,7 +444,7 @@ class TestAutoTune:
         mock_compute_val_mse.return_value = 0.333
         
         # Run with same seed twice
-        result1 = autotune(
+        result1 = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -453,7 +453,7 @@ class TestAutoTune:
             show_progress=False
         )
         
-        result2 = autotune(
+        result2 = run_autotune(
             search_space=basic_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
@@ -476,7 +476,7 @@ class TestAutoTune:
             invalid_search_space = SearchSpace(
                 latent_dim="invalid_string",  # Should be int, tuple, or list
             )
-            autotune(
+            run_autotune(
                 search_space=invalid_search_space,
                 train_dataset=mock_cluster_dataset,
                 n_trials=1
@@ -499,7 +499,7 @@ class TestAutoTune:
             num_shared_decode=1,  # Fixed
         )
         
-        result = autotune(
+        result = run_autotune(
             search_space=minimal_search_space,
             train_dataset=mock_cluster_dataset,
             n_trials=2,
