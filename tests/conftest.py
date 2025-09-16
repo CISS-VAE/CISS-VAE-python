@@ -32,6 +32,42 @@ def sample_data():
     return df
 
 @pytest.fixture
+def longitudinal_data():
+    """
+    Create synthetic longitudinal biomarker dataset in wide format.
+    
+    - 3 biomarkers: y1, y2, y3
+    - 5 collection times each: y{1,2,3}_{1..5}
+    - 100 samples (rows)
+    - Data has structured trends + noise
+    - Random missing values injected
+    """
+    np.random.seed(123)
+    n_samples = 100
+    n_times = 5
+    
+    # Base trajectories for each biomarker
+    time_points = np.arange(1, n_times + 1)
+    y1_traj = 0.5 * time_points           # linear increase
+    y2_traj = np.sin(time_points / 2.0)   # oscillatory
+    y3_traj = np.log1p(time_points)       # log growth
+    
+    data = {}
+    for biomarker, traj in zip(["y1", "y2", "y3"], [y1_traj, y2_traj, y3_traj]):
+        for t, mean in enumerate(traj, start=1):
+            # Add Gaussian noise around the mean trajectory
+            colname = f"{biomarker}_{t}"
+            data[colname] = mean + np.random.randn(n_samples) * 0.3
+    
+    df = pd.DataFrame(data)
+    
+    # Inject ~5% missing values randomly
+    mask = np.random.random(df.shape) < 0.05
+    df = df.mask(mask)
+    
+    return df
+
+@pytest.fixture
 def large_sample_data():
     """Create larger sample data for performance tests"""
     np.random.seed(42)

@@ -219,38 +219,49 @@ def _leiden_from_knn(
 
 def cluster_on_missing(
     data, 
-    cols_ignore = None, 
-    n_clusters = None, 
-    ## if n_clusters = None use leiden. 
+    cols_ignore=None, 
+    n_clusters=None, 
+    # if n_clusters = None use Leiden. 
     k_neighbors: int = 15,
     use_snn: bool = True,
     leiden_resolution: float = 0.5,
     leiden_objective: str = "CPM",
-    seed = 42):
-    """Cluster samples based on their missingness patterns using KMeans or Leiden.
-    
-    When n_clusters is None, uses Leiden on a kNN graph built from Jaccard distances
-    over the binary missingness mask. Otherwise uses KMeans(n_clusters).
-    
+    seed=42
+):
+    """
+    Cluster samples based on their missingness patterns using KMeans or Leiden.
+
+    When n_clusters is None, uses Leiden on a graph built from the binary missingness mask.
+    If use_snn=True, builds an SNN (Shared Nearest Neighbor) graph with Jaccard-based kNN;
+    otherwise uses kNN with Jaccard-similarity weights.
+
     Returns (labels, silhouette). Silhouette uses Jaccard for the mask.
-    
-    :param data: Input dataset containing missing values
-    :type data: pandas.DataFrame
-    :param cols_ignore: Column names to exclude from clustering analysis, defaults to None
-    :type cols_ignore: list[str], optional
-    :param n_clusters: Number of clusters for KMeans; if None, uses Leiden Clustering, defaults to None
-    :type n_clusters: int, optional
-    :param seed: Random seed for reproducible clustering, defaults to None
-    :type seed: int, optional
-    :param k_neighbors: Number of nearest neighbors for leiden knn
-    :type k_neighbors: int, optional
-    :param leiden_resolution: Resolution for leiden clustering. Default 0.5
-    :type leiden_resolution: float, optional
-    :param leiden_objective: One of {"CPM","RB","Modularity"}. Default CPM
-    :type prop: str, {"CPM","RB","Modularity"}
-    :return: Tuple of (cluster_labels, silhouette_score)
-    :rtype: tuple[numpy.ndarray, float or None]
-    :raises ImportError: If scikit-learn or other dependencies are not installed
+
+    Parameters
+    ----------
+    data : pandas.DataFrame
+        Input dataset containing missing values.
+    cols_ignore : list[str] or None
+        Column names to exclude from clustering analysis.
+    n_clusters : int or None
+        Number of clusters for KMeans; if None, uses Leiden clustering.
+    k_neighbors : int
+        Number of nearest neighbors for kNN/SNN graph.
+    use_snn : bool
+        If True, build an SNN graph (shared-neighbor weighting). If False, use kNN with Jaccard weights.
+    leiden_resolution : float
+        Resolution parameter for Leiden.
+    leiden_objective : {"CPM","RB","Modularity"}
+        Objective function for Leiden.
+    seed : int
+        Random seed.
+
+    Returns
+    -------
+    labels : np.ndarray
+        Cluster labels (length = n_samples).
+    silhouette : float or None
+        Silhouette score using Jaccard distance on the missingness mask, or None if undefined.
     """
     try:
         from sklearn.cluster import KMeans
@@ -260,32 +271,48 @@ def cluster_on_missing(
             "This function requires scikit-learn. Install with: pip install scikit-learn"
         ) from e
 
-    # Step 1: Binary mask (1=missing, 0=observed) as boolean
-    if cols_ignore is not None:
-        mask_matrix = data.drop(columns=cols_ignore).isna().to_numpy(dtype=bool)
-    else:
-        mask_matrix = data.isna().to_numpy(dtype=bool)
+    # Boolean missingness mask: True=missing, False=observed
+    mask_matrix = (
+        data.drop(columns=cols_ignore).isna().to_numpy(dtype=bool)
+        if cols_ignore is not None
+        else data.isna().to_numpy(dtype=bool)
+    )
 
+    # ---------------------------
+    # Branch: Leiden or KMeans
+    # ---------------------------
     if n_clusters is None:
-        # Leiden on Jaccard
-        labels = _leiden_from_knn(
-            mask_matrix,
-            metric="jaccard",
-            k=k_neighbors,
-            resolution=leiden_resolution,
-            objective=leiden_objective,
-            seed=seed,
-            weight_scheme="1-minus",  # Jaccard similarity = 1 - distance
-        )
+        # Route to your existing helpers (keeps code unified)
+        if use_snn:
+            labels = _leiden_from_snn(
+                mask_matrix,                 # boolean array OK (sklearn jaccard supports boolean)
+                metric="jaccard",
+                k=k_neighbors,
+                resolution=leiden_resolution,
+                objective=leiden_objective,
+                mutual=False,
+                seed=seed,
+            )
+        else:
+            labels = _leiden_from_knn(
+                mask_matrix,
+                metric="jaccard",
+                k=k_neighbors,
+                resolution=leiden_resolution,
+                objective=leiden_objective,
+                seed=seed,
+                weight_scheme="1-minus",     # similarity = 1 - jaccard distance
+            )
         X_for_sil = mask_matrix
         sil_metric = "jaccard"
+
     else:
         # KMeans on the binary mask
         n_init = "auto"
         try:
             _ = KMeans(n_clusters=2, n_init=n_init)
         except TypeError:
-            n_init = 10
+            n_init = 10  # scikit-learn < 1.4
         km = KMeans(n_clusters=n_clusters, n_init=n_init, random_state=seed)
         labels = km.fit_predict(mask_matrix.astype(float))
         X_for_sil = mask_matrix
@@ -295,7 +322,6 @@ def cluster_on_missing(
     unique, counts = np.unique(labels, return_counts=True)
     silhouette = None
     if len(unique) > 1 and np.all(counts >= 2):
-        from sklearn.metrics import silhouette_score
         silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
 
     return labels, silhouette

@@ -5,6 +5,7 @@ import torch
 from ciss_vae.utils.run_cissvae import run_cissvae
 from ciss_vae.classes.vae import CISSVAE
 from ciss_vae.classes.cluster_dataset import ClusterDataset
+from ciss_vae.utils.matrix import create_missingness_prop_matrix
 
 
 class TestRunCissVAE:
@@ -239,6 +240,33 @@ class TestRunCissVAE:
         unique_clusters2 = np.unique(clusters2)
         assert len(unique_clusters2) >= 1
         assert len(unique_clusters2) <= len(sample_data) // 2  # Sanity check
+
+    def test_prop_clustering(self, longitudinal_data, minimal_params):
+        """Test that create_missngness_prop_matrix and prop matrix stuff works correctly"""
+
+        ## should make array w/ 3 columns and same number of rows as longitudinal_data
+        prop_matrix = create_missingness_prop_matrix(longitudinal_data, repeat_feature_names=["y1", "y2", "y3"])
+
+        result1 = prop_matrix.data
+
+        assert result1.shape[1] == 3
+        assert result1.shape[0] == longitudinal_data.shape[0]
+
+        result2 = run_cissvae(
+            longitudinal_data,
+            return_clusters=True,
+            return_silhouettes=True,
+            return_model=False,
+            missingness_proportion_matrix=prop_matrix,
+            **minimal_params
+        )
+        
+        imputed_dataset, clusters, silhouettes = result2
+
+        # Should have exactly 2 clusters when n_clusters=2
+        unique_clusters = np.unique(clusters)
+        assert len(unique_clusters) == 2
+        assert len(clusters) == longitudinal_data.shape[0]
     
     def test_training_parameters(self, sample_data, minimal_params):
         """Test that training parameters don't break the pipeline"""
