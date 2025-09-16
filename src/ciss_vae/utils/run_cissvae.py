@@ -580,6 +580,13 @@ return_dataset = False,
                 nclusfound = len(np.unique(clusters))
                 print(f"There were {nclusfound} clusters, with an average silhouette score of {silh}")
 
+    # --------------------------
+    # MAJOR FIX: Ensure that cluster labeling 
+    # --------------------------
+    unique_clusters = np.unique(clusters) 
+    cluster_mapping = {old_label: new_label for new_label, old_label in enumerate(unique_clusters)}
+    clusters = np.array([cluster_mapping[label] for label in clusters])
+
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 
                             val_proportion = val_proportion,
