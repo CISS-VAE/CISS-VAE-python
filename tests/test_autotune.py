@@ -482,7 +482,7 @@ class TestAutoTune:
                 n_trials=1
             )
 
-    @pytest.mark.slow  
+
     def test_actual_optimization_minimal(self, mock_cluster_dataset):
         """Test actual optimization with minimal real parameters"""
         # This test runs actual autotune with minimal settings
@@ -492,32 +492,27 @@ class TestAutoTune:
             latent_dim=[4, 8],  # Small range
             lr=0.01,  # Fixed
             num_epochs=1,  # Very small
-            batch_size=16,  # Small
+            batch_size=4000,  # Small
             refit_loops=1,  # Minimal
             epochs_per_loop=1,  # Minimal
             num_shared_encode=0,  # Fixed
-            num_shared_decode=0,  # Fixed
+            num_shared_decode=1,  # Fixed
         )
         
-        # Skip if no GPU available for speed
-        if not torch.cuda.is_available():
-            pytest.skip("Skipping slow test without CUDA")
+        result = autotune(
+            search_space=minimal_search_space,
+            train_dataset=mock_cluster_dataset,
+            n_trials=2,
+            evaluate_all_orders=False,
+            study_name="vae_autotune",
+            verbose=False,
+            show_progress=False,
+            device_preference="cpu",
+            load_if_exists = False,
+        )
         
-        try:
-            result = autotune(
-                search_space=minimal_search_space,
-                train_dataset=mock_cluster_dataset,
-                n_trials=2,
-                evaluate_all_orders=False,
-                verbose=False,
-                show_progress=False,
-                device_preference="cpu"  # Force CPU for testing
-            )
-            
-            assert result is not None
-            best_imputed_df, best_model, study, results_df = result
-            assert best_model is not None
-            assert len(study.trials) == 2
-        except Exception as e:
-            # If real test fails due to mocking issues, that's ok for now
-            pytest.skip(f"Actual optimization test failed: {e}")
+        assert result is not None
+        best_imputed_df, best_model, study, results_df = result
+        assert best_model is not None
+        assert len(study.trials) == 2
+

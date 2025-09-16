@@ -379,11 +379,12 @@ def autotune(
         num_epochs = sample_param(trial, "num_epochs", search_space.num_epochs)
         batch_size = sample_param(trial, "batch_size", search_space.batch_size)
         
-        # Handle num_shared_encode/decode 
-        nse_raw = trial.suggest_categorical("num_shared_encode", sorted(set(search_space.num_shared_encode)))
-        nsd_raw = trial.suggest_categorical("num_shared_decode", sorted(set(search_space.num_shared_decode)))
-        num_shared_encode = int(min(int(nse_raw), int(num_hidden_layers)))
-        num_shared_decode = int(min(int(nsd_raw), int(num_hidden_layers)))
+        # Handle num_shared_encode/decode ## updated 16SEP2025
+        nse_raw = sample_param(trial, "num_shared_encode", search_space.num_shared_encode)
+        nsd_raw = sample_param(trial, "num_shared_decode", search_space.num_shared_decode)
+        num_shared_encode = max(0, min(int(nse_raw), int(num_hidden_layers)))
+        num_shared_decode = max(0, min(int(nsd_raw), int(num_hidden_layers)))
+
 
         encoder_shared_placement = trial.suggest_categorical("encoder_shared_placement", search_space.encoder_shared_placement)
         decoder_shared_placement = trial.suggest_categorical("decoder_shared_placement", search_space.decoder_shared_placement)
@@ -422,8 +423,8 @@ def autotune(
             # Reproducable seeds for random generated layer order
             # - uses _build_order() to determine the appropriate layer orders based on enc/decoder_shared_placement
             # -----------------------
-            rng_enc = random.Random(seed * 9973 + seed)
-            rng_dec = random.Random(seed * 9967 + seed)
+            rng_enc = random.Random(seed * 9973 + trial.number)
+            rng_dec = random.Random(seed * 9967 + trial.number)
             layer_order_enc = _build_order(encoder_shared_placement, num_hidden_layers, num_shared_encode, rng_enc)
             layer_order_dec = _build_order(decoder_shared_placement, num_hidden_layers, num_shared_decode, rng_dec)
             combos_to_eval = [(_format_order(layer_order_enc), _format_order(layer_order_dec))]
@@ -598,7 +599,7 @@ def autotune(
     decay_factor = float(get_best_param("decay_factor"))
     beta = float(get_best_param("beta"))
     batch_size = int(get_best_param("batch_size"))
-    refit_patience = bool(get_best_param("refit_patience"))
+    refit_patience = int(get_best_param("refit_patience"))
     refit_loops = int(get_best_param("refit_loops"))
     epochs_per_loop = int(get_best_param("epochs_per_loop"))
     reset_lr_refit = bool(get_best_param("reset_lr_refit"))

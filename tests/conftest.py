@@ -75,9 +75,5 @@ def mock_cluster_dataset(sample_data):
     cluster_labels = torch.randint(0, 3, (n_samples,))  # 3 clusters
     
     # Create mock dataset
-    dataset = MagicMock(spec=ClusterDataset)
-    dataset.raw_data = sample_data
-    dataset.cluster_labels = cluster_labels
-    dataset.__len__ = MagicMock(return_value=len(sample_data))
-    
+    dataset = ClusterDataset(sample_data, cluster_labels)
     return dataset
