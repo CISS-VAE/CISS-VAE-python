@@ -482,6 +482,8 @@ debug = False,
     :type columns_ignore: list[int or str], optional
     :param print_dataset: Whether to print dataset summary information, defaults to True
     :type print_dataset: bool, optional
+    :param do_not_impute_matrix: Optional binary matrix of same dimension as data. For each cell, put 0 for impute, 1 for exclude from imputation.
+    :type do_not_impute_matrix: pandas.DataFrame, numpy.ndarray, or torch.Tensor, optional
     :param clusters: Precomputed cluster labels per sample; if None, performs clustering, defaults to None
     :type clusters: array-like, optional
     :param n_clusters: Number of clusters for KMeans; if None with clusters=None, uses Leiden Clustering, defaults to None
@@ -613,6 +615,7 @@ debug = False,
     unique_clusters = np.unique(clusters) 
     cluster_mapping = {old_label: new_label for new_label, old_label in enumerate(unique_clusters)}
     clusters = np.array([cluster_mapping[label] for label in clusters])
+    
 
     dataset = ClusterDataset(data = data, 
                             cluster_labels = clusters, 

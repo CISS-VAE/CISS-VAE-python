@@ -27,10 +27,10 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 > **Important!**
 >
 > If you want run_cissvae to handle clustering, please install the
-> clustering dependencies scikit-learn and hdbscan with pip.
+> clustering dependencies scikit-learn and leidenalg with pip.
 >
 > ``` bash
-> pip install scikit-learn hdbscan
+> pip install scikit-learn leidenalg python-igraph
 >
 > OR
 >
@@ -67,7 +67,7 @@ data = data.drop(columns = ["clusters", "Unnamed: 0"])
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
-    val_percent = 0.1, ## Fraction of non-missing data held out for validation
+    val_proportion = 0.1, ## Fraction of non-missing data held out for validation
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## Names of columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
@@ -75,7 +75,6 @@ imputed_data, vae = run_cissvae(data = data,
 ## Cluster params
     clusters = None, ## Where your cluster list goes. If none, will do clustering for you  
     n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
-    cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN (link)
     seed = 42,
 
 ## VAE model params

@@ -169,8 +169,10 @@ class ClusterDataset(Dataset):
             else:
                 raise TypeError("Unsupported do_not_impute matrix format. Must be DataFrame, ndarray, or Tensor.")
             self.do_not_impute = torch.tensor(self.do_not_impute, dtype=torch.bool)
+            dni_np = self.do_not_impute.cpu().numpy()
         else:
             self.do_not_impute = None
+            dni_np = None
         
 
         # ----------------------------------------
@@ -258,7 +260,11 @@ class ClusterDataset(Dataset):
             for col in range(cluster_data.shape[1]):
                 if col in self.ignore_indices:
                     continue
-                non_missing = np.where(~np.isnan(cluster_data[:, col]))[0]
+                non_missing_raw = np.where(~np.isnan(cluster_data[:, col]))[0]
+                if dni_np is not None:
+                    non_missing = non_missing_raw & (~dni_np[row_idxs, col])  # <-- exclude do_not_impute==1
+                else:
+                    non_missing = non_missing_raw
                 if non_missing.size == 0:
                     continue
                 n_val = int(np.floor(non_missing.size * prop))
