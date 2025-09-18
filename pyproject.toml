@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CISS-VAE"
-version = "0.1.12"
+version = "0.1.13"
 description = "Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) for Missing Data Imputation"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,7 +15,7 @@ authors = [
 { name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" },
 { name = "Kenneth Seier" },
 { name = "Katherine S. Panageas" },
-{ name = "Mithat G¨onen" },
+{ name = "Mithat Gönen" },
 { name = "Yuan Chen", email = "cheny19@mskcc.org" }
  
 ]
