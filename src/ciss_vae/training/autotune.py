@@ -124,6 +124,7 @@ def autotune(
     evaluate_all_orders: bool = False,
     max_exhaustive_orders: int = 100,
     return_history: bool = False,
+    n_jobs = 1, ## add param to docs
 
 ):
     r"""Optuna-based hyperparameter search for the CISSVAE model.
@@ -525,7 +526,7 @@ def autotune(
     else:
         print(f"Starting Optuna optimization with {n_trials} trials...")
     
-    study.optimize(objective, n_trials=n_trials)
+    study.optimize(objective, n_trials=n_trials, n_jobs = n_jobs)
     
     # Use Rich console for completion
     if show_progress:
