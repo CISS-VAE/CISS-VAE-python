@@ -16,7 +16,7 @@ parameters you want to use, you can use the {py:func}`ciss_vae.utils.run_cissvae
 run the model once for the given set of parameters. If you want to tune
 the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
 
-The R package associated with this model can be found at `rCISS-VAE <https://ciss-vae.github.io/rCISS-VAE/>`_.
+The R package associated with this model can be found at [rCISS-VAE] (https://ciss-vae.github.io/rCISS-VAE/).
 
 # Installation
 
@@ -63,9 +63,9 @@ from ciss_vae.data import load_example_dataset
 df_missing, df_complete, clusters = load_example_dataset()
 ```
 
-If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
+If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function to perform the imputation.
 
-Your input dataset should be one of the following:
+The input dataset should be one of the following:
 
     - A Pandas DataFrame  
 
@@ -76,13 +76,13 @@ Your input dataset should be one of the following:
 Missing values should be represented using np.nan or None.
 
 **Assigning cluster labels**  
-There are three options for assigning cluster labels for your data:    
+There are three options for assigning cluster labels to the data:    
     1. Manually assign cluster labels and provide them to the function via the `clusters` argument.     
     2. Let `run_cissvae()` determine clusters based on patterns of missingness in the data by setting `clusters = None`.  
-        - To use Kmeans clustering, set n_clusters to the number of clusters.    
+        - To use Kmeans clustering, set n_clusters to the desired number of clusters.    
         - To use Leiden Clustering clustering, leave `n_clusters = None`.       
     3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix` argument.   
-        - To use Kmeans clustering, set n_clusters to the number of clusters you want.     
+        - To use Kmeans clustering, set n_clusters to the desired number of clusters.     
         - To use Leiden Clustering clustering, leave `n_clusters = None`.      
     .. raw:: html
 
@@ -97,6 +97,7 @@ To run the CISSVAE model with default parameters:
 ``` python
 import pandas as pd
 from ciss_vae.utils.run_cissvae import run_cissvae
+from ciss_vae.data import load_example_dataset
 
 # optional, display vae architecture
 from ciss_vae.utils.helpers import plot_vae_architecture
@@ -150,6 +151,7 @@ imputed_data, vae = run_cissvae(data = data,
     verbose = False, 
     return_silhouettes = False, ## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return "None"
     return_history = False, ## if true, will return training MSE history as pandas dataframe
+    return_clusters = False, ## if true, will return the cluster labels. Helpful if run_cissvae performs clustering
 )
 
 ## OPTIONAL - PLOT VAE ARCHITECTURE
@@ -166,7 +168,15 @@ plot_vae_architecture(model = vae,
 ```
 ![Output of plot_vae_architecture](image-1v2.png)
 
-Cluster lables can be retrieved from the ClusterDataset object if returned with ``
+Use the `return_clusters` parameter to get the cluster labels.
+Use the `return_history` parameter to get a dataframe with the training MSE history.
+
+### Avoiding imputation of certain entries
+In some cases, not all missing entries in a dataset are viable for imputation. For example, biomarker values after time of death would not necessarily be reasonable to impute and therefore should be ignored during the impute-refit training loop. To set certain data entries as un-imputable, create a do_not_impute matrix of the same size as the dataset, with 0 for entries that are non-missing or viable for imputation and 1 for entries that are missing and non-viable for imputation. 
+
+This matrix (or pandas.Dataframe) can then be passed to the `run_cissvae()` function. Make sure that the do_not_impute matrix has the same column labels as the original data set to use the `cols_ignore` option to ignore certain columns during imputation. 
+
+For more information, see the [dni vignette](https://ciss-vae.readthedocs.io/en/latest/dni_vignette.html) 
 
 # Hyperparameter Tuning with Optuna
 
@@ -192,21 +202,29 @@ Your dataset should be one of the following:
 
 Missing values should be represented using np.nan or None.
 
-Once your dataset is loaded, the first step is to identify patterns of
+Once the dataset is loaded, the first step is to identify patterns of
 missingness using clustering.
 
 ## Clustering on missingness pattern
 
-Before fitting the model, the dataset is clustered based on its
+Before fitting the model, the dataset should clustered based on its
 missingness pattern (i.e., which variables are missing in each
 observation).
 
-You can use the built-in function:
+The built-in function can perfrom either leiden clustering or Kmeans clustering:
 
 ``` python
 from ciss_vae.utils import cluster_on_missing
 
-clusters = cluster_on_missing(df_missing, cols_ignore=None, n_clusters=None, seed=42)
+clusters = cluster_on_missing(
+    df_missing, 
+    cols_ignore=None, 
+    n_clusters=None, 
+    k_neigbors=500, ## use higher k for fewer clusters generally
+    use_snn=True,
+    leiden_resolution=0.005, ## higher resolution -> more clusters
+    leiden_objective="CPM"
+    seed=42)
 ```
 
 This function uses Leiden Clustering clustering to detect structure in binary
@@ -215,19 +233,15 @@ clusters if not specified. If n_clusters is specified, uses KMeans.
 
 **Options:**  
 - cols_ignore: list of columns to exclude when computing the missingness
-pattern.  
+pattern. Ex: identifiers
 - n_clusters: set this to use K-Means instead of nonparametric
     clustering.  
-
-You should store your cluster labels separately for input into the model
-constructor.
 
 **To cluster on proportion of missingness, see (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.**
 
 # Creating a `ClusterDataset` object
 
-Once you've computed the cluster labels, you'll convert your dataset
-into a {py:class}`ciss_vae.classes.cluster_dataset.ClusterDataset`.
+After obtaining cluster labels, construct a {py:class}`ciss_vae.classes.cluster_dataset.ClusterDataset`. This is the object that is fed into the autotune function.
 
 ``` python
 from ciss_vae.classes.cluster_dataset import ClusterDataset

@@ -135,46 +135,70 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         # Convert input data to numpy
         # ----------------------------------------
+        ## Additions -> check if the index column is non-numeric && give error if there are other non-numeric columns
         if hasattr(data, "iloc"):  # pandas DataFrame
-            # Always use positional indices so string indices don't break torch
-            self.indices = torch.arange(len(data), dtype=torch.long)
+            n_rows, n_cols = data.shape
+            self.indices = torch.arange(n_rows, dtype=torch.long)  # safe for any index dtype
+            self.feature_names = list(data.columns)
 
-            # Drop ignored columns BEFORE converting to float
-            if self.columns_ignore:
-                feat_cols = [c for c in data.columns if c not in self.columns_ignore]
-                data_feat = data.loc[:, feat_cols]
-            else:
-                data_feat = data
+            # Build ignore index list by name
+            self.ignore_indices = [i for i, col in enumerate(self.feature_names)
+                                if col in self.columns_ignore]
 
-            self.feature_names = list(data_feat.columns)
-            raw_data_np = data_feat.to_numpy(dtype=np.float32, copy=False)
+            # Build a numeric matrix column-by-column:
+            # - ignored columns -> float column filled with NaN (kept in shape, never used)
+            # - non-ignored columns -> must be numeric; error if not
+            converted_cols = []
+            bad_cols = []
 
-            # We already removed ignored columns, so nothing to ignore by position now
-            self.ignore_indices = []
+            for j, col in enumerate(self.feature_names):
+                s = data[col]
+                if j in self.ignore_indices:
+                    # If column is numeric, keep as-is; if not, replace with NaN float column
+                    if pd.api.types.is_numeric_dtype(s):
+                        converted_cols.append(s.astype("float32"))
+                    else:
+                        converted_cols.append(pd.Series(np.nan, index=s.index, dtype="float32"))
+                else:
+                    # Must be numeric; coerce and detect non-numeric values (not counting real NaNs)
+                    sc = pd.to_numeric(s, errors="coerce")
+                    introduced_nonnumeric = (~s.isna()) & (sc.isna())
+                    if introduced_nonnumeric.any():
+                        bad_cols.append(col)
+                    converted_cols.append(sc.astype("float32"))
+
+            if bad_cols:
+                raise TypeError(
+                    "Non-numeric values found in columns not listed in columns_ignore: "
+                    f"{bad_cols}. Convert them to numeric or add them to `columns_ignore`."
+                )
+
+            # Stack back to (n_rows, n_cols) float32
+            raw_data_np = np.column_stack([c.to_numpy(dtype=np.float32) for c in converted_cols])
 
         elif isinstance(data, np.ndarray):
-            self.indices = torch.arange(data.shape[0])
-            # Expect columns_ignore to be integer positions for arrays/tensors
-            ignore_idx = set(self.columns_ignore if isinstance(self.columns_ignore, list) else [])
-            use_cols = [j for j in range(data.shape[1]) if j not in ignore_idx]
-
-            raw_data_np = data[:, use_cols].astype(np.float32, copy=False)
-            self.feature_names = [f"V{j+1}" for j in use_cols]
-            self.ignore_indices = []  # already filtered
+            self.indices = torch.arange(data.shape[0], dtype=torch.long)
+            self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
+            # Ensure numeric array
+            if not np.issubdtype(data.dtype, np.number):
+                raise TypeError("ndarray input must be numeric. For mixed types, pass a DataFrame and use columns_ignore.")
+            raw_data_np = data.astype(np.float32, copy=False)
+            # For ndarray, columns_ignore is by index only
+            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
 
         elif isinstance(data, torch.Tensor):
-            self.indices = torch.arange(data.shape[0])
-            ignore_idx = set(self.columns_ignore if isinstance(self.columns_ignore, list) else [])
-            use_cols = [j for j in range(data.shape[1]) if j not in ignore_idx]
-
-            raw_data_np = data[:, use_cols].cpu().numpy().astype(np.float32, copy=False)
-            self.feature_names = [f"V{j+1}" for j in use_cols]
-            self.ignore_indices = []  # already filtered
+            self.indices = torch.arange(data.shape[0], dtype=torch.long)
+            self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
+            if not torch.is_floating_point(data) and not torch.is_complex(data) and not data.dtype.is_floating_point:
+                data = data.float()
+            raw_data_np = data.cpu().numpy().astype(np.float32, copy=False)
+            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
 
         else:
             raise TypeError("Unsupported data format. Must be DataFrame, ndarray, or Tensor.")
 
         self.raw_data = torch.tensor(raw_data_np, dtype=torch.float32)
+
 
         # --------------------
         # Added 'do_not_impute' matrix
@@ -273,7 +297,7 @@ class ClusterDataset(Dataset):
             if row_idxs.size == 0:
                 continue
 
-            cluster_data = raw_data_np[row_idxs]
+            cluster_data = raw_data_np[row_idxs]      # shape: (n_rows_in_cluster, n_features)
             prop = per_cluster_prop[cluster_id]
             if prop == 0.0:
                 continue  # nothing to select for this cluster
@@ -281,18 +305,27 @@ class ClusterDataset(Dataset):
             for col in range(cluster_data.shape[1]):
                 if col in self.ignore_indices:
                     continue
-                non_missing_raw = np.where(~np.isnan(cluster_data[:, col]))[0]
+
+                # boolean masks (same length as row_idxs)
+                mask_non_missing = ~np.isnan(cluster_data[:, col])
                 if dni_np is not None:
-                    non_missing = non_missing_raw & (~dni_np[row_idxs, col])  # <-- exclude do_not_impute==1
+                    # dni_np expected to be aligned to full data: shape == raw_data_np.shape
+                    mask_not_dni = ~dni_np[row_idxs, col]
                 else:
-                    non_missing = non_missing_raw
-                if non_missing.size == 0:
+                    mask_not_dni = True  # broadcastable scalar
+
+                candidate_mask = mask_non_missing & mask_not_dni
+                candidate_rows = np.where(candidate_mask)[0]  # local indices within row_idxs
+
+                if candidate_rows.size == 0:
                     continue
-                n_val = int(np.floor(non_missing.size * prop))
+
+                n_val = int(np.floor(candidate_rows.size * prop))
                 if n_val <= 0:
                     continue
-                chosen = np.random.choice(non_missing, size=n_val, replace=False)
-                val_mask_np[row_idxs[chosen], col] = True
+
+                chosen_local = np.random.choice(candidate_rows, size=n_val, replace=False)
+                val_mask_np[row_idxs[chosen_local], col] = True
 
         val_mask_tensor = torch.tensor(val_mask_np, dtype=torch.bool)
 
@@ -307,6 +340,7 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         self.data = self.raw_data.clone()
         self.data[val_mask_tensor] = torch.nan  # mask validation entries
+
 
         # ----------------------------------------
         # Normalize non-missing entries

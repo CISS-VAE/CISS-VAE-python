@@ -123,6 +123,7 @@ def tiny_train_kwargs():
         epochs=2,
         max_loops=1,
         patience=1,
+        k_neighbors = 5,
         return_model=False,
         return_clusters=False,
         return_silhouettes=False,
