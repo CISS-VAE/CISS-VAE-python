@@ -135,21 +135,42 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         # Convert input data to numpy
         # ----------------------------------------
-        if hasattr(data, 'iloc'):  # pandas DataFrame
-            self.indices = torch.arange(data.shape[0]) ## won't break if the indices are non-numeric
-            self.feature_names = list(data.columns)
-            raw_data_np = data.values.astype(np.float32)
-            self.ignore_indices = [i for i, col in enumerate(data.columns) if col in self.columns_ignore]
+        if hasattr(data, "iloc"):  # pandas DataFrame
+            # Always use positional indices so string indices don't break torch
+            self.indices = torch.arange(len(data), dtype=torch.long)
+
+            # Drop ignored columns BEFORE converting to float
+            if self.columns_ignore:
+                feat_cols = [c for c in data.columns if c not in self.columns_ignore]
+                data_feat = data.loc[:, feat_cols]
+            else:
+                data_feat = data
+
+            self.feature_names = list(data_feat.columns)
+            raw_data_np = data_feat.to_numpy(dtype=np.float32, copy=False)
+
+            # We already removed ignored columns, so nothing to ignore by position now
+            self.ignore_indices = []
+
         elif isinstance(data, np.ndarray):
             self.indices = torch.arange(data.shape[0])
-            self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
-            raw_data_np = data.astype(np.float32)
-            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
+            # Expect columns_ignore to be integer positions for arrays/tensors
+            ignore_idx = set(self.columns_ignore if isinstance(self.columns_ignore, list) else [])
+            use_cols = [j for j in range(data.shape[1]) if j not in ignore_idx]
+
+            raw_data_np = data[:, use_cols].astype(np.float32, copy=False)
+            self.feature_names = [f"V{j+1}" for j in use_cols]
+            self.ignore_indices = []  # already filtered
+
         elif isinstance(data, torch.Tensor):
             self.indices = torch.arange(data.shape[0])
-            self.feature_names = [f"V{i+1}" for i in range(data.shape[1])]
-            raw_data_np = data.cpu().numpy().astype(np.float32)
-            self.ignore_indices = self.columns_ignore if isinstance(self.columns_ignore, list) else []
+            ignore_idx = set(self.columns_ignore if isinstance(self.columns_ignore, list) else [])
+            use_cols = [j for j in range(data.shape[1]) if j not in ignore_idx]
+
+            raw_data_np = data[:, use_cols].cpu().numpy().astype(np.float32, copy=False)
+            self.feature_names = [f"V{j+1}" for j in use_cols]
+            self.ignore_indices = []  # already filtered
+
         else:
             raise TypeError("Unsupported data format. Must be DataFrame, ndarray, or Tensor.")
 
