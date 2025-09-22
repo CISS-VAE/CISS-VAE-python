@@ -7,7 +7,7 @@ toc-title: Table of contents
 
 The **Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)** is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.
  
-A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers, which allows knowledge transfer across clusters and enhance parameter stability, especially important when certain clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.
+A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.
  
 Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.
 
@@ -25,7 +25,7 @@ package to be released soon. It can be installed from either
 [github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
-# From PyPI
+# From PyPI (not released yet)
 pip install ciss-vae
 
 ```
@@ -76,14 +76,23 @@ Your input dataset should be one of the following:
 Missing values should be represented using np.nan or None.
 
 **Assigning cluster labels**  
-There are three options for assigning cluster labels for your data:  
-    1. Manually assign cluster labels. You can assign your own cluster labels and provide them to the function via the `clusters` argument.   
-    2. Assign clusters by missingness pattern. To automatically assign clusters via the pattern of missingness in the data, set `clusters = None`.   
-    To use Kmeans clustering, set n_clusters to the number of clusters you want. To use Leiden Clustering clustering, leave `n_clusters = None`.   
-    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix`   argument. To use Kmeans clustering, set n_clusters to the number of clusters you want. To use Leiden Clustering clustering, leave `n_clusters = None`.     
-        For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.   
+There are three options for assigning cluster labels for your data:    
+    1. Manually assign cluster labels and provide them to the function via the `clusters` argument.     
+    2. Let `run_cissvae()` determine clusters based on patterns of missingness in the data by setting `clusters = None`.  
+        - To use Kmeans clustering, set n_clusters to the number of clusters.    
+        - To use Leiden Clustering clustering, leave `n_clusters = None`.       
+    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix` argument.   
+        - To use Kmeans clustering, set n_clusters to the number of clusters you want.     
+        - To use Leiden Clustering clustering, leave `n_clusters = None`.      
+    .. raw:: html
 
-To run with default parameters:
+    <details>
+    <summary>Click for more details on missingness proportion matrix</summary>
+    <p>For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p>
+    </details>   
+           
+
+To run the CISSVAE model with default parameters:
 
 ``` python
 import pandas as pd
@@ -309,6 +318,8 @@ to visualize the importance of your tuning parameters. If you use VSCode
 or [Positron](https://positron.posit.co/download.html) there is an
 extension for viewing optuna dashboards in your development environment.
 
+![Screenshot of Optuna Dashboard](optuna_dash_v1.png)
+
 The optuna database file can be opened via commandline as well. (tutorial)[https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html#command-line-interface]  
 
 
@@ -325,11 +336,13 @@ best_imputed_df,  best_model, study, results_df = autotune(
     study_name="vae_autotune",                 # Default study name
     device_preference="cuda",
     show_progress=False,                       # Show progress bar for training
-    optuna_dashboard_db="sqlite:///db.sqlite3",                  # If using optuna dashboard set db location here
-    load_if_exists=True,
+    optuna_dashboard_db="sqlite:///db.sqlite3",                  # If using optuna dashboard set db location here, otherwise set to None
+    load_if_exists=True,                       # Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard
     seed = 42,
 )
 ```
+
+
 
 # Saving and loading models
 

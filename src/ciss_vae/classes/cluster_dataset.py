@@ -136,7 +136,7 @@ class ClusterDataset(Dataset):
         # Convert input data to numpy
         # ----------------------------------------
         if hasattr(data, 'iloc'):  # pandas DataFrame
-            self.indices = torch.tensor(data.index.values, dtype=torch.long)
+            self.indices = torch.arange(data.shape[0]) ## won't break if the indices are non-numeric
             self.feature_names = list(data.columns)
             raw_data_np = data.values.astype(np.float32)
             self.ignore_indices = [i for i, col in enumerate(data.columns) if col in self.columns_ignore]
@@ -169,7 +169,7 @@ class ClusterDataset(Dataset):
             else:
                 raise TypeError("Unsupported do_not_impute matrix format. Must be DataFrame, ndarray, or Tensor.")
             self.do_not_impute = torch.tensor(self.do_not_impute, dtype=torch.bool)
-            dni_np = self.do_not_impute.cpu().numpy()
+            dni_np = self.do_not_impute.cpu().numpy().astype(bool)
         else:
             self.do_not_impute = None
             dni_np = None

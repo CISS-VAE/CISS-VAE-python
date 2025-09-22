@@ -67,6 +67,71 @@ def longitudinal_data():
     
     return df
 
+@pytest.fixture(scope="function")
+def small_df():
+    """
+    A tiny, fast, deterministic dataframe with a couple of controlled NaNs.
+    Index is 'id'; columns are f0..f{p-1}. No non-feature columns.
+    """
+    rng = np.random.default_rng(123)
+    n, p = 12, 6
+    X = rng.normal(size=(n, p)).astype(np.float32)
+    df = pd.DataFrame(X, columns=[f"f{j}" for j in range(p)])
+    df.insert(0, "id", [f"P{i:03d}" for i in range(n)])
+    df.set_index("id", inplace=True)
+
+    # Inject two NaNs we will protect with the DNI mask
+    df.iloc[0, 0] = np.nan  # (row 0, col f0)
+    df.iloc[1, 1] = np.nan  # (row 1, col f1)
+    return df
+
+
+@pytest.fixture(scope="function")
+def small_dni(small_df):
+    """
+    DNI mask aligned 1:1 with small_df (same index/columns).
+    True means: do NOT impute & do NOT select as validation target.
+    """
+    dni = pd.DataFrame(
+        0, index=small_df.index.copy(), columns=small_df.columns.copy()
+    )
+
+    # Protect the injected NaNs
+    dni.iloc[0, 0] = 1
+    dni.iloc[1, 1] = 1
+
+    # Also protect some observed entries so they can't be picked for validation
+    dni.iloc[2, 2] = 1
+    dni.iloc[3, 3] = 1
+    return dni
+
+
+@pytest.fixture(scope="function")
+def one_cluster_labels(small_df):
+    """All samples in one cluster, length == nrows."""
+    return np.zeros(len(small_df), dtype=int)
+
+
+@pytest.fixture(scope="function")
+def tiny_train_kwargs():
+    """
+    Fast hyperparameters for CI. These match the run_cissvae signature.
+    Adjust names if your function uses slightly different params.
+    """
+    return dict(
+        val_proportion=0.2,
+        epochs=2,
+        max_loops=1,
+        patience=1,
+        return_model=False,
+        return_clusters=False,
+        return_silhouettes=False,
+        return_history=False,
+        return_dataset=False,
+        verbose=False,
+    )
+
+
 @pytest.fixture
 def large_sample_data():
     """Create larger sample data for performance tests"""

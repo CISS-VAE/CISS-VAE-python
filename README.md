@@ -7,7 +7,7 @@ CISS-VAE is a flexible deep learning model for missing data imputation that acco
 ## Installation
 
 The CISS-VAE package is currently available for python, with an R
-package to be released soon. It can be installed from either
+package to be released soon ([see rCISSVAE github page for updates](https://github.com/CISS-VAE/rCISS-VAE)). It can be installed from either
 [github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
@@ -26,7 +26,7 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 > **Important!**
 >
-> If you want run_cissvae to handle clustering, please install the
+> For run_cissvae to be able to handle clustering, please install the
 > clustering dependencies scikit-learn and leidenalg with pip.
 >
 > ``` bash
@@ -43,7 +43,7 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 The full vignette can be found [here](https://ciss-vae.readthedocs.io/en/latest/vignette.html#).
 
-Your input dataset should be one of the following:
+The input dataset should be one of the following:
 
     - A Pandas DataFrame  
 
@@ -116,4 +116,9 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
-![Output of plot_vae_architecture](image-1.png)
+![Output of plot_vae_architecture](docs/source/image-1v2.png)
+
+## The CISS-VAE package includes the option to perform automated hyperparameter tuning with OPTUNA
+
+See [tutorial](https://ciss-vae.readthedocs.io/en/latest/vignette.html#hyperparameter-tuning-with-optuna) for more details. 
+
