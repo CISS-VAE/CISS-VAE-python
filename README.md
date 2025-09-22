@@ -11,7 +11,7 @@ package to be released soon. It can be installed from either
 [github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
-# From PyPI
+# From PyPI (package not on pypi just yet)
 pip install ciss-vae
 
 ```
