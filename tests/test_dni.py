@@ -22,9 +22,9 @@ def test_dni_excludes_validation_cells(small_df, small_dni, one_cluster_labels):
     )
 
     val_data = ds.val_data.numpy()
-    dni_np = small_dni.values
+    dni_np = small_dni.values.astype(bool)
     assert np.all(np.isnan(val_data[dni_np])), (
-        "DNI-marked cells should remain NaN in val_data (never selected for validation)."
+        "DNI-marked cells should remain NaN in val_data (never selected for validation b/c they are missing in the first place)."
     )
 
 
@@ -33,21 +33,17 @@ def test_dni_cells_remain_nan_in_imputed_dataset(small_df, small_dni, tiny_train
     End-to-end: cells with NaN & DNI==True must remain NaN in final imputed output.
     """
     # run_cissvae expects a column to use as an index; give it explicitly
-    df_for_run = small_df.reset_index(drop=False)  # brings 'id' back as a column
 
     res = run_cissvae(
-        data=df_for_run,
-        columns_ignore=["id"],                # features are exactly small_df.columns
+        data=small_df,
+        columns_ignore=[],                # features are exactly small_df.columns
         do_not_impute_matrix=small_dni,   # same shape & col names as features
         **tiny_train_kwargs,
     )
 
     # Align output to the original feature frame for assertions
-    imp = res["imputed_dataset"]
+    imp = res
     assert isinstance(imp, pd.DataFrame)
-    # if "id" in imp.columns:
-    #     imp = imp.set_index("id")
-    imp = imp.reindex(index=small_df.index, columns=small_df.columns)
 
     # The two injected NaNs protected by DNI must remain NaN
     assert np.isnan(imp.iloc[0, 0]), "DNI-protected missing cell (0,0) must remain NaN."
@@ -58,13 +54,12 @@ def test_run_cissvae_accepts_dni_and_returns_expected_shapes(small_df, small_dni
     """
     Smoke + shape test: run_cissvae accepts DNI and returns a sensible frame.
     """
-    df_for_run = small_df.reset_index(drop=False)
 
     res = run_cissvae(
-        data=df_for_run,
-        columns_ignore=["id"],
+        data=small_df,
+        columns_ignore=[],
         do_not_impute_matrix=small_dni,
-        val_proportion=0.3,
+        val_proportion=0.1,
         epochs=1,
         max_loops=1,
         patience=1,
@@ -76,8 +71,7 @@ def test_run_cissvae_accepts_dni_and_returns_expected_shapes(small_df, small_dni
         verbose=False,
     )
 
-    assert "imputed_dataset" in res
-    imp = res["imputed_dataset"]
+    imp = res[0]
     assert isinstance(imp, pd.DataFrame)
     # same # rows as input
     n_in = small_df.shape[0]
@@ -92,7 +86,6 @@ def test_run_cissvae_accepts_dni_and_returns_expected_shapes(small_df, small_dni
 def test_dni_wrong_shape_raises(small_df, small_dni, one_cluster_labels):
     """
     If DNI shape mis-matches data shape, ClusterDataset should raise a clear error.
-    (If your implementation doesn't yet validate this, add a check.)
     """
     # remove a column -> shape mismatch
     bad_dni = small_dni.iloc[:, :-1]

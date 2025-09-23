@@ -213,7 +213,15 @@ class ClusterDataset(Dataset):
                 self.do_not_impute = do_not_impute.cpu().numpy().astype(np.float32)
             else:
                 raise TypeError("Unsupported do_not_impute matrix format. Must be DataFrame, ndarray, or Tensor.")
+
             self.do_not_impute = torch.tensor(self.do_not_impute, dtype=torch.bool)
+            expected_shape = tuple(self.raw_data.shape)  # (n_samples, n_features)
+            if self.do_not_impute.shape != expected_shape:
+                raise ValueError(
+                    f"`do_not_impute` shape {self.do_not_impute.shape} does not match "
+                    f"data shape {expected_shape}."
+                )
+
             dni_np = self.do_not_impute.cpu().numpy().astype(bool)
         else:
             self.do_not_impute = None
@@ -320,7 +328,8 @@ class ClusterDataset(Dataset):
                 if candidate_rows.size == 0:
                     continue
 
-                n_val = int(np.floor(candidate_rows.size * prop))
+                ## Changed from floor to ceiling here b/c we want to have at least one validation entry if validation prop is not 0
+                n_val = int(np.ceil(candidate_rows.size * prop))
                 if n_val <= 0:
                     continue
 

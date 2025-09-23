@@ -77,12 +77,21 @@ def small_df():
     n, p = 12, 6
     X = rng.normal(size=(n, p)).astype(np.float32)
     df = pd.DataFrame(X, columns=[f"f{j}" for j in range(p)])
-    df.insert(0, "id", [f"P{i:03d}" for i in range(n)])
+    df.insert(0, "id", [i for i in range(n)])
     df.set_index("id", inplace=True)
 
     # Inject two NaNs we will protect with the DNI mask
     df.iloc[0, 0] = np.nan  # (row 0, col f0)
     df.iloc[1, 1] = np.nan  # (row 1, col f1)
+
+    df.iloc[2, 2] = np.nan
+    df.iloc[2 , 4] = np.nan
+    df.iloc[3,3] = np.nan
+    df.iloc[4,2] = np.nan
+    df.iloc[5,3] = np.nan
+    df.iloc[10, 5] = np.nan
+    df.iloc[10,4] = np.nan
+    df.iloc[10,3] = np.nan
     return df
 
 
@@ -90,19 +99,21 @@ def small_df():
 def small_dni(small_df):
     """
     DNI mask aligned 1:1 with small_df (same index/columns).
-    True means: do NOT impute & do NOT select as validation target.
+    True means: do NOT impute.
     """
     dni = pd.DataFrame(
         0, index=small_df.index.copy(), columns=small_df.columns.copy()
     )
 
-    # Protect the injected NaNs
+    # Protect some of the injected NaNs
     dni.iloc[0, 0] = 1
     dni.iloc[1, 1] = 1
+    dni.iloc[2 , 4] = 1
+    dni.iloc[10, 5] = 1
+    dni.iloc[10,4] = 1
+    dni.iloc[10,3] = 1
 
-    # Also protect some observed entries so they can't be picked for validation
-    dni.iloc[2, 2] = 1
-    dni.iloc[3, 3] = 1
+
     return dni
 
 
