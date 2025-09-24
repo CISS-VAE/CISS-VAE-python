@@ -14,7 +14,8 @@ The model uses unsupervised clustering to capture distinct patterns of missingne
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation 
 accuracy compared to traditional training approaches.  
  
-The CISS-VAE package also offers the :py:func:`ciss_vae.training.autotune.autotune` function, which can help select the best hyperparameters for your model within a user-defined search space. The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends. 
+The CISS-VAE package also offers the :py:func:`ciss_vae.training.autotune.autotune` function, which can help select the best hyperparameters for your model within a user-defined search space. 
+The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends. 
 
 The R package associated with this model can be found at `rCISS-VAE <https://ciss-vae.github.io/rCISS-VAE/>`_. 
 
@@ -24,6 +25,7 @@ The R package associated with this model can be found at `rCISS-VAE <https://cis
 
    vignette
    missingness_prop_vignette
+   dni_vignette
    api
 
 
@@ -35,6 +37,12 @@ To install via PyPI:
 .. code-block:: bash
 
    pip install ciss-vae
+
+
+To install via github: 
+.. code-block:: bash
+
+   pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 
 Features

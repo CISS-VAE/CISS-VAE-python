@@ -1,4 +1,5 @@
 sphinx>=6.0
+myst-nb
 sphinx_rtd_theme
 sphinx_autodoc_typehints
 sphinx_copybutton

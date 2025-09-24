@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [ main, add_multithread ]
+    branches: [ main]
   pull_request:
     branches: [ main ]
 

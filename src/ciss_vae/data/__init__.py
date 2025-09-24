@@ -57,5 +57,10 @@ def load_clusters():
         clusters_df = pd.read_csv(f, index_col=[0])
         return clusters_df.values.squeeze()
 
+def load_dni():
+    """Load dni matrix for df_missing"""
+    with resources.open_text(__package__, "dni.csv") as f:
+        return pd.read_csv(f, index_col=[0])
+
 # For convenience, make the main function available at package level
 __all__ = ["load_example_dataset", "load_missing_data", "load_complete_data", "load_clusters"]

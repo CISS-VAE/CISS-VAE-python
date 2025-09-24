@@ -239,7 +239,7 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
         do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
         # Only replace validation values where do_not_impute allows it
-        valid_replacement_mask = val_mask_tensor & (do_not_impute_mask == 1)
+        valid_replacement_mask = val_mask_tensor & (do_not_impute_mask == 0)
         x_all_denorm[valid_replacement_mask] = val_data_tensor[valid_replacement_mask]
     else:
         # Original behavior if no do_not_impute mask
@@ -249,8 +249,8 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     # NEW 11SEP2025: Set do_not_impute positions to NaN
     if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
         do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
-        # Set positions where do_not_impute == 0 to NaN
-        x_all_denorm[do_not_impute_mask == 0] = float('nan')
+        # Set positions where do_not_impute == 1 to NaN
+        x_all_denorm[do_not_impute_mask == 1] = float('nan')
 
 
 
@@ -407,31 +407,18 @@ def compute_val_mse(model, dataset, device="cpu"):
     # Denormalize model output
     recon_x_denorm = recon_x * stds + means
 
-    if getattr(model, "debug", False):
+    if getattr(model, "debug", True):
         print("[DEBUG] recon_x_denorm (first 2 rows):")
         print(recon_x_denorm[:2])
 
-    ## NEW 11SEP2025 - do_not_impute
-    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
-        do_not_impute_mask = dataset.do_not_impute.to(device)
-        # Only compute error on validation entries that are NOT in do_not_impute
-        final_mask = val_mask & (do_not_impute_mask == 1)
-    else:
-        final_mask = val_mask
-
     # Only compute error on masked validation entries
+    ## Masked validation entries should not include the do_not_impute_mask
     squared_error = (recon_x_denorm - val_data) ** 2
-    masked_error = squared_error[final_mask]
+    masked_error = squared_error[val_mask]
 
-    if getattr(model, "debug", False):
+    if getattr(model, "debug", True):
         print(f"[DEBUG] squared_error (first 2 rows): {squared_error[:2]}")
         print(f"[DEBUG] val_mask (first 2 rows): {val_mask[:2]}")
-        print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
-
-        ## NEW 11SEP2025 - do_not_impute
-        if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
-            print(f"[DEBUG] do_not_impute_mask (first 2 rows): {do_not_impute_mask[:2]}")
-            print(f"[DEBUG] final_mask (first 2 rows): {final_mask[:2]}")
         print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
 
     if masked_error.numel() == 0:

@@ -45,52 +45,56 @@ class TestRunCissVAE:
         assert result.shape == sample_data.shape
     
     @pytest.mark.parametrize("return_flags,expected_types", [
-        # Single returns
-        (
-            {'return_model': True, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, CISSVAE]
-        ),
-        (
-            {'return_model': False, 'return_clusters': True, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, np.ndarray]
-        ),
-        (
-            {'return_model': False, 'return_clusters': False, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, (float, type(None))]
-        ),
-        (
-            {'return_model': False, 'return_clusters': False, 'return_silhouettes': False, 'return_history': True, 'return_dataset': False},
-            [pd.DataFrame, (pd.DataFrame, type(None))]
-        ),
-        (
-            {'return_model': False, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False, 'return_dataset': True},
-            [pd.DataFrame, ClusterDataset]
-        ),
-        
-        # Multiple returns - test order
-        (
-            {'return_model': True, 'return_clusters': True, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, CISSVAE, np.ndarray]
-        ),
-        (
-            {'return_model': True, 'return_clusters': False, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, CISSVAE, (float, type(None))]
-        ),
-        (
-            {'return_model': False, 'return_clusters': True, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
-            [pd.DataFrame, np.ndarray, (float, type(None))]
-        ),
-        (
-            {'return_model': True, 'return_dataset': True, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False},
-            [pd.DataFrame, CISSVAE, ClusterDataset]
-        ),
-        
-        # All returns
-        (
-            {'return_model': True, 'return_dataset': True, 'return_clusters': True, 'return_silhouettes': True, 'return_history': True},
-            [pd.DataFrame, CISSVAE, ClusterDataset, np.ndarray, (float, type(None)), (pd.DataFrame, type(None))]
-        ),
+    # Single returns
+    (
+        {'return_model': True, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, CISSVAE]
+    ),
+    (
+        {'return_model': False, 'return_clusters': True, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, np.ndarray]
+    ),
+    (
+        # silhouettes returns ONE item (float | None | dict), no extra DataFrame
+        {'return_model': False, 'return_clusters': False, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, (float, type(None), dict)]
+    ),
+    (
+        {'return_model': False, 'return_clusters': False, 'return_silhouettes': False, 'return_history': True, 'return_dataset': False},
+        [pd.DataFrame, (pd.DataFrame, type(None))]
+    ),
+    (
+        {'return_model': False, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False, 'return_dataset': True},
+        [pd.DataFrame, ClusterDataset]
+    ),
+
+    # Multiple returns - test order
+    (
+        {'return_model': True, 'return_clusters': True, 'return_silhouettes': False, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, CISSVAE, np.ndarray]
+    ),
+    (
+        # model + silhouettes ⇒ three items total
+        {'return_model': True, 'return_clusters': False, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, CISSVAE, (float, type(None), dict)]
+    ),
+    (
+        # clusters + silhouettes ⇒ three items total
+        {'return_model': False, 'return_clusters': True, 'return_silhouettes': True, 'return_history': False, 'return_dataset': False},
+        [pd.DataFrame, np.ndarray, (float, type(None), dict)]
+    ),
+    (
+        {'return_model': True, 'return_dataset': True, 'return_clusters': False, 'return_silhouettes': False, 'return_history': False},
+        [pd.DataFrame, CISSVAE, ClusterDataset]
+    ),
+
+    # All returns (no extra DF for silhouettes)
+    (
+        {'return_model': True, 'return_dataset': True, 'return_clusters': True, 'return_silhouettes': True, 'return_history': True},
+        [pd.DataFrame, CISSVAE, ClusterDataset, np.ndarray, (float, type(None), dict), (pd.DataFrame, type(None))]
+    ),
     ])
+
     def test_return_combinations(self, sample_data, minimal_params, return_flags, expected_types):
         """Test various return flag combinations and verify types and order"""
         result = run_cissvae(sample_data, **return_flags, **minimal_params)
@@ -147,7 +151,12 @@ class TestRunCissVAE:
         assert isinstance(imputed_dataset2, pd.DataFrame)
         assert isinstance(vae2, CISSVAE)
         assert isinstance(clusters2, np.ndarray)
-        assert isinstance(silhouettes, (float, type(None)))
+        assert (
+            silhouettes is None
+            or isinstance(silhouettes, float)
+            or (isinstance(silhouettes, dict) and "mean_silhouette_width" in silhouettes)
+        )
+
         assert isinstance(history, (pd.DataFrame, type(None)))
     
     def test_data_integrity(self, sample_data, minimal_params):
@@ -320,7 +329,12 @@ class TestRunCissVAE:
         assert isinstance(vae, CISSVAE)
         assert isinstance(dataset, ClusterDataset)
         assert isinstance(clusters, np.ndarray)
-        assert isinstance(silhouettes, (float, type(None)))
+        assert (
+            silhouettes is None
+            or isinstance(silhouettes, float)
+            or (isinstance(silhouettes, dict) and "mean_silhouette_width" in silhouettes)
+        )
+
         assert isinstance(history, (pd.DataFrame, type(None)))
         
         # Data integrity

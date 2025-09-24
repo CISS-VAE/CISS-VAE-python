@@ -265,7 +265,7 @@ def cluster_on_missing(
     """
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import silhouette_score
+        from sklearn.metrics import silhouette_score, silhouette_samples
     except ImportError as e:
         raise ImportError(
             "This function requires scikit-learn. Install with: pip install scikit-learn"
@@ -322,7 +322,9 @@ def cluster_on_missing(
     unique, counts = np.unique(labels, return_counts=True)
     silhouette = None
     if len(unique) > 1 and np.all(counts >= 2):
-        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
+        silhouette = dict()
+        silhouette["mean_silhouette_width"] = silhouette_score(X_for_sil, labels, metric=sil_metric)
+        silhouette["silhouette_by_sample"] = silhouette_samples(X_for_sil, labels, metric=sil_metric)
 
     return labels, silhouette
 
@@ -368,7 +370,7 @@ def cluster_on_missing_prop(
     # Optional deps kept inside
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import silhouette_score
+        from sklearn.metrics import silhouette_score, silhouette_samples
         from sklearn.preprocessing import StandardScaler
     except ImportError as e:
         raise ImportError(
@@ -443,7 +445,9 @@ def cluster_on_missing_prop(
     unique, counts = np.unique(labels, return_counts=True)
     silhouette = None
     if len(unique) > 1 and np.all(counts >= 2):
-        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
+        silhouette = dict()
+        silhouette["mean_silhouette_score"] = silhouette_score(X_for_sil, labels, metric=sil_metric)
+        silhouette["silhouette_by_sample"] =silhouette_samples(X_for_sil, labels, metric=sil_metric)
 
     return labels, silhouette
 # --------------------
@@ -638,7 +642,7 @@ debug = False,
         latent_shared = latent_shared,
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
-        debug = debug
+        debug = debug,
     )
 
     if return_history: 
