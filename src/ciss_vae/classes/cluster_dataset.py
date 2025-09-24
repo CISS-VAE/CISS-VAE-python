@@ -55,7 +55,7 @@ class ClusterDataset(Dataset):
         Value to fill missing/held-out entries in ``self.data`` after masking.
     columns_ignore : list[str | int] or None, default=None
         Columns to exclude from validation masking (names for DataFrame, indices otherwise).
-    do_not_impute : pandas.DataFrame | numpy.ndarray | torch.Tensor
+    imputable : pandas.DataFrame | numpy.ndarray | torch.Tensor
         Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``.
         Should be same shape as ``data``. 
 
@@ -95,7 +95,7 @@ class ClusterDataset(Dataset):
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
-    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, do_not_impute = None):
+    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
         Steps:
@@ -201,30 +201,30 @@ class ClusterDataset(Dataset):
 
 
         # --------------------
-        # Added 'do_not_impute' matrix
+        # Added 'imputable' matrix
         # --------------------
 
-        if do_not_impute is not None:
-            if hasattr(do_not_impute, 'iloc'):  # pandas DataFrame
-                self.do_not_impute = do_not_impute.values.astype(np.float32)
-            elif isinstance(do_not_impute, np.ndarray):
-                self.do_not_impute = do_not_impute.astype(np.float32)
-            elif isinstance(do_not_impute, torch.Tensor):
-                self.do_not_impute = do_not_impute.cpu().numpy().astype(np.float32)
+        if imputable is not None:
+            if hasattr(imputable, 'iloc'):  # pandas DataFrame
+                self.imputable = imputable.values.astype(np.float32)
+            elif isinstance(imputable, np.ndarray):
+                self.imputable = imputable.astype(np.float32)
+            elif isinstance(imputable, torch.Tensor):
+                self.imputable = imputable.cpu().numpy().astype(np.float32)
             else:
-                raise TypeError("Unsupported do_not_impute matrix format. Must be DataFrame, ndarray, or Tensor.")
+                raise TypeError("Unsupported imputable matrix format. Must be DataFrame, ndarray, or Tensor.")
 
-            self.do_not_impute = torch.tensor(self.do_not_impute, dtype=torch.bool)
+            self.imputable = torch.tensor(self.imputable, dtype=torch.bool)
             expected_shape = tuple(self.raw_data.shape)  # (n_samples, n_features)
-            if self.do_not_impute.shape != expected_shape:
+            if self.imputable.shape != expected_shape:
                 raise ValueError(
-                    f"`do_not_impute` shape {self.do_not_impute.shape} does not match "
+                    f"`imputable` shape {self.imputable.shape} does not match "
                     f"data shape {expected_shape}."
                 )
 
-            dni_np = self.do_not_impute.cpu().numpy().astype(bool)
+            dni_np = self.imputable.cpu().numpy().astype(bool)
         else:
-            self.do_not_impute = None
+            self.imputable = None
             dni_np = None
         
 
@@ -318,11 +318,12 @@ class ClusterDataset(Dataset):
                 mask_non_missing = ~np.isnan(cluster_data[:, col])
                 if dni_np is not None:
                     # dni_np expected to be aligned to full data: shape == raw_data_np.shape
-                    mask_not_dni = ~dni_np[row_idxs, col]
+                    ## switching to 1 for dni, 0 for leave alone
+                    mask_dni = dni_np[row_idxs, col]
                 else:
-                    mask_not_dni = True  # broadcastable scalar
+                    mask_dni = True  # broadcastable scalar
 
-                candidate_mask = mask_non_missing & mask_not_dni
+                candidate_mask = mask_non_missing & mask_dni
                 candidate_rows = np.where(candidate_mask)[0]  # local indices within row_idxs
 
                 if candidate_rows.size == 0:

@@ -265,7 +265,7 @@ def cluster_on_missing(
     """
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import silhouette_score, silhouette_samples
+        from sklearn.metrics import silhouette_score
     except ImportError as e:
         raise ImportError(
             "This function requires scikit-learn. Install with: pip install scikit-learn"
@@ -322,9 +322,7 @@ def cluster_on_missing(
     unique, counts = np.unique(labels, return_counts=True)
     silhouette = None
     if len(unique) > 1 and np.all(counts >= 2):
-        silhouette = dict()
-        silhouette["mean_silhouette_width"] = silhouette_score(X_for_sil, labels, metric=sil_metric)
-        silhouette["silhouette_by_sample"] = silhouette_samples(X_for_sil, labels, metric=sil_metric)
+        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
 
     return labels, silhouette
 
@@ -370,7 +368,7 @@ def cluster_on_missing_prop(
     # Optional deps kept inside
     try:
         from sklearn.cluster import KMeans
-        from sklearn.metrics import silhouette_score, silhouette_samples
+        from sklearn.metrics import silhouette_score
         from sklearn.preprocessing import StandardScaler
     except ImportError as e:
         raise ImportError(
@@ -445,16 +443,14 @@ def cluster_on_missing_prop(
     unique, counts = np.unique(labels, return_counts=True)
     silhouette = None
     if len(unique) > 1 and np.all(counts >= 2):
-        silhouette = dict()
-        silhouette["mean_silhouette_score"] = silhouette_score(X_for_sil, labels, metric=sil_metric)
-        silhouette["silhouette_by_sample"] =silhouette_samples(X_for_sil, labels, metric=sil_metric)
+        silhouette = silhouette_score(X_for_sil, labels, metric=sil_metric)
 
     return labels, silhouette
 # --------------------
 # Func 2: Make dataset & run VAE
 # --------------------
 
-def run_cissvae(data, val_proportion = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, do_not_impute_matrix = None,## dataset params
+def run_cissvae(data, val_proportion = 0.1, replacement_value = 0.0, columns_ignore = None, print_dataset = True, imputable_matrix = None,## dataset params
 clusters = None, n_clusters = None,     k_neighbors: int = 15,
     leiden_resolution: float = 0.5,
     leiden_objective: str = "CPM", seed = 42, missingness_proportion_matrix = None, scale_features = False,## clustering params
@@ -486,8 +482,8 @@ debug = False,
     :type columns_ignore: list[int or str], optional
     :param print_dataset: Whether to print dataset summary information, defaults to True
     :type print_dataset: bool, optional
-    :param do_not_impute_matrix: Optional binary matrix of same dimension as data. For each cell, put 0 for impute, 1 for exclude from imputation.
-    :type do_not_impute_matrix: pandas.DataFrame, numpy.ndarray, or torch.Tensor, optional
+    :param imputable_matrix: Optional binary matrix of same dimension as data. For each cell, put 1 for impute, 0 for exclude from imputation.
+    :type imputable_matrix: pandas.DataFrame, numpy.ndarray, or torch.Tensor, optional
     :param clusters: Precomputed cluster labels per sample; if None, performs clustering, defaults to None
     :type clusters: array-like, optional
     :param n_clusters: Number of clusters for KMeans; if None with clusters=None, uses Leiden Clustering, defaults to None
@@ -626,7 +622,7 @@ debug = False,
                             val_proportion = val_proportion,
                             replacement_value = replacement_value, 
                             columns_ignore = columns_ignore,
-                            do_not_impute = do_not_impute_matrix)
+                            imputable = imputable_matrix)
 
     if print_dataset:
         print("Cluster dataset:\n", dataset)
@@ -642,7 +638,7 @@ debug = False,
         latent_shared = latent_shared,
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
-        debug = debug,
+        debug = debug
     )
 
     if return_history: 

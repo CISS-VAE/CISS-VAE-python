@@ -102,16 +102,16 @@ def small_dni(small_df):
     True means: do NOT impute.
     """
     dni = pd.DataFrame(
-        0, index=small_df.index.copy(), columns=small_df.columns.copy()
+        1, index=small_df.index.copy(), columns=small_df.columns.copy()
     )
 
     # Protect some of the injected NaNs
-    dni.iloc[0, 0] = 1
-    dni.iloc[1, 1] = 1
-    dni.iloc[2 , 4] = 1
-    dni.iloc[10, 5] = 1
-    dni.iloc[10,4] = 1
-    dni.iloc[10,3] = 1
+    dni.iloc[0, 0] = 0
+    dni.iloc[1, 1] = 0
+    dni.iloc[2 , 4] = 0
+    dni.iloc[10, 5] = 0
+    dni.iloc[10,4] = 0
+    dni.iloc[10,3] = 0
 
 
     return dni

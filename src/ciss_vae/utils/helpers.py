@@ -235,22 +235,22 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     val_data_tensor = dataset.val_data.to(x_all_denorm.device)
     val_mask_tensor = ~torch.isnan(val_data_tensor)
 
-    # NEW 11SEP2025: Only replace validation entries that are NOT in do_not_impute positions
-    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
-        do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
-        # Only replace validation values where do_not_impute allows it
-        valid_replacement_mask = val_mask_tensor & (do_not_impute_mask == 0)
+    # NEW 11SEP2025: Only replace validation entries that are NOT in imputable positions
+    if hasattr(dataset, 'imputable') and dataset.imputable is not None:
+        imputable_mask = dataset.imputable.to(x_all_denorm.device)
+        # Only replace validation values where imputable allows it
+        valid_replacement_mask = val_mask_tensor & (imputable_mask == 1)
         x_all_denorm[valid_replacement_mask] = val_data_tensor[valid_replacement_mask]
     else:
-        # Original behavior if no do_not_impute mask
+        # Original behavior if no imputable mask
         # Overwrite imputed values with ground truth at validation positions
         x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
     
-    # NEW 11SEP2025: Set do_not_impute positions to NaN
-    if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
-        do_not_impute_mask = dataset.do_not_impute.to(x_all_denorm.device)
-        # Set positions where do_not_impute == 1 to NaN
-        x_all_denorm[do_not_impute_mask == 1] = float('nan')
+    # NEW 11SEP2025: Set imputable positions to NaN
+    if hasattr(dataset, 'imputable') and dataset.imputable is not None:
+        imputable_mask = dataset.imputable.to(x_all_denorm.device)
+        # Set positions where imputable == 0 to NaN
+        x_all_denorm[imputable_mask == 0] = float('nan')
 
 
 
@@ -304,9 +304,9 @@ def get_imputed(model, data_loader, device="cpu"):
     all_masks = []
     all_indices = []
 
-    ## NEW 11SEP2025 - Collect do_not_impute masks if they exist
-    all_do_not_impute = []
-    has_do_not_impute = hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None
+    ## NEW 11SEP2025 - Collect imputable masks if they exist
+    all_imputable = []
+    has_imputable = hasattr(dataset, 'imputable') and dataset.imputable is not None
 
     with torch.no_grad():
         for batch in data_loader:
@@ -322,41 +322,41 @@ def get_imputed(model, data_loader, device="cpu"):
             all_masks.append(mask_batch.cpu())
             all_indices.append(idx_batch)
 
-            ## NEW 11SEP2025 - Add do_not_impute mask thingie
+            ## NEW 11SEP2025 - Add imputable mask thingie
 
-            if has_do_not_impute:
-                do_not_impute_batch = dataset.do_not_impute[idx_batch]
-                all_do_not_impute.append(do_not_impute_batch)
+            if has_imputable:
+                imputable_batch = dataset.imputable[idx_batch]
+                all_imputable.append(imputable_batch)
 
     # Concatenate all batches
     recon_all = torch.cat(all_recon, dim=0)
     mask_all = torch.cat(all_masks, dim=0)
     idx_all = torch.cat(all_indices, dim=0)
 
-    ## NEW 11SEP2025 - do_not_impute
-    if has_do_not_impute:
-        do_not_impute_all = torch.cat(all_do_not_impute, dim=0)
+    ## NEW 11SEP2025 - imputable
+    if has_imputable:
+        imputable_all = torch.cat(all_imputable, dim=0)
 
     # Restore correct row order
     recon_sorted = torch.zeros_like(dataset.data)
     recon_sorted[idx_all] = recon_all
 
-    ## NEW 11SEP2025 - do_not_impute
-    if has_do_not_impute:
-        do_not_impute_sorted = torch.zeros_like(dataset.do_not_impute)
-        do_not_impute_sorted[idx_all] = do_not_impute_all
+    ## NEW 11SEP2025 - imputable
+    if has_imputable:
+        imputable_sorted = torch.zeros_like(dataset.imputable)
+        imputable_sorted[idx_all] = imputable_all
 
     # Replace only missing values in a clone of the original data
     new_data = dataset.data.clone()
     missing_mask = ~dataset.masks  # True where values were missing
 
-    ## NEW 11SEP2025 - do_not_impute
-    if has_do_not_impute:
-        # Only impute where: (1) value was missing AND (2) do_not_impute allows it
-        can_impute_mask = missing_mask & (dataset.do_not_impute == 1)
+    ## NEW 11SEP2025 - imputable
+    if has_imputable:
+        # Only impute where: (1) value was missing AND (2) imputable allows it
+        can_impute_mask = missing_mask & (dataset.imputable == 1)
         new_data[can_impute_mask] = recon_sorted[can_impute_mask]
     else:
-        # Original behavior if no do_not_impute mask
+        # Original behavior if no imputable mask
         new_data[missing_mask] = recon_sorted[missing_mask]
 
     # Create new dataset object
@@ -364,9 +364,6 @@ def get_imputed(model, data_loader, device="cpu"):
     new_dataset.data = new_data
     new_dataset.indices = dataset.indices  # keep full index
 
-    ## NEW 11SEP2025 - do_not_impute
-    if has_do_not_impute:
-        new_dataset.do_not_impute = dataset.do_not_impute.clone()
     return new_dataset
 
 
@@ -412,7 +409,7 @@ def compute_val_mse(model, dataset, device="cpu"):
         print(recon_x_denorm[:2])
 
     # Only compute error on masked validation entries
-    ## Masked validation entries should not include the do_not_impute_mask
+    ## Masked validation entries should not include the imputable_mask
     squared_error = (recon_x_denorm - val_data) ** 2
     masked_error = squared_error[val_mask]
 

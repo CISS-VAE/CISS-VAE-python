@@ -54,20 +54,20 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
             cluster_batch = cluster_batch.to(device)
             mask_batch = mask_batch.to(device)
 
-            # ADDED: Get do_not_impute mask for this batch
+            # ADDED: Get imputable mask for this batch
             dataset = imputed_data.dataset
-            if hasattr(dataset, 'do_not_impute') and dataset.do_not_impute is not None:
-                do_not_impute_batch = dataset.do_not_impute[idx_batch].to(device).float()
+            if hasattr(dataset, 'imputable') and dataset.imputable is not None:
+                imputable_batch = dataset.imputable[idx_batch].to(device).float()
             else:
-                do_not_impute_batch = None
+                imputable_batch = None
             
             recon_x, mu, logvar = model(x_batch, cluster_batch)
             
-            # MODIFIED: Pass do_not_impute_mask to loss function
+            # MODIFIED: Pass imputable_mask to loss function
             loss, _, _ = loss_function_nomask(
                 cluster_batch, recon_x, x_batch, mu, logvar,
                 beta=beta, return_components=True,
-                do_not_impute_mask=do_not_impute_batch  # ADDED
+                imputable_mask=imputable_batch  # ADDED
             )
 
             optimizer.zero_grad()

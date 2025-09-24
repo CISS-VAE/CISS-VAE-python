@@ -18,11 +18,11 @@ def test_dni_excludes_validation_cells(small_df, small_dni, one_cluster_labels):
         val_proportion=0.5,              # force some validation holdout
         replacement_value=0.0,
         columns_ignore=["id"],               # all columns eligible unless DNI says otherwise
-        do_not_impute=small_dni,
+        imputable=small_dni,
     )
 
     val_data = ds.val_data.numpy()
-    dni_np = small_dni.values.astype(bool)
+    dni_np = ~small_dni.values.astype(bool)
     assert np.all(np.isnan(val_data[dni_np])), (
         "DNI-marked cells should remain NaN in val_data (never selected for validation b/c they are missing in the first place)."
     )
@@ -37,7 +37,7 @@ def test_dni_cells_remain_nan_in_imputed_dataset(small_df, small_dni, tiny_train
     res = run_cissvae(
         data=small_df,
         columns_ignore=[],                # features are exactly small_df.columns
-        do_not_impute_matrix=small_dni,   # same shape & col names as features
+        imputable_matrix=small_dni,   # same shape & col names as features
         **tiny_train_kwargs,
     )
 
@@ -58,7 +58,7 @@ def test_run_cissvae_accepts_dni_and_returns_expected_shapes(small_df, small_dni
     res = run_cissvae(
         data=small_df,
         columns_ignore=[],
-        do_not_impute_matrix=small_dni,
+        imputable_matrix=small_dni,
         val_proportion=0.1,
         epochs=1,
         max_loops=1,
@@ -96,5 +96,5 @@ def test_dni_wrong_shape_raises(small_df, small_dni, one_cluster_labels):
             cluster_labels=one_cluster_labels,
             val_proportion=0.1,
             columns_ignore=[],
-            do_not_impute=bad_dni,
+            imputable=bad_dni,
         )
