@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import warnings ## let's see if/when my reconX goes nan
 
 def loss_function(cluster, mask, recon_x, x, mu, 
 logvar, beta=0.001, return_components=False, imputable_mask=None):
@@ -39,19 +40,24 @@ logvar, beta=0.001, return_components=False, imputable_mask=None):
 
     ## x is x_batch
     ## recon_x is also by batch
+    if torch.isnan(recon_x).any():
+        warnings.warn(f"[Warning] recon_x contains {torch.isnan(recon_x).sum().item()} NaN values", RuntimeWarning)
+
+    if torch.isnan(x).any():
+        warnings.warn(f"[Warning] x contains {torch.isnan(x).sum().item()} NaN values", RuntimeWarning)
 
     ## reconstruction  -- sort recon_x to the right thing.  
     mse_loss = F.mse_loss(recon_x*mask, x*mask, reduction='sum')
 
-    print(f"mse_loss\n{mse_loss} = F.mse_loss(recon_x\n{recon_x}*mask\n{mask}, x\n{x}*mask\n{mask}, reduction='sum')")
+    # print(f"mse_loss\n{mse_loss} = F.mse_loss(recon_x\n{recon_x}*mask\n{mask}, x\n{x}*mask\n{mask}, reduction='sum')")
 
     ## KL divergence loss
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     
     total_loss = mse_loss + beta * kl_loss
 
-    print(f"\nkl_loss =  -0.5 * torch.sum(1 + {logvar} - {mu.pow(2)} - {logvar.exp()}) ")
-    print(f"\ntotal_loss {total_loss} = mse_loss {mse_loss} + beta {beta} * kl_loss {kl_loss}")
+    # print(f"\nloss_function(): kl_loss{kl_loss} =  -0.5 *{torch.sum(1 + logvar - mu.pow(2) - logvar.exp())} torch.sum(1 + logvar{logvar} - mu.pow(2) - logvar.exp(){mu.pow(2)} - {logvar.exp()}) ")
+    # print(f"\ntotal_loss {total_loss} = mse_loss {mse_loss} + beta {beta} * kl_loss {kl_loss}")
 
 
     if return_components:
@@ -83,16 +89,20 @@ logvar, beta=0.001, return_components=False, imputable_mask=None):
     # --------------------------
     # Calculate Losses -> for the iterative loop
     # --------------------------
+    if torch.isnan(recon_x).any():
+        warnings.warn(f"[Warning] recon_x contains {torch.isnan(recon_x).sum().item()} NaN values", RuntimeWarning)
 
+    if torch.isnan(x).any():
+        warnings.warn(f"[Warning] x contains {torch.isnan(x).sum().item()} NaN values", RuntimeWarning)
     # NEW 11SEP2025: Apply imputable mask if provided
     if imputable_mask is not None:
         # Only compute loss where imputable_mask == 1 (can impute)
-        print(f"  from nomask_imputable_mask: shape={imputable_mask.shape}, dtype={imputable_mask.dtype}, "
-                f"num ones={(imputable_mask==1).sum().item()}, "
-                f"num zeros={(imputable_mask==0).sum().item()}")
-        overlap = (recon_x.bool() & (imputable_mask == 1)).sum().item()
-        print(f"  overlap(recon_x & imputable=1): {overlap} entries")
-        print(f"imputable mask \n{imputable_mask}\n\n recon_x \n{recon_x} \n\n x \n{x}")
+        # print(f"  from nomask_imputable_mask: shape={imputable_mask.shape}, dtype={imputable_mask.dtype}, "
+        #         f"num ones={(imputable_mask==1).sum().item()}, "
+        #         f"num zeros={(imputable_mask==0).sum().item()}")
+        # overlap = (recon_x.bool() & (imputable_mask == 1)).sum().item()
+        # print(f"  overlap(recon_x & imputable=1): {overlap} entries")
+        # print(f"imputable mask \n{imputable_mask}\n\n recon_x \n{recon_x} \n\n x \n{x}")
         mse_loss = F.mse_loss(recon_x * imputable_mask, x * imputable_mask, reduction='sum')
     else:
         # Original behavior if no mask provided
@@ -100,11 +110,11 @@ logvar, beta=0.001, return_components=False, imputable_mask=None):
 
     ## KL divergence loss
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-    print(f"\nkl_loss =  -0.5 * torch.sum(1 + {logvar} - {mu.pow(2)} - {logvar.exp()}) ")
+    # print(f"\nloss_function_nomask(): kl_loss{kl_loss} =  -0.5 *{torch.sum(1 + logvar - mu.pow(2) - logvar.exp())} torch.sum(1 + logvar{logvar} - mu.pow(2) - logvar.exp(){mu.pow(2)} - {logvar.exp()}) ")
 
     total_loss = mse_loss + beta * kl_loss
 
-    print(f"\ntotal_loss (nomask) {total_loss} = mse_loss {mse_loss} + beta {beta} * kl_loss {kl_loss}")
+    # print(f"\ntotal_loss (nomask) {total_loss} = mse_loss {mse_loss} + beta {beta} * kl_loss {kl_loss}")
 
     if return_components:
         return total_loss, mse_loss, kl_loss

@@ -95,7 +95,7 @@ class ClusterDataset(Dataset):
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
-    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None):
+    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None, val_seed = 42):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
         Steps:
@@ -119,6 +119,9 @@ class ClusterDataset(Dataset):
         :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None
         :type columns_ignore: list[str or int] or None, optional
         """
+
+        ## set seed for selecting valdata
+        self._rng = np.random.default_rng(val_seed)
 
         ## set columns ignore 
         if columns_ignore is None:
@@ -234,6 +237,7 @@ class ClusterDataset(Dataset):
         if cluster_labels is None:
             # create a LongTensor of zeros, one per sample
             self.cluster_labels = torch.zeros(self.raw_data.shape[0], dtype=torch.long)
+            cluster_labels_np = self.cluster_labels.numpy()
         else: 
             if hasattr(cluster_labels, 'iloc'):
                 cluster_labels_np = cluster_labels.values
@@ -332,7 +336,7 @@ class ClusterDataset(Dataset):
                 if n_val <= 0:
                     continue
 
-                chosen_local = np.random.choice(candidate_rows, size=n_val, replace=False)
+                chosen_local = self._rng.choice(candidate_rows, size=n_val, replace=False)
                 val_mask_np[row_idxs[chosen_local], col] = True
 
         val_mask_tensor = torch.tensor(val_mask_np, dtype=torch.bool)

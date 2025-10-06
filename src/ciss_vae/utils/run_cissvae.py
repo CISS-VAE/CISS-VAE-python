@@ -666,7 +666,7 @@ debug = False,
         return_history = False
         )
 
-    imputed_dataset, vae, _, refit_history_df = impute_and_refit_loop(
+    imputed_dataset, vae, _ = impute_and_refit_loop(
         model=vae,
         train_loader=train_loader,
         max_loops=max_loops,
@@ -684,15 +684,7 @@ debug = False,
     # Construct history dataframe
     # ----------------
     if return_history:
-        if initial_history_df is not None and refit_history_df is not None:
-            # Concatenate initial and refit histories
-            combined_history_df = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
-        elif initial_history_df is not None:
-            combined_history_df = initial_history_df
-        elif refit_history_df is not None:
-            combined_history_df = refit_history_df
-        else:
-            combined_history_df = None
+        combined_history_df = vae.training_history_
         
     # -------------------
     # Return statements
