@@ -401,6 +401,17 @@ def compute_val_mse(model, dataset, device="cpu"):
     means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
     stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
 
+        # 🔎 Check for zero std features
+    zero_std_idx = torch.where(stds == 0)[0]
+    if zero_std_idx.numel() > 0:
+        bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
+        print(
+            f"[Warning] {len(bad_feats)} feature(s) have std == 0. "
+            f"Replaced with 1.0. Features: {bad_feats}"
+        )
+        stds[zero_std_idx] = 1.0  # safe replacement
+
+
     # Denormalize model output
     recon_x_denorm = recon_x * stds + means
 

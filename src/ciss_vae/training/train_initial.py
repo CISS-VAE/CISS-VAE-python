@@ -77,6 +77,7 @@ def train_vae_initial(
 
 
         for batch in train_loader:
+            # print(f"Batch is: {len(batch)}\n")
             x_batch, cluster_batch, mask_batch, idx_batch = batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
@@ -92,8 +93,7 @@ def train_vae_initial(
             loss, recon_loss, kl_loss = loss_function(
                 cluster_batch, mask_batch, recon_x, x_batch, mu, logvar,
                 beta=beta,
-                return_components=True,
-                imputable_mask=imputable_batch
+                return_components=True
             )
 
 
@@ -113,7 +113,7 @@ def train_vae_initial(
         # Validation MSE on val_data entries
         # -----------------------------------
         try:
-            val_mse = compute_val_mse(model, dataset, device)
+            val_mse = compute_val_mse(model, train_loader.dataset, device)
         except ValueError as e:
             if verbose:
                 print(f"[WARNING] Epoch {epoch+1}: {e}")

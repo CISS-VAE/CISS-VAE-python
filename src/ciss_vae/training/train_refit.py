@@ -49,6 +49,7 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
 
         for batch in imputed_data:
             # MODIFIED: Capture idx_batch properly instead of using *_
+            # print(f"Batch is: {len(batch)}\n")
             x_batch, cluster_batch, mask_batch, idx_batch = batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)

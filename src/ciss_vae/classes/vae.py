@@ -310,28 +310,30 @@ class CISSVAE(nn.Module):
         :returns: Reconstructed inputs.
         :rtype: torch.Tensor, shape ``(batch, input_dim)``
         """
+        ## 30 sep 2025 -> changed mask to cluster_mask so I can stop getting confused
         z = self.route_through_layers(
             z, cluster_labels,
             self.layer_order_dec,
             self.decoder_layers,
             self.cluster_decoder_layers
         )
+        ## final layer is nn.Linear
         if self.output_shared:
             return self.final_layer(z)
         else:
             outputs = []
             for c in range(self.num_clusters):
-                mask = (cluster_labels == c)
-                if mask.any():
-                    z_c = z[mask]
+                cluster_mask = (cluster_labels == c)
+                if cluster_mask.any():
+                    z_c = z[cluster_mask]
                     z_out = self.cluster_final_layer[str(c)](z_c)
-                    outputs.append((mask, z_out))
+                    outputs.append((cluster_mask, z_out))
             out_dim = outputs[0][1].shape[1]
             output = torch.empty(z.shape[0], out_dim,
                                  device=z.device,
                                  dtype=z.dtype)
-            for mask, z_out in outputs:
-                output[mask] = z_out
+            for cluster_mask, z_out in outputs:
+                output[cluster_mask] = z_out
             return output
 
     def forward(self, x, cluster_labels):

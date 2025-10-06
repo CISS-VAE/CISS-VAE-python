@@ -214,7 +214,7 @@ class ClusterDataset(Dataset):
             else:
                 raise TypeError("Unsupported imputable matrix format. Must be DataFrame, ndarray, or Tensor.")
 
-            self.imputable = torch.tensor(self.imputable, dtype=torch.bool)
+            self.imputable = torch.tensor(self.imputable, dtype=torch.int64)
             expected_shape = tuple(self.raw_data.shape)  # (n_samples, n_features)
             if self.imputable.shape != expected_shape:
                 raise ValueError(
@@ -316,21 +316,19 @@ class ClusterDataset(Dataset):
 
                 # boolean masks (same length as row_idxs)
                 mask_non_missing = ~np.isnan(cluster_data[:, col])
-                if dni_np is not None:
-                    # dni_np expected to be aligned to full data: shape == raw_data_np.shape
-                    ## switching to 1 for dni, 0 for leave alone
-                    mask_dni = dni_np[row_idxs, col]
-                else:
-                    mask_dni = True  # broadcastable scalar
-
-                candidate_mask = mask_non_missing & mask_dni
+                
+                candidate_mask = mask_non_missing 
                 candidate_rows = np.where(candidate_mask)[0]  # local indices within row_idxs
 
                 if candidate_rows.size == 0:
                     continue
 
-                ## Changed from floor to ceiling here b/c we want to have at least one validation entry if validation prop is not 0
-                n_val = int(np.ceil(candidate_rows.size * prop))
+                ## Put back as floor but will mask at least one value if floor is 0
+                if prop > 0:
+                    n_val = max(1, int(np.floor(candidate_rows.size * prop)))
+                else:
+                    continue
+                
                 if n_val <= 0:
                     continue
 
@@ -359,6 +357,16 @@ class ClusterDataset(Dataset):
         data_np = self.data.numpy()
         self.feature_means = np.nanmean(data_np, axis=0)
         self.feature_stds = np.nanstd(data_np, axis=0)
+
+        zero_std_idx = np.where(self.feature_stds == 0)[0]
+        if zero_std_idx.size > 0:
+            bad_feats = [self.feature_names[i] for i in zero_std_idx]
+            print(
+                f"[Warning] {len(zero_std_idx)} feature(s) had zero std after masking. "
+                f"Replaced with 1.0 to avoid div-by-zero. "
+                f"Features: {bad_feats}"
+    )
+
         self.feature_stds[self.feature_stds == 0] = 1.0  # avoid division by zero
 
         ## Normalize (in-place)
@@ -417,7 +425,13 @@ class ClusterDataset(Dataset):
         val_entries = torch.sum(~torch.isnan(self.val_data)).item()  # number of validation-held entries
         val_pct_of_nonmissing = 100 * val_entries / (total_values - original_missing)
 
-        return (
+        ## Count non-imputable entries (where can_impute == 0)
+        non_imputable_count = None
+        if hasattr(self, "imputable") and self.imputable is not None:
+            non_imputable_count = int((self.imputable == 0).sum().item())        
+
+        ## Build string
+        out = (
             f"ClusterDataset(n_samples={n}, n_features={p}, n_clusters={len(torch.unique(self.cluster_labels))})\n"
             f"  • Original missing: {original_missing} / {total_values} "
             f"({original_missing_pct:.2f}%)\n"
@@ -427,6 +441,9 @@ class ClusterDataset(Dataset):
             f"  • .masks shape:    {tuple(self.masks.shape)}\n"
             f"  • .val_data shape: {tuple(self.val_data.shape)}"
         )
+        if non_imputable_count is not None:
+            out += f"\n  • Non-imputable entries: {non_imputable_count}"
+        return out
 
     # ----------------------------------------
     # Added copy method

@@ -193,6 +193,7 @@ class TestAutoTune:
         assert len(result) == 4  # best_imputed_df, best_model, study, results_df
         
         best_imputed_df, best_model, study, results_df = result
+        assert not results_df["val_mse"].isna().any(), "val_mse column contains NaN"
         assert isinstance(best_imputed_df, pd.DataFrame)
         assert best_model is not None
         assert isinstance(study, optuna.study.Study)
