@@ -9,7 +9,18 @@ from ciss_vae.training.autotune import autotune as run_autotune, SearchSpace
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.classes.vae import CISSVAE
 
-
+## Added mock model maker
+def _make_mock_model():
+    """Create mock CISSVAE model w/ attributes/methods used by autotune/training."""
+    m = MagicMock(spec = CISSVAE)
+    # add history df
+    m.training_history_ = pd.DataFrame({
+        "val_mse": []
+    })
+    ## Add lr helpers called in refit loop
+    m.set_final_lr = MagicMock()
+    m.get_final_lr = MagicMock(return_value = 0.001)
+    return m
 
 class TestSearchSpace:
     """Test SearchSpace class initialization and parameter handling"""
@@ -174,9 +185,9 @@ class TestAutoTune:
                              mock_cluster_dataset, all_fixed_search_space):
         """Test autotune with fixed parameters"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.5
         
         result = run_autotune(
@@ -193,6 +204,7 @@ class TestAutoTune:
         assert len(result) == 4  # best_imputed_df, best_model, study, results_df
         
         best_imputed_df, best_model, study, results_df = result
+        assert not results_df["val_mse"].isna().any(), "val_mse column contains NaN"
         assert isinstance(best_imputed_df, pd.DataFrame)
         assert best_model is not None
         assert isinstance(study, optuna.study.Study)
@@ -205,9 +217,9 @@ class TestAutoTune:
                                mock_cluster_dataset, basic_search_space):
         """Test autotune with tunable parameters"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.3
         
         result = run_autotune(
@@ -231,9 +243,9 @@ class TestAutoTune:
                                mock_cluster_dataset, basic_search_space, n_trials):
         """Test that n_trials parameter controls number of trials"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.4
         
         result = run_autotune(
@@ -257,9 +269,9 @@ class TestAutoTune:
                                      mock_cluster_dataset, basic_search_space):
         """Test evaluate_all_orders=True functionality"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.2
         
         result = run_autotune(
@@ -283,9 +295,9 @@ class TestAutoTune:
                                       mock_cluster_dataset, basic_search_space):
         """Test evaluate_all_orders=False functionality"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.35
         
         result = run_autotune(
@@ -306,9 +318,9 @@ class TestAutoTune:
                                           mock_cluster_dataset, basic_search_space):
         """Test return format when return_history=False"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None, pd.DataFrame({'epoch': [1, 2]}))
+        mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
         mock_compute_val_mse.return_value = 0.25
         
         result = run_autotune(
@@ -339,10 +351,12 @@ class TestAutoTune:
                                        mock_cluster_dataset, basic_search_space):
         """Test return format when return_history=True"""
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_history_df = pd.DataFrame({'epoch': [1, 2, 3], 'loss': [0.5, 0.4, 0.3]})
+        mock_model.training_history_ = mock_history_df
+
         mock_initial.return_value = (mock_model, mock_history_df)
-        mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None, mock_history_df)
+        mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
         mock_compute_val_mse.return_value = 0.15
         
         result = run_autotune(
@@ -380,9 +394,9 @@ class TestAutoTune:
         )
         
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.45
         
         result = run_autotune(
@@ -414,9 +428,9 @@ class TestAutoTune:
         )
         
         # Mock return values
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.3
         
         result = run_autotune(
@@ -438,9 +452,9 @@ class TestAutoTune:
                                  mock_cluster_dataset, basic_search_space):
         """Test that same seed produces consistent results"""
         # Mock return values - make them deterministic
-        mock_model = MagicMock(spec=CISSVAE)
+        mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
-        mock_refit.return_value = (pd.DataFrame(), mock_model, None, pd.DataFrame())
+        mock_refit.return_value = (pd.DataFrame(), mock_model, None)
         mock_compute_val_mse.return_value = 0.333
         
         # Run with same seed twice

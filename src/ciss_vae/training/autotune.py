@@ -124,7 +124,8 @@ def autotune(
     evaluate_all_orders: bool = False,
     max_exhaustive_orders: int = 100,
     return_history: bool = False,
-    n_jobs = 1, ## add param to docs
+    n_jobs = 1, ## add param to docs,
+    debug = False,
 
 ):
     r"""Optuna-based hyperparameter search for the CISSVAE model.
@@ -355,6 +356,34 @@ def autotune(
             console.print(f"\n[green]Trial {trial.number + 1}/{n_trials}")
         elif verbose:
             print(f"\nStarting Trial {trial.number + 1}/{n_trials}")
+
+        # ----------------
+        # Check train_dataset for na causers
+        # -----------------
+        with torch.no_grad():
+            cl = train_dataset.cluster_labels.clone()
+            uniq = torch.unique(cl).cpu().tolist()
+            remap = {old:i for i,old in enumerate(uniq)}
+            new_cl = cl.cpu().apply_(lambda v: remap[int(v)]).to(train_dataset.cluster_labels.device)
+        train_dataset.cluster_labels = new_cl
+
+        # # 1) Guarantee finite training inputs (run_cissvae uses replacement_value for this)
+        # if torch.isnan(train_dataset.data).any() or torch.isinf(train_dataset.data).any():
+        #     print("[WARN] train_dataset.data has non-finite values; filling with 0.0 (autotune).")
+        #     train_dataset.data = torch.nan_to_num(train_dataset.data, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # # 2) Assert the validation target you compare against is also finite on used entries
+        # if hasattr(train_dataset, "val_mask"):
+        #     used = train_dataset.val_mask.bool()
+        #     x_val = train_dataset.raw_data if hasattr(train_dataset, "raw_data") else train_dataset.data
+        #     if torch.isnan(x_val[used]).any() or torch.isinf(x_val[used]).any():
+        #         print("[WARN] validation targets include non-finite values; zero-filling.")
+        #         x_fill = torch.nan_to_num(x_val, nan=0.0, posinf=0.0, neginf=0.0)
+        #         if hasattr(train_dataset, "raw_data"):
+        #             train_dataset.raw_data = x_fill
+        #         else:
+        #             train_dataset.data = x_fill
+
         
         # --------------------------
         # Parse Parameters
@@ -465,7 +494,7 @@ def autotune(
                 verbose_inner=verbose
             )
             
-            _, model, _, refit_history_df = impute_and_refit_loop_with_progress(
+            _, model, _ = impute_and_refit_loop_with_progress(
                 model=model,
                 train_loader=train_loader,
                 max_loops=refit_loops,
@@ -484,7 +513,7 @@ def autotune(
             if (best_val is None) or (val_mse < best_val):
                 best_val = val_mse
                 best_patterns = (enc_pat, dec_pat)
-                best_refit_history_df = refit_history_df
+                best_refit_history_df = model.training_history_
         
         # Show completion with Rich
         if show_progress:
@@ -679,7 +708,7 @@ def autotune(
             except StopIteration:
                 pass
         
-        best_imputed_df, best_model, _, refit_history_df = impute_and_refit_loop(
+        best_imputed_df, best_model, _ = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
             max_loops=refit_loops,
@@ -695,31 +724,7 @@ def autotune(
         
         # Combine initial and refit histories if requested
         if return_history:
-            if initial_history_list:
-                initial_history_df = pd.concat(initial_history_list, ignore_index=True)
-                
-                # Ensure proper epoch numbering
-                if 'epoch' in initial_history_df.columns:
-                    # Check if epochs need to be renumbered (all zeros or sequential from 0)
-                    if initial_history_df['epoch'].nunique() == 1 and initial_history_df['epoch'].iloc[0] == 0:
-                        # All epochs are 0, renumber from 1
-                        initial_history_df['epoch'] = range(1, len(initial_history_df) + 1)
-                    elif initial_history_df['epoch'].min() == 0:
-                        # Epochs start from 0, shift to start from 1
-                        initial_history_df['epoch'] = initial_history_df['epoch'] + 1
-                
-                if refit_history_df is not None:
-                    refit_history_df = refit_history_df.copy()
-                    # Adjust refit history epochs to continue from initial training
-                    max_initial_epoch = initial_history_df['epoch'].max() if 'epoch' in initial_history_df.columns else len(initial_history_df)
-                    if 'epoch' in refit_history_df.columns:
-                        refit_history_df['epoch'] = refit_history_df['epoch'] + max_initial_epoch
-                    
-                    final_model_history = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
-                else:
-                    final_model_history = initial_history_df
-            else:
-                final_model_history = refit_history_df
+            final_model_history = best_model.training_history_
     else:
         # Final training without progress
         if return_history:
@@ -752,7 +757,7 @@ def autotune(
                 return_history=False
             )
         
-        best_imputed_df, best_model, _, refit_history_df = impute_and_refit_loop(
+        best_imputed_df, best_model, _ = impute_and_refit_loop(
             model=best_model,
             train_loader=train_loader,
             max_loops=refit_loops,
@@ -767,12 +772,7 @@ def autotune(
         
         # Combine initial and refit histories if requested
         if return_history:
-            if initial_history_df is not None and refit_history_df is not None:
-                final_model_history = pd.concat([initial_history_df, refit_history_df], ignore_index=True)
-            elif initial_history_df is not None:
-                final_model_history = initial_history_df
-            elif refit_history_df is not None:
-                final_model_history = refit_history_df
+            final_model_history = best_model.training_history_
     
     if show_progress:
         console.print("[bold green]✓ Final model training complete!")

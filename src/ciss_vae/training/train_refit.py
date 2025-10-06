@@ -10,9 +10,15 @@ from ciss_vae.utils.helpers import get_imputed_df, get_imputed, compute_val_mse
 import copy
 
 
-def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
-                    decay_factor=0.999, beta=0.1,
-                    device="cpu", verbose=False, progress_callback = None):
+def train_vae_refit(model, 
+    imputed_data, 
+    epochs=10, 
+    initial_lr=0.01,
+    decay_factor=0.999, 
+    beta=0.1,
+    device="cpu", 
+    verbose=False, 
+    progress_callback = None):
     """Train the VAE model on imputed data without masking for one refit iteration.
     
     Performs training on the complete imputed dataset.
@@ -41,7 +47,10 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
     model.to(device)
     optimizer = Adam(model.parameters(), lr=initial_lr)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
+    refit_history = pd.DataFrame()
 
+    ## Added to handle return history
+        # Container to collect per-epoch metrics
 
     for epoch in range(epochs):
         model.train()
@@ -49,6 +58,7 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
 
         for batch in imputed_data:
             # MODIFIED: Capture idx_batch properly instead of using *_
+            # print(f"Batch is: {len(batch)}\n")
             x_batch, cluster_batch, mask_batch, idx_batch = batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
@@ -79,6 +89,24 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
         if verbose:
             print(f"Epoch {epoch + 1}, Refit Loss: {avg_loss:.4f}, LR: {optimizer.param_groups[0]['lr']:.6f}")
         
+        # -------------------------------
+        # Logging to history
+        # -------------------------------
+        record = {
+            "epoch": epoch,
+            "train_loss": avg_loss,
+            "train_recon": np.nan,
+            "train_kl": np.nan,
+            "val_mse": np.nan,
+            "lr": optimizer.param_groups[0]["lr"],
+            "phase": "refit_training",
+            "loop": np.nan
+        }
+        ## this weird thing b/c pandas doesn't have append anymore
+        refit_history = pd.concat([refit_history,
+         pd.DataFrame([record])],
+        ignore_index=True)
+
         #------------------
         # progress bar hook
         #------------------
@@ -97,7 +125,8 @@ def train_vae_refit(model, imputed_data, epochs=10, initial_lr=0.01,
         #         break
 
     model.set_final_lr(optimizer.param_groups[0]['lr'])
-    return model
+
+    return model, refit_history
 
 
 
@@ -176,19 +205,19 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     
     refit_lr = model.get_final_lr()
 
-    # --- History container (schema matches train_vae_initial + extras) ---
-    history_rows = []
-    def _append_history_row(epoch_int: int, val_mse: float, lr_val: float, phase: str, loop_idx: int):
-        history_rows.append({
-            "epoch": int(epoch_int),
-            "train_loss": np.nan,
-            "train_recon": np.nan,
-            "train_kl": np.nan,
-            "val_mse": float(val_mse),
-            "lr": float(lr_val),
-            "phase": phase,
-            "loop": int(loop_idx),
-        })
+    # # --- History container (schema matches train_vae_initial + extras) ---
+    # history_rows = []
+    # def _append_history_row(epoch_int: int, val_mse: float, lr_val: float, phase: str, loop_idx: int):
+    #     history_rows.append({
+    #         "epoch": int(epoch_int),
+    #         "train_loss": np.nan,
+    #         "train_recon": np.nan,
+    #         "train_kl": np.nan,
+    #         "val_mse": float(val_mse),
+    #         "lr": float(lr_val),
+    #         "phase": phase,
+    #         "loop": int(loop_idx),
+    #     })
 
     # Determine where to continue the epoch counter
     # If user trained with train_vae_initial and attached .training_history_, keep continuity.
@@ -204,10 +233,29 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     # Compute initial MSE (before loop)
     # --------------------------
     val_mse = compute_val_mse(model, dataset, device)
-    _append_history_row(epoch_int=start_epoch, val_mse=val_mse, lr_val=refit_lr, phase="refit_init", loop_idx=0)
+
+        # -------------------------------
+        # Logging to history
+        # -------------------------------
+    record = {
+            "epoch": start_epoch,
+            "train_loss": np.nan,
+            "train_recon": np.nan,
+            "train_kl": np.nan,
+            "val_mse": val_mse,
+            "lr": refit_lr,
+            "phase": "refit",
+            "loop": 0
+        }
+
+    model.training_history_ = pd.concat([model.training_history_,
+         pd.DataFrame([record])],
+        ignore_index=True)
+
     if verbose:
         print(f"Initial Validation MSE (pre-refit): {val_mse:.6f}")
 
+    loop_history = pd.DataFrame()
 
     for loop in range(max_loops):
         
@@ -219,7 +267,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         # --------------------------
         # Refit the model
         # --------------------------
-        model = train_vae_refit(
+        model, refit_history = train_vae_refit(
             model=model,
             imputed_data=data_loader,
             epochs=epochs_per_loop,
@@ -240,16 +288,28 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         # --------------------------
         val_mse = compute_val_mse(model, data_loader.dataset, device)
         # Advance epoch counter by the epochs we just trained
-        epoch_after_loop = start_epoch + loop * epochs_per_loop
+        epoch_after_loop = start_epoch + (loop + 1) * epochs_per_loop
         refit_lr = float(model.get_final_lr())
                 # Log history row for this loop
-        _append_history_row(
-            epoch_int=epoch_after_loop,
-            val_mse=val_mse,
-            lr_val=refit_lr,
-            phase="refit_loop",
-            loop_idx=loop,
-        )
+        # -------------------------------
+        # Logging to history
+        # -------------------------------
+        record = {
+            "epoch": epoch_after_loop,
+            "train_loss": np.nan,
+            "train_recon": np.nan,
+            "train_kl": np.nan,
+            "val_mse": val_mse,
+            "lr": refit_lr,
+            "phase": "refit_loop",
+            "loop": loop + 1
+        }
+
+        loop_history = pd.concat([loop_history,
+         pd.DataFrame([record])],
+        ignore_index=True)
+
+        loop_history = pd.concat([loop_history, refit_history])
 
         if verbose:
             print(f"Loop {loop + 1} Validation MSE: {val_mse:.6f}")
@@ -269,6 +329,10 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
                     print("Early stopping triggered.")
                 break
 
+    ## Add histories to best model
+    best_model.training_history_ = pd.concat([best_model.training_history_,
+         loop_history],
+        ignore_index=True)            
     # -----------------------------
     # Final denormalized output
     # Get mean and sd from this
@@ -288,10 +352,10 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         print(f"Best Val MSE {best_val_mse}. Imputed Dataset MSE {final_val_mse}")
 
 
-    # --- Assemble the refit history DataFrame ---
-    refit_history_df = pd.DataFrame(
-        history_rows,
-        columns=["epoch", "train_loss", "train_recon", "train_kl", "val_mse", "lr", "phase", "loop"],
-    )
+    # # --- Assemble the refit history DataFrame ---
+    # refit_history_df = pd.DataFrame(
+    #     history_rows,
+    #     columns=["epoch", "train_loss", "train_recon", "train_kl", "val_mse", "lr", "phase", "loop"],
+    # )
 
-    return imputed_df, best_model, best_dataset, refit_history_df
+    return imputed_df, best_model, best_dataset
