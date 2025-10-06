@@ -16,13 +16,14 @@ sys.path.insert(0, os.path.abspath("../../src"))  # so autodoc can find your pac
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'CISS-VAE'
-copyright = '2025, Yasin Khadem Charvadeh, Danielle Vaithilingam'
-author = 'Yasin Khadem Charvadeh, Danielle Vaithilingam'
-release = '1.0.3'
+copyright = '2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen'
+author = 'Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen'
+release = '1.0.18'
 
 
 # Extensions
 extensions = [
+    "myst_nb",      
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",         # for Google/NumPy docstrings
     "sphinx.ext.viewcode",         # link to source
