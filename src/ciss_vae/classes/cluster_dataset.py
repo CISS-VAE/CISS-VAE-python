@@ -118,6 +118,9 @@ class ClusterDataset(Dataset):
         :type replacement_value: float, optional
         :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None
         :type columns_ignore: list[str or int] or None, optional
+        :param imputable: Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. 
+        :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor, optional
+        :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset
         """
 
         ## set seed for selecting valdata
@@ -468,3 +471,8 @@ class ClusterDataset(Dataset):
         :rtype: str
         """
         return self.__repr__()
+
+
+    
+
+

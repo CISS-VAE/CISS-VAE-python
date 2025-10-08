@@ -576,6 +576,20 @@ debug = False,
 
     silh = None
 
+    def _normalize_cols_ignore(cols_ignore):
+        if cols_ignore is None:
+            return None
+        # Convert sets/tuples/Index to list
+        if not isinstance(cols_ignore, list):
+            cols_ignore = list(cols_ignore)
+        # Flatten one level if user passed [("a","b")] or [[...]]
+        if len(cols_ignore) == 1 and isinstance(cols_ignore[0], (list, tuple)):
+            cols_ignore = list(cols_ignore[0])
+        # Ensure all are strings
+        return [str(c) for c in cols_ignore]
+
+    columns_ignore = _normalize_cols_ignore(columns_ignore)
+
 
     # ------------
     # Cluster if needed

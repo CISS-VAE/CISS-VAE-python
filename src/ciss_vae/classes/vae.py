@@ -394,3 +394,79 @@ class CISSVAE(nn.Module):
         """Returns the learning rate stored with self.set_final_lr/"""
         return(self.final_lr)
 
+    def get_imputed_valdata(self, dataset, device = "cpu"):
+        """ Get denormalized imputed data from the trained model.
+
+        [IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.
+
+    Performs a forward pass of the model in evaluation mode to reconstruct 
+    validation data. The reconstructed output is then denormalized using the 
+    dataset's feature means and standard deviations. Features with zero 
+    standard deviation are replaced with 1.0 to ensure numerical stability.
+
+    :param dataset: Dataset object containing normalized data, validation data, and feature statistics.
+        Must include:
+          - ``data``: Normalized input tensor of shape ``(n_samples, n_features)``
+          - ``val_data``: Original validation data tensor of shape ``(n_samples, n_features)``
+          - ``cluster_labels``: Cluster assignments for each sample, shape ``(n_samples,)``
+          - ``feature_means``: Per-feature means, length ``n_features``
+          - ``feature_stds``: Per-feature standard deviations, length ``n_features``
+          - ``feature_names``: List of feature names (used for zero-std warnings)
+    :type dataset: ClusterDataset
+
+    :param device: Device to perform computations on (e.g., ``"cpu"`` or ``"cuda"``). Default is ``"cpu"``.
+    :type device: str, optional
+
+    :returns: Denormalized reconstructed (imputed) validation data of shape ``(n_samples, n_features)``.
+    :rtype: torch.Tensor
+
+    .. note::
+        - The model is evaluated using ``self.eval()`` (disables dropout, batchnorm updates, etc.).
+        - Features with ``std == 0`` are replaced with ``1.0`` and a warning listing affected features is printed.
+        - The returned tensor corresponds to the model's best reconstruction of the validation data after denormalization.
+
+    **Example**::
+
+        >>> vae = CISSVAE(...)
+        >>> dataset = ClusterDataset(...)
+        >>> imputed_val = vae.get_imputed_valdata(dataset, device="cuda")
+        >>> imputed_val.shape
+        torch.Size([100, 20])
+        """
+        self.eval()
+
+        # Get normalized inputs and val data
+        full_x = dataset.data.to(device)                       # (N, D), normalized
+        full_cluster = dataset.cluster_labels.to(device)       # (N,)
+        val_data = dataset.val_data.to(device)                 # (N, D), not normalized
+        val_mask = torch.isnan(val_data)                      # (N, D)
+
+        with torch.no_grad():
+            recon_x, _, _ = self.forward(full_x, full_cluster)        # normalized output
+
+        # Retrieve per-feature stats
+        means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
+        stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+
+            # check for zero std features
+        zero_std_idx = torch.where(stds == 0)[0]
+        if zero_std_idx.numel() > 0:
+            bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
+            print(
+                f"[Warning] {len(bad_feats)} feature(s) have std == 0. "
+                f"Replaced with 1.0. Features: {bad_feats}"
+            )
+            stds[zero_std_idx] = 1.0  # safe replacement
+
+        # Denormalize model output
+        recon_x_denorm = recon_x * stds + means
+
+        # Ensure float dtype to support NaNs
+        recon_x_denorm = recon_x_denorm.to(torch.float32)
+
+        # Blank out non-validation (observed) entries ->. keep only validation reconstructions
+        recon_x_denorm[val_mask] = float('nan')
+
+        return(recon_x_denorm)
+
+
