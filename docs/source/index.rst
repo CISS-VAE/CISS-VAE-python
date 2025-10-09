@@ -41,10 +41,14 @@ To install via PyPI:
 
 
 To install via github: 
+
 .. code-block:: bash
 
    pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
+
+
+The github repo can be found `here <https://github.com/CISS-VAE/CISS-VAE-python>`_.  
 
 Features
 --------
