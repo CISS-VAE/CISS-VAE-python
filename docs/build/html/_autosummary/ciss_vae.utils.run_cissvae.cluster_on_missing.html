@@ -6,25 +6,24 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.utils.run_cissvae.cluster_on_missing &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.utils.run_cissvae.cluster_on_missing &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
       <script src="../_static/copybutton.js?v=00122899"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" />
-    <link rel="prev" title="ciss_vae.utils.run_cissvae.run_cissvae" href="ciss_vae.utils.run_cissvae.run_cissvae.html" /> 
+    <link rel="search" title="Search" href="../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,30 +46,18 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
-<li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a></li>
-<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a><ul class="current">
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.run_cissvae.html">ciss_vae.utils.run_cissvae.run_cissvae</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.run_cissvae.cluster_on_missing</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.run_cissvae.cluster_on_missing"><code class="docutils literal notranslate"><span class="pre">cluster_on_missing()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html">ciss_vae.utils.run_cissvae.cluster_on_missing_prop</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
-</ul>
-</li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
 </ul>
 
         </div>
@@ -87,7 +74,6 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">ciss_vae.utils.run_cissvae.cluster_on_missing</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/_autosummary/ciss_vae.utils.run_cissvae.cluster_on_missing.rst.txt" rel="nofollow"> View page source</a>
@@ -100,51 +86,17 @@
              
   <section id="ciss-vae-utils-run-cissvae-cluster-on-missing">
 <h1>ciss_vae.utils.run_cissvae.cluster_on_missing<a class="headerlink" href="#ciss-vae-utils-run-cissvae-cluster-on-missing" title="Link to this heading"></a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="ciss_vae.utils.run_cissvae.cluster_on_missing">
-<span class="sig-name descname"><span class="pre">cluster_on_missing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_clusters</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_cluster_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_selection_epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.25</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/run_cissvae.html#cluster_on_missing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.run_cissvae.cluster_on_missing" title="Link to this definition"></a></dt>
-<dd><p>Cluster samples based on their missingness patterns using KMeans or HDBSCAN.</p>
-<p>Groups samples with similar patterns of missing values to identify subpopulations
-that may benefit from cluster-specific imputation strategies. Uses Jaccard distance
-on binary missingness indicators.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>pandas.DataFrame</em>) – Input dataset containing missing values</p></li>
-<li><p><strong>cols_ignore</strong> (<em>list</em><em>[</em><em>str</em><em>]</em><em>, </em><em>optional</em>) – Column names to exclude from clustering analysis, defaults to None</p></li>
-<li><p><strong>n_clusters</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of clusters for KMeans; if None, uses HDBSCAN, defaults to None</p></li>
-<li><p><strong>seed</strong> (<em>int</em><em>, </em><em>optional</em>) – Random seed for reproducible clustering, defaults to None</p></li>
-<li><p><strong>min_cluster_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Minimum cluster size for HDBSCAN; if None, uses data.shape[0]//25, defaults to None</p></li>
-<li><p><strong>cluster_selection_epsilon</strong> (<em>float</em><em>, </em><em>optional</em>) – HDBSCAN cluster selection threshold, defaults to 0.25</p></li>
-<li><p><strong>prop</strong> (<em>bool</em><em>, </em><em>optional</em>) – Legacy parameter, not used, defaults to False</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple of (cluster_labels, silhouette_score)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[numpy.ndarray, float or None]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ImportError</strong> – If scikit-learn or hdbscan dependencies are not installed</p>
-</dd>
-</dl>
-</dd></dl>
-
 </section>
 
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ciss_vae.utils.run_cissvae.run_cissvae.html" class="btn btn-neutral float-left" title="ciss_vae.utils.run_cissvae.run_cissvae" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ciss_vae.utils.run_cissvae.cluster_on_missing_prop.html" class="btn btn-neutral float-right" title="ciss_vae.utils.run_cissvae.cluster_on_missing_prop" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

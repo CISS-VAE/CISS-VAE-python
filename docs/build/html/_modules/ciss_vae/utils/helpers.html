@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.utils.helpers &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.utils.helpers &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -45,13 +46,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -322,8 +326,24 @@
     <span class="n">val_data_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data_tensor</span><span class="p">)</span>
 
-    <span class="c1"># Overwrite imputed values with ground truth at validation positions</span>
-    <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_data_tensor</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span>
+    <span class="c1"># NEW 11SEP2025: Only replace validation entries that are NOT in imputable positions</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;imputable&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">imputable_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># Only replace validation values where imputable allows it</span>
+        <span class="n">valid_replacement_mask</span> <span class="o">=</span> <span class="n">val_mask_tensor</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">imputable_mask</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">valid_replacement_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_data_tensor</span><span class="p">[</span><span class="n">valid_replacement_mask</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Original behavior if no imputable mask</span>
+        <span class="c1"># Overwrite imputed values with ground truth at validation positions</span>
+        <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_data_tensor</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span>
+    
+    <span class="c1"># NEW 11SEP2025: Set imputable positions to NaN</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;imputable&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">imputable_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># Set positions where imputable == 0 to NaN</span>
+        <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">imputable_mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+
+
 
     <span class="n">x_all_denorm_np</span> <span class="o">=</span> <span class="n">x_all_denorm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>  <span class="c1"># Now safe to convert</span>
 
@@ -376,6 +396,10 @@
     <span class="n">all_masks</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">all_indices</span> <span class="o">=</span> <span class="p">[]</span>
 
+    <span class="c1">## NEW 11SEP2025 - Collect imputable masks if they exist</span>
+    <span class="n">all_imputable</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">has_imputable</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;imputable&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
     <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">data_loader</span><span class="p">:</span>
             <span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">mask_batch</span><span class="p">,</span> <span class="n">idx_batch</span> <span class="o">=</span> <span class="n">batch</span>
@@ -390,24 +414,48 @@
             <span class="n">all_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask_batch</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
             <span class="n">all_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">idx_batch</span><span class="p">)</span>
 
+            <span class="c1">## NEW 11SEP2025 - Add imputable mask thingie</span>
+
+            <span class="k">if</span> <span class="n">has_imputable</span><span class="p">:</span>
+                <span class="n">imputable_batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="p">[</span><span class="n">idx_batch</span><span class="p">]</span>
+                <span class="n">all_imputable</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">imputable_batch</span><span class="p">)</span>
+
     <span class="c1"># Concatenate all batches</span>
     <span class="n">recon_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_recon</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">mask_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_masks</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">idx_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_indices</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
+    <span class="c1">## NEW 11SEP2025 - imputable</span>
+    <span class="k">if</span> <span class="n">has_imputable</span><span class="p">:</span>
+        <span class="n">imputable_all</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">all_imputable</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
     <span class="c1"># Restore correct row order</span>
     <span class="n">recon_sorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
     <span class="n">recon_sorted</span><span class="p">[</span><span class="n">idx_all</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_all</span>
 
+    <span class="c1">## NEW 11SEP2025 - imputable</span>
+    <span class="k">if</span> <span class="n">has_imputable</span><span class="p">:</span>
+        <span class="n">imputable_sorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="p">)</span>
+        <span class="n">imputable_sorted</span><span class="p">[</span><span class="n">idx_all</span><span class="p">]</span> <span class="o">=</span> <span class="n">imputable_all</span>
+
     <span class="c1"># Replace only missing values in a clone of the original data</span>
     <span class="n">new_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
     <span class="n">missing_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">dataset</span><span class="o">.</span><span class="n">masks</span>  <span class="c1"># True where values were missing</span>
-    <span class="n">new_data</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span>
+
+    <span class="c1">## NEW 11SEP2025 - imputable</span>
+    <span class="k">if</span> <span class="n">has_imputable</span><span class="p">:</span>
+        <span class="c1"># Only impute where: (1) value was missing AND (2) imputable allows it</span>
+        <span class="n">can_impute_mask</span> <span class="o">=</span> <span class="n">missing_mask</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">new_data</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Original behavior if no imputable mask</span>
+        <span class="n">new_data</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span>
 
     <span class="c1"># Create new dataset object</span>
     <span class="n">new_dataset</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
     <span class="n">new_dataset</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">new_data</span>
     <span class="n">new_dataset</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">indices</span>  <span class="c1"># keep full index</span>
+
     <span class="k">return</span> <span class="n">new_dataset</span>
 
 
@@ -445,18 +493,30 @@
     <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
     <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
+        <span class="c1"># 🔎 Check for zero std features</span>
+    <span class="n">zero_std_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">zero_std_idx</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">bad_feats</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">zero_std_idx</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
+        <span class="nb">print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;[Warning] </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bad_feats</span><span class="p">)</span><span class="si">}</span><span class="s2"> feature(s) have std == 0. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Replaced with 1.0. Features: </span><span class="si">{</span><span class="n">bad_feats</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">stds</span><span class="p">[</span><span class="n">zero_std_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># safe replacement</span>
+
+
     <span class="c1"># Denormalize model output</span>
     <span class="n">recon_x_denorm</span> <span class="o">=</span> <span class="n">recon_x</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>
 
-    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[DEBUG] recon_x_denorm (first 2 rows):&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">recon_x_denorm</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
 
     <span class="c1"># Only compute error on masked validation entries</span>
+    <span class="c1">## Masked validation entries should not include the imputable_mask</span>
     <span class="n">squared_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">recon_x_denorm</span> <span class="o">-</span> <span class="n">val_data</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
     <span class="n">masked_error</span> <span class="o">=</span> <span class="n">squared_error</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;debug&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] squared_error (first 2 rows): </span><span class="si">{</span><span class="n">squared_error</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] val_mask (first 2 rows): </span><span class="si">{</span><span class="n">val_mask</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] masked_error stats: count=</span><span class="si">{</span><span class="n">masked_error</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span><span class="si">}</span><span class="s2">, mean=</span><span class="si">{</span><span class="n">masked_error</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -575,7 +635,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

@@ -1,0 +1,632 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.clustering &mdash; CISS-VAE 1.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=14ed45bf"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=00122899"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.clustering</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.utils.clustering</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="c1">## helper function for getting leiden clusters from snn graph</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_leiden_from_snn</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">objective</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span>
+    <span class="n">mutual</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neighbors</span><span class="w"> </span><span class="kn">import</span> <span class="n">NearestNeighbors</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">igraph</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ig</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">leidenalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">la</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;Leiden SNN requires scikit-learn, scipy, python-igraph, leidenalg.&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">algo</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span> <span class="k">if</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;euclidean&quot;</span><span class="p">}</span> <span class="k">else</span> <span class="s2">&quot;brute&quot;</span>
+
+    <span class="c1"># kNN connectivity (binary) graph</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algo</span><span class="p">)</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">kneighbors_graph</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;connectivity&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+    <span class="n">AT</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+
+    <span class="n">n</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">src</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">wts</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># For each i, compute shared-neighbor counts with its k neighbors</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">neigh</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">neigh</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># overlap counts: (# shared neighbors) for each j in neigh</span>
+        <span class="c1"># A[neigh] @ A[i, :].T gives overlap counts as a sparse matrix</span>
+        <span class="c1"># Convert to dense array for easier handling</span>
+        <span class="n">overlaps</span> <span class="o">=</span> <span class="n">A</span><span class="p">[</span><span class="n">neigh</span><span class="p">]</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">A</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">toarray</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>  <span class="c1"># Fixed: .A1 -&gt; .toarray().flatten()</span>
+
+        <span class="n">deg_i</span> <span class="o">=</span> <span class="n">neigh</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">deg_js</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">neigh</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">neigh</span><span class="p">]</span>
+        <span class="n">unions</span> <span class="o">=</span> <span class="n">deg_i</span> <span class="o">+</span> <span class="n">deg_js</span> <span class="o">-</span> <span class="n">overlaps</span>
+
+        <span class="c1"># Jaccard weight in [0,1]</span>
+        <span class="k">with</span> <span class="n">np</span><span class="o">.</span><span class="n">errstate</span><span class="p">(</span><span class="n">divide</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">,</span> <span class="n">invalid</span><span class="o">=</span><span class="s2">&quot;ignore&quot;</span><span class="p">):</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">overlaps</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">unions</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Optional: keep only mutual neighbors</span>
+        <span class="k">if</span> <span class="n">mutual</span><span class="p">:</span>
+            <span class="n">incoming</span> <span class="o">=</span> <span class="n">AT</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">AT</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">AT</span><span class="o">.</span><span class="n">indptr</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">neigh</span><span class="p">,</span> <span class="n">incoming</span><span class="p">,</span> <span class="n">assume_unique</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">neigh</span> <span class="o">=</span> <span class="n">neigh</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+        <span class="c1"># keep positive weights</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="n">w</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="n">neigh</span> <span class="o">=</span> <span class="n">neigh</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">w</span><span class="p">[</span><span class="n">pos</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">neigh</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">src</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">neigh</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neigh</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">wts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">src</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;SNN graph ended up empty; try mutual=False, increasing k, or using cosine.&quot;</span><span class="p">)</span>
+
+    <span class="n">src</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+    <span class="n">wts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">wts</span><span class="p">)</span>
+
+    <span class="c1"># Build symmetric weighted adjacency: take max(i-&gt;j, j-&gt;i)</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">coo_matrix</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">coo_matrix</span><span class="p">((</span><span class="n">wts</span><span class="p">,</span> <span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">dst</span><span class="p">)),</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span><span class="o">.</span><span class="n">tocsr</span><span class="p">()</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="c1"># Build igraph</span>
+    <span class="n">coo</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">tocoo</span><span class="p">()</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">coo</span><span class="o">.</span><span class="n">row</span> <span class="o">&lt;</span> <span class="n">coo</span><span class="o">.</span><span class="n">col</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">coo</span><span class="o">.</span><span class="n">row</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">coo</span><span class="o">.</span><span class="n">col</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">coo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">g</span> <span class="o">=</span> <span class="n">ig</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">es</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">weights</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">la</span><span class="o">.</span><span class="n">Optimiser</span><span class="p">()</span><span class="o">.</span><span class="n">set_rng_seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span>
+
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">objective</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="o">==</span> <span class="s2">&quot;cpm&quot;</span><span class="p">:</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span>
+            <span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">CPMVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">resolution_parameter</span><span class="o">=</span><span class="n">resolution</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">obj</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="s2">&quot;rbconfig&quot;</span><span class="p">,</span> <span class="s2">&quot;rbconfiguration&quot;</span><span class="p">}:</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span>
+            <span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">RBConfigurationVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">resolution_parameter</span><span class="o">=</span><span class="n">resolution</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">ModularityVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">)</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">membership</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">labels</span>
+<span class="c1">##  helper function for getting leiden clusters from knn graph</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_leiden_from_knn</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">objective</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span>  <span class="c1"># {&quot;CPM&quot;,&quot;RB&quot;,&quot;Modularity&quot;}</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">weight_scheme</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span><span class="p">,</span>  <span class="c1"># &quot;auto&quot;, &quot;heat&quot;, &quot;inv&quot;, &quot;1-minus&quot;</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a kNN graph on X and run Leiden. Returns integer labels.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.neighbors</span><span class="w"> </span><span class="kn">import</span> <span class="n">NearestNeighbors</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">igraph</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ig</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">leidenalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">la</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;Leiden path requires: scikit-learn, python-igraph, and leidenalg.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Install with: pip install python-igraph leidenalg scikit-learn&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="c1"># Build kNN graph with distances</span>
+    <span class="c1"># Use brute for metrics like &#39;jaccard&#39;/&#39;cosine&#39; to be safe and consistent</span>
+    <span class="n">algo</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span> <span class="k">if</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;euclidean&quot;</span><span class="p">}</span> <span class="k">else</span> <span class="s2">&quot;brute&quot;</span>
+    <span class="n">nn</span> <span class="o">=</span> <span class="n">NearestNeighbors</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">algo</span><span class="p">)</span>
+    <span class="n">nn</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X</span><span class="p">)</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">kneighbors_graph</span><span class="p">(</span><span class="n">n_neighbors</span><span class="o">=</span><span class="n">k</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;distance&quot;</span><span class="p">)</span>  <span class="c1"># CSR sparse, stores distances</span>
+
+    <span class="c1"># Convert distances to similarity weights for Leiden</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">A</span><span class="o">.</span><span class="n">data</span>
+    <span class="k">if</span> <span class="n">weight_scheme</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">metric</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;jaccard&quot;</span><span class="p">,</span> <span class="s2">&quot;cosine&quot;</span><span class="p">}:</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span>
+            <span class="k">if</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;cosine&quot;</span><span class="p">:</span>
+                <span class="c1"># cosine similarity can be negative if vectors aren&#39;t normalized</span>
+                <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">metric</span> <span class="o">==</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">:</span>
+            <span class="c1"># Heat kernel based on median neighbor distance</span>
+            <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-12</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">d</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Fallback: inverse distance</span>
+            <span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">weight_scheme</span> <span class="o">==</span> <span class="s2">&quot;1-minus&quot;</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">d</span>
+    <span class="k">elif</span> <span class="n">weight_scheme</span> <span class="o">==</span> <span class="s2">&quot;heat&quot;</span><span class="p">:</span>
+        <span class="n">sigma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-12</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">d</span> <span class="o">/</span> <span class="n">sigma</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">weight_scheme</span> <span class="o">==</span> <span class="s2">&quot;inv&quot;</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">d</span> <span class="o">+</span> <span class="mf">1e-12</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown weight_scheme.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Replace distances with weights</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.sparse</span><span class="w"> </span><span class="kn">import</span> <span class="n">csr_matrix</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">csr_matrix</span><span class="p">((</span><span class="n">w</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span> <span class="n">A</span><span class="o">.</span><span class="n">indptr</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="n">A</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+    <span class="c1"># Symmetrize by taking the maximum weight in either direction</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">W</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="c1"># Build igraph</span>
+    <span class="n">coo</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">tocoo</span><span class="p">()</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">coo</span><span class="o">.</span><span class="n">row</span> <span class="o">&lt;</span> <span class="n">coo</span><span class="o">.</span><span class="n">col</span>  <span class="c1"># undirected: take upper triangle once</span>
+    <span class="n">edges</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">coo</span><span class="o">.</span><span class="n">row</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">coo</span><span class="o">.</span><span class="n">col</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">coo</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="kn">import</span><span class="w"> </span><span class="nn">igraph</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">ig</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">leidenalg</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">la</span>
+
+    <span class="n">g</span> <span class="o">=</span> <span class="n">ig</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="n">W</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">edges</span><span class="o">=</span><span class="n">edges</span><span class="p">,</span> <span class="n">directed</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">es</span><span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">weights</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">la</span><span class="o">.</span><span class="n">Optimiser</span><span class="p">()</span><span class="o">.</span><span class="n">set_rng_seed</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">seed</span><span class="p">))</span>
+
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">objective</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">obj</span> <span class="o">==</span> <span class="s2">&quot;cpm&quot;</span><span class="p">:</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span>
+            <span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">CPMVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">resolution_parameter</span><span class="o">=</span><span class="n">resolution</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">obj</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;rb&quot;</span><span class="p">,</span> <span class="s2">&quot;rbconfig&quot;</span><span class="p">,</span> <span class="s2">&quot;rbconfiguration&quot;</span><span class="p">}:</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span>
+            <span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">RBConfigurationVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="n">resolution_parameter</span><span class="o">=</span><span class="n">resolution</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Modularity (no resolution parameter in standard form)</span>
+        <span class="n">part</span> <span class="o">=</span> <span class="n">la</span><span class="o">.</span><span class="n">find_partition</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">la</span><span class="o">.</span><span class="n">ModularityVertexPartition</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="s2">&quot;weight&quot;</span><span class="p">)</span>
+
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">membership</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">labels</span>
+
+<span class="c1"># -------------------</span>
+<span class="c1"># Func 1: Cluster on missingness</span>
+<span class="c1"># -------------------</span>
+<span class="c1">## leiden if no k specified</span>
+
+<div class="viewcode-block" id="cluster_on_missing">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.clustering.cluster_on_missing.html#ciss_vae.utils.clustering.cluster_on_missing">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cluster_on_missing</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> 
+    <span class="n">cols_ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+    <span class="n">n_clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+    <span class="c1"># if n_clusters = None use Leiden</span>
+    <span class="n">k_neighbors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">use_snn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">leiden_objective</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">42</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cluster samples based on their missingness patterns using KMeans or Leiden.</span>
+
+<span class="sd">    When ``n_clusters`` is ``None``, performs Leiden clustering on a graph constructed</span>
+<span class="sd">    from the binary missingness mask of the dataset. If ``use_snn=True``, builds a shared-nearest-neighbor (SNN)</span>
+<span class="sd">    graph using Jaccard similarity; otherwise, constructs a standard kNN graph with Jaccard weights.</span>
+<span class="sd">    Returns both the cluster labels and an optional silhouette score.</span>
+
+<span class="sd">    :param data: Input dataset with potential missing values, shape ``(n_samples, n_features)``.</span>
+<span class="sd">        Non-numeric columns should be excluded or specified in ``cols_ignore``.</span>
+<span class="sd">    :type data: pandas.DataFrame</span>
+
+<span class="sd">    :param cols_ignore: Column names to exclude from the missingness pattern clustering.</span>
+<span class="sd">        Typically includes identifiers or static metadata columns. Defaults to ``None``.</span>
+<span class="sd">    :type cols_ignore: list[str] or None, optional</span>
+
+<span class="sd">    :param n_clusters: Number of clusters for KMeans. If ``None``, uses Leiden clustering</span>
+<span class="sd">        on the binary missingness mask instead. Defaults to ``None``.</span>
+<span class="sd">    :type n_clusters: int or None, optional</span>
+
+<span class="sd">    :param k_neighbors: Number of nearest neighbors used when constructing the kNN/SNN</span>
+<span class="sd">        graph for Leiden clustering. Defaults to ``15``.</span>
+<span class="sd">    :type k_neighbors: int, optional</span>
+
+<span class="sd">    :param use_snn: If ``True``, constructs a shared-nearest-neighbor (SNN) graph using</span>
+<span class="sd">        mutual neighbor overlap weighted by Jaccard similarity. If ``False``, uses standard</span>
+<span class="sd">        kNN graph weighting by Jaccard distance. Defaults to ``True``.</span>
+<span class="sd">    :type use_snn: bool, optional</span>
+
+<span class="sd">    :param leiden_resolution: Resolution parameter for Leiden clustering; higher values yield</span>
+<span class="sd">        more clusters. Defaults to ``0.5``.</span>
+<span class="sd">    :type leiden_resolution: float, optional</span>
+
+<span class="sd">    :param leiden_objective: Objective function for Leiden optimization.</span>
+<span class="sd">        One of ``{&quot;CPM&quot;, &quot;RB&quot;, &quot;Modularity&quot;}``. Defaults to ``&quot;CPM&quot;``.</span>
+<span class="sd">    :type leiden_objective: str, optional</span>
+
+<span class="sd">    :param seed: Random seed for reproducibility in KMeans and Leiden algorithms.</span>
+<span class="sd">        Defaults to ``42``.</span>
+<span class="sd">    :type seed: int, optional</span>
+
+<span class="sd">    :returns: Tuple ``(labels, silhouette)``:</span>
+<span class="sd">        - **labels** (:class:`numpy.ndarray`): Cluster assignments of length ``n_samples``.</span>
+<span class="sd">        - **silhouette** (:class:`float` or ``None``): Silhouette score computed using Jaccard distance</span>
+<span class="sd">          on the binary missingness mask; ``None`` if undefined.</span>
+<span class="sd">    :rtype: tuple[numpy.ndarray, float or None]</span>
+
+<span class="sd">    **Example**::</span>
+
+<span class="sd">        &gt;&gt;&gt; labels, silh = cluster_on_missing(data, n_clusters=None, use_snn=True)</span>
+<span class="sd">        &gt;&gt;&gt; np.unique(labels)</span>
+<span class="sd">        array([0, 1, 2])</span>
+<span class="sd">        &gt;&gt;&gt; print(f&quot;Silhouette: {silh:.3f}&quot;)</span>
+<span class="sd">        Silhouette: 0.408</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">silhouette_score</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;This function requires scikit-learn. Install with: pip install scikit-learn&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="c1"># Boolean missingness mask: True=missing, False=observed</span>
+    <span class="n">mask_matrix</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">cols_ignore</span><span class="p">)</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cols_ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="n">data</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="c1"># ---------------------------</span>
+    <span class="c1"># Branch: Leiden or KMeans</span>
+    <span class="c1"># ---------------------------</span>
+    <span class="k">if</span> <span class="n">n_clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Route to your existing helpers (keeps code unified)</span>
+        <span class="k">if</span> <span class="n">use_snn</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">_leiden_from_snn</span><span class="p">(</span>
+                <span class="n">mask_matrix</span><span class="p">,</span>                 <span class="c1"># boolean array OK (sklearn jaccard supports boolean)</span>
+                <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;jaccard&quot;</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">resolution</span><span class="o">=</span><span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">objective</span><span class="o">=</span><span class="n">leiden_objective</span><span class="p">,</span>
+                <span class="n">mutual</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">_leiden_from_knn</span><span class="p">(</span>
+                <span class="n">mask_matrix</span><span class="p">,</span>
+                <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;jaccard&quot;</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">resolution</span><span class="o">=</span><span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">objective</span><span class="o">=</span><span class="n">leiden_objective</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+                <span class="n">weight_scheme</span><span class="o">=</span><span class="s2">&quot;1-minus&quot;</span><span class="p">,</span>     <span class="c1"># similarity = 1 - jaccard distance</span>
+            <span class="p">)</span>
+        <span class="n">X_for_sil</span> <span class="o">=</span> <span class="n">mask_matrix</span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="s2">&quot;jaccard&quot;</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># KMeans on the binary mask</span>
+        <span class="n">n_init</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="n">n_init</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">n_init</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># scikit-learn &lt; 1.4</span>
+        <span class="n">km</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="n">n_init</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">km</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">mask_matrix</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">X_for_sil</span> <span class="o">=</span> <span class="n">mask_matrix</span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="s2">&quot;jaccard&quot;</span>
+
+    <span class="c1"># Silhouette if ≥2 clusters and all cluster sizes ≥2</span>
+    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">silhouette</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">counts</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">silhouette</span> <span class="o">=</span> <span class="n">silhouette_score</span><span class="p">(</span><span class="n">X_for_sil</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">sil_metric</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="n">silhouette</span></div>
+
+
+<div class="viewcode-block" id="cluster_on_missing_prop">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.utils.clustering.cluster_on_missing_prop.html#ciss_vae.utils.clustering.cluster_on_missing_prop">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">cluster_on_missing_prop</span><span class="p">(</span>
+    <span class="n">prop_matrix</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">n_clusters</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="c1"># Leiden params (used when n_clusters is None)</span>
+    <span class="n">k_neighbors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">use_snn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">snn_mutual</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">leiden_objective</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span>
+    <span class="n">metric</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;euclidean&quot;</span><span class="p">,</span>          <span class="c1"># use &quot;euclidean&quot; or &quot;cosine&quot; for proportions</span>
+    <span class="n">scale_features</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Cluster samples based on their per-feature missingness proportions using KMeans or Leiden.</span>
+
+<span class="sd">    When ``n_clusters`` is ``None``, performs Leiden clustering on a graph constructed</span>
+<span class="sd">    from the missingness proportion matrix. If ``use_snn=True``, builds a shared-nearest-neighbor (SNN)</span>
+<span class="sd">    graph with Jaccard-based or metric-based similarity; otherwise uses a standard kNN graph.</span>
+<span class="sd">    Returns both the cluster labels and an optional silhouette score.</span>
+
+<span class="sd">    :param prop_matrix: Matrix of missingness proportions, shape ``(n_samples, n_features)``.</span>
+<span class="sd">        Each entry represents the fraction of missing values for a feature within each sample.</span>
+<span class="sd">        Values must lie in ``[0, 1]``.</span>
+<span class="sd">    :type prop_matrix: pandas.DataFrame or numpy.ndarray</span>
+
+<span class="sd">    :param n_clusters: Number of clusters for KMeans. If ``None``, uses Leiden clustering instead.</span>
+<span class="sd">        Defaults to ``None``.</span>
+<span class="sd">    :type n_clusters: int or None, optional</span>
+
+<span class="sd">    :param seed: Random seed for KMeans initialization and Leiden reproducibility.</span>
+<span class="sd">        Defaults to ``None``.</span>
+<span class="sd">    :type seed: int or None, optional</span>
+
+<span class="sd">    :param k_neighbors: Number of nearest neighbors for kNN/SNN graph construction used by Leiden.</span>
+<span class="sd">        Defaults to ``15``.</span>
+<span class="sd">    :type k_neighbors: int, optional</span>
+
+<span class="sd">    :param use_snn: If ``True``, constructs a shared-nearest-neighbor (SNN) graph using</span>
+<span class="sd">        mutual or weighted neighbor overlap. If ``False``, uses standard kNN.</span>
+<span class="sd">        Defaults to ``True``.</span>
+<span class="sd">    :type use_snn: bool, optional</span>
+
+<span class="sd">    :param snn_mutual: If ``True``, retains only mutual nearest neighbors when building the SNN graph.</span>
+<span class="sd">        Defaults to ``True``.</span>
+<span class="sd">    :type snn_mutual: bool, optional</span>
+
+<span class="sd">    :param leiden_resolution: Resolution parameter controlling cluster granularity in Leiden.</span>
+<span class="sd">        Higher values produce more clusters. Defaults to ``0.5``.</span>
+<span class="sd">    :type leiden_resolution: float, optional</span>
+
+<span class="sd">    :param leiden_objective: Objective function for Leiden optimization.</span>
+<span class="sd">        One of ``{&quot;CPM&quot;, &quot;RB&quot;, &quot;Modularity&quot;}``. Defaults to ``&quot;CPM&quot;``.</span>
+<span class="sd">    :type leiden_objective: str, optional</span>
+
+<span class="sd">    :param metric: Distance metric used for kNN graph construction and silhouette calculation.</span>
+<span class="sd">        Recommended options are ``&quot;euclidean&quot;`` or ``&quot;cosine&quot;``.</span>
+<span class="sd">        Defaults to ``&quot;euclidean&quot;``.</span>
+<span class="sd">    :type metric: str, optional</span>
+
+<span class="sd">    :param scale_features: Whether to standardize features (zero mean, unit variance) prior to clustering.</span>
+<span class="sd">        Recommended when feature scales differ widely. Defaults to ``False``.</span>
+<span class="sd">    :type scale_features: bool, optional</span>
+
+<span class="sd">    :returns: Tuple ``(labels, silhouette)``:</span>
+<span class="sd">        - **labels** (:class:`numpy.ndarray`): Cluster assignments of length ``n_samples``.</span>
+<span class="sd">        - **silhouette** (:class:`float` or ``None``): Silhouette score based on the same metric;</span>
+<span class="sd">          ``None`` if undefined (e.g., single cluster).</span>
+<span class="sd">    :rtype: tuple[numpy.ndarray, float or None]</span>
+
+<span class="sd">    **Example**::</span>
+
+<span class="sd">        &gt;&gt;&gt; labels, silh = cluster_on_missing_prop(prop_matrix, n_clusters=None, use_snn=True)</span>
+<span class="sd">        &gt;&gt;&gt; np.unique(labels)</span>
+<span class="sd">        array([0, 1, 2, 3])</span>
+<span class="sd">        &gt;&gt;&gt; print(f&quot;Silhouette: {silh:.3f}&quot;)</span>
+<span class="sd">        Silhouette: 0.421</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Optional deps kept inside</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.cluster</span><span class="w"> </span><span class="kn">import</span> <span class="n">KMeans</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">silhouette_score</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.preprocessing</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardScaler</span>
+    <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span>
+            <span class="s2">&quot;Optional dependencies required: scikit-learn (and leidenalg via _leiden_from_knn).</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;Install with: pip install ciss_vae[clustering]&quot;</span>
+        <span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">e</span>
+
+    <span class="c1"># Convert to array (handle DataFrame and custom classes with to_numpy)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">):</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">prop_matrix</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">,</span> <span class="s2">&quot;to_numpy&quot;</span><span class="p">):</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">prop_matrix</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># supports MissingnessMatrix</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prop_matrix must be 2D (n_samples × n_features).&quot;</span><span class="p">)</span>
+    <span class="n">n_samples</span><span class="p">,</span> <span class="n">n_features</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="c1"># Sanity checks: finite and within [0,1]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">X</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;prop_matrix contains non-finite values (NaN/Inf).&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">X</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">X</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">X</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="c1"># Optionally scale features</span>
+    <span class="n">X_rows</span> <span class="o">=</span> <span class="n">X</span>
+    <span class="k">if</span> <span class="n">scale_features</span><span class="p">:</span>
+        <span class="n">X_rows</span> <span class="o">=</span> <span class="n">StandardScaler</span><span class="p">()</span><span class="o">.</span><span class="n">fit_transform</span><span class="p">(</span><span class="n">X_rows</span><span class="p">)</span>
+
+    <span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">metric</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;euclidean&quot;</span><span class="p">,</span> <span class="s2">&quot;cosine&quot;</span><span class="p">}:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;metric must be &#39;euclidean&#39; or &#39;cosine&#39; for proportion data.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Clustering</span>
+    <span class="k">if</span> <span class="n">n_clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Leiden on kNN graph derived from the chosen metric</span>
+        <span class="k">if</span> <span class="n">use_snn</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">_leiden_from_snn</span><span class="p">(</span>
+                <span class="n">X_rows</span><span class="p">,</span>
+                <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">resolution</span><span class="o">=</span><span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">objective</span><span class="o">=</span><span class="n">leiden_objective</span><span class="p">,</span>
+                <span class="n">mutual</span><span class="o">=</span><span class="n">snn_mutual</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">labels</span> <span class="o">=</span> <span class="n">_leiden_from_knn</span><span class="p">(</span>
+                <span class="n">X_rows</span><span class="p">,</span>
+                <span class="n">metric</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span>
+                <span class="n">k</span><span class="o">=</span><span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">resolution</span><span class="o">=</span><span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">objective</span><span class="o">=</span><span class="n">leiden_objective</span><span class="p">,</span>
+                <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+                <span class="n">weight_scheme</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="n">X_for_sil</span> <span class="o">=</span> <span class="n">X_rows</span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="n">metric</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">n_init</span> <span class="o">=</span> <span class="s2">&quot;auto&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="n">n_init</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">n_init</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">km</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">,</span> <span class="n">n_init</span><span class="o">=</span><span class="n">n_init</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">km</span><span class="o">.</span><span class="n">fit_predict</span><span class="p">(</span><span class="n">X_rows</span><span class="p">)</span>
+        <span class="n">X_for_sil</span> <span class="o">=</span> <span class="n">X_rows</span>
+        <span class="n">sil_metric</span> <span class="o">=</span> <span class="n">metric</span>
+
+    <span class="c1"># Silhouette if valid</span>
+    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">silhouette</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">counts</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">):</span>
+        <span class="n">silhouette</span> <span class="o">=</span> <span class="n">silhouette_score</span><span class="p">(</span><span class="n">X_for_sil</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">sil_metric</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">labels</span><span class="p">,</span> <span class="n">silhouette</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

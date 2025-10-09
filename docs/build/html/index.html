@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CISS-VAE documentation &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>CISS-VAE documentation &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=baaebd52"></script>
+      <script src="_static/documentation_options.js?v=14ed45bf"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -23,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Overview" href="vignette.html" /> 
+    <link rel="next" title="Installation" href="quickstart.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -47,13 +48,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -89,13 +93,20 @@ It also functions effectively under MAR (Missing at Random) assumptions.</p>
 <p>The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation
 accuracy compared to traditional training approaches.</p>
-<p>The CISS-VAE package also offers the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function, which can help select the best hyperparameters for your model within a user-defined search space. The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends.</p>
+<p>The CISS-VAE package also offers the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function, which can help select the best hyperparameters for your model within a user-defined search space.
+The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends.</p>
+<p>The R package associated with this model can be found at <a class="reference external" href="https://ciss-vae.github.io/rCISS-VAE/">rCISS-VAE</a>.</p>
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="vignette.html#avoiding-imputation-of-certain-entries">Avoiding imputation of certain entries</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="vignette.html#dataset-preparation">Dataset Preparation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="vignette.html#clustering-on-missingness-pattern">Clustering on missingness pattern</a></li>
@@ -112,17 +123,22 @@ accuracy compared to traditional training approaches.</p>
 <li class="toctree-l2"><a class="reference internal" href="vignette.html#loading-a-model">Loading a Model</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#data-format-support">Data Format Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#wide-format-examples">Wide Format Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#long-format-examples">Long Format Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#advanced-options">Advanced Options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-feature-clustering">Integration with Feature Clustering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with Sample Clustering</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-ciss-vae-pipeline">Integration with CISS-VAE Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#complete-workflow-example">Complete Workflow Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#common-use-cases">Common Use Cases</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#tips-and-best-practices">Tips and Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#example-using-included-dataset">Example using included dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#using-run-cissvae-with-dni-matrix">Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with DNI matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#we-can-also-use-the-imputable-maatrix-with-the-autotune-function">We can also use the imputable maatrix with the autotune function.</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
@@ -139,6 +155,11 @@ accuracy compared to traditional training approaches.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
 </pre></div>
 </div>
+<p>To install via github:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git</p>
+</div></blockquote>
 </section>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading"></a></h2>
@@ -155,13 +176,13 @@ accuracy compared to traditional training approaches.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="vignette.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

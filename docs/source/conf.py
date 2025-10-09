@@ -30,7 +30,6 @@ extensions = [
     "sphinx.ext.autosummary",      # create API summary
     "sphinx.ext.intersphinx",      # cross-project refs
     "sphinx_autodoc_typehints",    # better type hint rendering
-    "myst_parser",                 # if using markdown
     "sphinx_copybutton"
 ]
 
@@ -39,6 +38,10 @@ add_module_names = False  # so :func:`train_model` instead of :func:`vae.train_m
 autodoc_default_options = {
     "members": True, "undoc-members": True, "show-inheritance": True, "member-order": "bysource",
 }
+
+# Jupter notebooks control execution on RTD (off, auto, force)
+nb_execution_mode = "off"
+nb_execution_cache_path = ".jupyter_cache"
 
 
 

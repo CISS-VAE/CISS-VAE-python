@@ -23,6 +23,7 @@ The R package associated with this model can be found at `rCISS-VAE <https://cis
    :maxdepth: 2
    :caption: Contents:
 
+   quickstart
    vignette
    missingness_prop_vignette
    dni_vignette.ipynb

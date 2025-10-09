@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.training.autotune.autotune &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.training.autotune.autotune &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -23,7 +24,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ciss_vae.utils.run_cissvae.run_cissvae" href="ciss_vae.utils.run_cissvae.run_cissvae.html" />
+    <link rel="next" title="ciss_vae.training.run_cissvae.run_cissvae" href="ciss_vae.training.run_cissvae.run_cissvae.html" />
     <link rel="prev" title="ciss_vae.training.autotune.SearchSpace" href="ciss_vae.training.autotune.SearchSpace.html" /> 
 </head>
 
@@ -48,13 +49,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a><ul class="current">
@@ -63,6 +67,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#ciss_vae.training.autotune.autotune"><code class="docutils literal notranslate"><span class="pre">autotune()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.training.run_cissvae.run_cissvae.html">ciss_vae.training.run_cissvae.run_cissvae</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a></li>
@@ -99,7 +104,7 @@
 <h1>ciss_vae.training.autotune.autotune<a class="headerlink" href="#ciss-vae-training-autotune-autotune" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.autotune">
-<span class="sig-name descname"><span class="pre">autotune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_search_space_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">study_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vae_autotune'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optuna_dashboard_db</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_if_exists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_layer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate_all_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_exhaustive_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#autotune"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.autotune" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">autotune</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">search_space</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_model_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_search_space_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_trials</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">study_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'vae_autotune'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_preference</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optuna_dashboard_db</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_if_exists</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">show_progress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constant_layer_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">evaluate_all_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_exhaustive_orders</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_jobs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#autotune"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.autotune" title="Link to this definition"></a></dt>
 <dd><p>Optuna-based hyperparameter search for the CISSVAE model.</p>
 <p>Runs initial training followed by impute-refit loops per trial, selecting the
 trial with the lowest validation MSE. The best model is then retrained with
@@ -122,13 +127,15 @@ optimal hyperparameters and returned along with the imputed dataset.</p>
 <li><p><strong>constant_layer_size</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether all hidden layers should use the same dimension size, defaults to False</p></li>
 <li><p><strong>evaluate_all_orders</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to permute and evaluate all possible shared/unshared layer orders, defaults to False</p></li>
 <li><p><strong>max_exhaustive_orders</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of layer order permutations to test when evaluate_all_orders is True, defaults to 100</p></li>
+<li><p><strong>return_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return MSE training history dataframe of the best model, defaults to False</p></li>
+<li><p><strong>n_jobs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of jobs to run for autotuning (passed to optuna). Defaults to 1</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe)</p>
+<dd class="field-even"><p>Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple[pandas.DataFrame, <a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE">CISSVAE</a>, optuna.study.Study, pandas.DataFrame]</p>
+<dd class="field-odd"><p>tuple[pandas.DataFrame, <a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE">CISSVAE</a>, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, <a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE">CISSVAE</a>, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -146,13 +153,13 @@ optimal hyperparameters and returned along with the imputed dataset.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="ciss_vae.training.autotune.SearchSpace.html" class="btn btn-neutral float-left" title="ciss_vae.training.autotune.SearchSpace" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ciss_vae.utils.run_cissvae.run_cissvae.html" class="btn btn-neutral float-right" title="ciss_vae.utils.run_cissvae.run_cissvae" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ciss_vae.training.run_cissvae.run_cissvae.html" class="btn btn-neutral float-right" title="ciss_vae.training.run_cissvae.run_cissvae" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

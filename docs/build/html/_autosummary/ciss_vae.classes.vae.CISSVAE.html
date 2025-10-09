@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.classes.vae.CISSVAE &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.classes.vae.CISSVAE &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
   
       <script src="../_static/jquery.js?v=5d32c60e"></script>
       <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../_static/doctools.js?v=9bcbadda"></script>
       <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -48,13 +49,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#classes">Classes</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.classes.vae.CISSVAE</a><ul>
@@ -178,13 +182,16 @@ cluster; shared layers are single modules applied to all samples.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.get_final_lr" title="ciss_vae.classes.vae.CISSVAE.get_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_final_lr</span></code></a>()</p></td>
 <td><p>Returns the learning rate stored with self.set_final_lr/</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reparameterize</span></code></a>(mu, logvar)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata" title="ciss_vae.classes.vae.CISSVAE.get_imputed_valdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_imputed_valdata</span></code></a>(dataset[, device])</p></td>
+<td><p>Get denormalized imputed data from the trained model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reparameterize</span></code></a>(mu, logvar)</p></td>
 <td><p>Reparameterization trick: <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">mu</span> <span class="pre">+</span> <span class="pre">eps</span> <span class="pre">*</span> <span class="pre">exp(0.5</span> <span class="pre">*</span> <span class="pre">logvar)</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">route_through_layers</span></code></a>(x, cluster_labels, ...)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">route_through_layers</span></code></a>(x, cluster_labels, ...)</p></td>
 <td><p>Apply a sequence of shared/unshared layers according to <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_final_lr" title="ciss_vae.classes.vae.CISSVAE.set_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_final_lr</span></code></a>(final_lr)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_final_lr" title="ciss_vae.classes.vae.CISSVAE.set_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_final_lr</span></code></a>(final_lr)</p></td>
 <td><p>Stores final lr from initial training loop in model attributes to be accessed in refit loop.</p></td>
 </tr>
 </tbody>
@@ -314,6 +321,61 @@ unshared stacks are inconsistent with the directives.</p>
 <dd><p>Returns the learning rate stored with self.set_final_lr/</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.get_imputed_valdata">
+<span class="sig-name descname"><span class="pre">get_imputed_valdata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.get_imputed_valdata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata" title="Link to this definition"></a></dt>
+<dd><p>Get denormalized imputed data from the trained model.</p>
+<blockquote>
+<div><p>[IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</p>
+</div></blockquote>
+<p>Performs a forward pass of the model in evaluation mode to reconstruct
+validation data. The reconstructed output is then denormalized using the
+dataset’s feature means and standard deviations. Features with zero
+standard deviation are replaced with 1.0 to ensure numerical stability.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dataset</strong> (<a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><em>ClusterDataset</em></a>) – <p>Dataset object containing normalized data, validation data, and feature statistics.
+Must include:</p>
+<blockquote>
+<div><ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code>: Normalized input tensor of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">val_data</span></code>: Original validation data tensor of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cluster_labels</span></code>: Cluster assignments for each sample, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,)</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feature_means</span></code>: Per-feature means, length <code class="docutils literal notranslate"><span class="pre">n_features</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feature_stds</span></code>: Per-feature standard deviations, length <code class="docutils literal notranslate"><span class="pre">n_features</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">feature_names</span></code>: List of feature names (used for zero-std warnings)</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Device to perform computations on (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>). Default is <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Denormalized reconstructed (imputed) validation data of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ul class="simple">
+<li><p>The model is evaluated using <code class="docutils literal notranslate"><span class="pre">self.eval()</span></code> (disables dropout, batchnorm updates, etc.).</p></li>
+<li><p>Features with <code class="docutils literal notranslate"><span class="pre">std</span> <span class="pre">==</span> <span class="pre">0</span></code> are replaced with <code class="docutils literal notranslate"><span class="pre">1.0</span></code> and a warning listing affected features is printed.</p></li>
+<li><p>The returned tensor corresponds to the model’s best reconstruction of the validation data after denormalization.</p></li>
+</ul>
+</div>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">vae</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">imputed_val</span> <span class="o">=</span> <span class="n">vae</span><span class="o">.</span><span class="n">get_imputed_valdata</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">imputed_val</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">torch.Size([100, 20])</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -329,7 +391,7 @@ unshared stacks are inconsistent with the directives.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

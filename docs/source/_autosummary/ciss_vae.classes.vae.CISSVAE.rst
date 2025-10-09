@@ -18,6 +18,7 @@
       ~CISSVAE.encode
       ~CISSVAE.forward
       ~CISSVAE.get_final_lr
+      ~CISSVAE.get_imputed_valdata
       ~CISSVAE.reparameterize
       ~CISSVAE.route_through_layers
       ~CISSVAE.set_final_lr

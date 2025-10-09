@@ -22,6 +22,7 @@ Training & Tuning
 
    autotune.SearchSpace
    autotune.autotune
+   run_cissvae.run_cissvae
 
 Utilities & Helpers
 -------
@@ -30,9 +31,9 @@ Utilities & Helpers
    :toctree: _autosummary
    :recursive:
 
-   run_cissvae.run_cissvae
-   run_cissvae.cluster_on_missing
-   run_cissvae.cluster_on_missing_prop
-   matrix.make_missingness_prop_matrix
-   helpers.get_imputed_df
+   
+   clustering.cluster_on_missing
+   clustering.cluster_on_missing_prop
+   matrix.create_missingness_prop_matrix
    helpers.plot_vae_architecture
+   helpers.get_imputed_df

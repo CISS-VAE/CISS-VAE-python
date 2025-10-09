@@ -1,0 +1,513 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.training.run_cissvae &mdash; CISS-VAE 1.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=14ed45bf"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=00122899"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">ciss_vae.training.run_cissvae</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for ciss_vae.training.run_cissvae</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model.&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="c1"># --------------------</span>
+<span class="c1"># Func 2: Make dataset &amp; run VAE</span>
+<span class="c1"># --------------------</span>
+
+<div class="viewcode-block" id="run_cissvae">
+<a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.run_cissvae.run_cissvae.html#ciss_vae.run_cissvae">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_cissvae</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> 
+    <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> 
+    <span class="n">replacement_value</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> 
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+    <span class="n">imputable_matrix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="c1">## dataset params</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>     
+    <span class="n">k_neighbors</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">leiden_objective</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span> 
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> 
+    <span class="n">missingness_proportion_matrix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">scale_features</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="c1">## clustering params</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> 
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> 
+    <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span> 
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span>
+    <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="c1">## model params</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> 
+    <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> 
+    <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> 
+    <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> 
+    <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="c1">## initial training params</span>
+    <span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> 
+    <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+    <span class="c1">## refit params</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_clusters</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_history</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+    <span class="n">return_dataset</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    End-to-end pipeline for Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE).</span>
+
+<span class="sd">    This workflow prepares data (validation masking, optional feature/biomarker clustering inputs),</span>
+<span class="sd">    optionally infers sample clusters, trains the VAE, and performs iterative</span>
+<span class="sd">    impute–refit loops with early stopping. Returns the final imputed dataset and,</span>
+<span class="sd">    optionally, the trained model and auxiliary artifacts.</span>
+
+<span class="sd">    :param data: Input matrix with potential missing values, shape ``(n_samples, n_features)``.</span>
+<span class="sd">    :type data: pandas.DataFrame or numpy.ndarray or torch.Tensor</span>
+
+<span class="sd">    :param val_proportion: Per-cluster fraction of **non-missing** entries to mask for validation.</span>
+<span class="sd">        May be a single float (global), a per-cluster sequence, or mapping.</span>
+<span class="sd">        Defaults to ``0.1``.</span>
+<span class="sd">    :type val_proportion: float or collections.abc.Sequence or collections.abc.Mapping or pandas.Series, optional</span>
+
+<span class="sd">    :param replacement_value: Value used to fill masked validation entries in the *training* tensor.</span>
+<span class="sd">        Does not affect the separate validation target tensor. Defaults to ``0.0``.</span>
+<span class="sd">    :type replacement_value: float, optional</span>
+
+<span class="sd">    :param columns_ignore: Columns to exclude from validation masking (names if ``data`` is a DataFrame,</span>
+<span class="sd">        otherwise integer indices). Defaults to ``None``.</span>
+<span class="sd">    :type columns_ignore: list[str or int] or None, optional</span>
+
+<span class="sd">    :param print_dataset: If ``True``, prints dataset summary/statistics during setup. Defaults to ``True``.</span>
+<span class="sd">    :type print_dataset: bool, optional</span>
+
+<span class="sd">    :param imputable_matrix: Optional binary mask with the same shape as ``data`` indicating which entries</span>
+<span class="sd">        are eligible for imputation. Use ``1`` to **allow** imputation and ``0`` to **exclude** from imputation.</span>
+<span class="sd">        Defaults to ``None``.</span>
+<span class="sd">    :type imputable_matrix: pandas.DataFrame or numpy.ndarray or torch.Tensor or None, optional</span>
+
+<span class="sd">    :param clusters: Precomputed cluster labels for samples (length ``n_samples``). If ``None``,</span>
+<span class="sd">        clustering may be performed depending on ``n_clusters`` and Leiden settings. Defaults to ``None``.</span>
+<span class="sd">    :type clusters: array-like or None, optional</span>
+
+<span class="sd">    :param n_clusters: If provided, performs KMeans with ``n_clusters``. If ``None`` and</span>
+<span class="sd">        ``clusters`` is also ``None``, Leiden-based clustering is used. Defaults to ``None``.</span>
+<span class="sd">    :type n_clusters: int or None, optional</span>
+
+<span class="sd">    :param k_neighbors: Number of nearest neighbors for the Leiden KNN graph construction. Defaults to ``15``.</span>
+<span class="sd">    :type k_neighbors: int, optional</span>
+
+<span class="sd">    :param leiden_resolution: Resolution parameter for Leiden clustering. Defaults to ``0.5``.</span>
+<span class="sd">    :type leiden_resolution: float, optional</span>
+
+<span class="sd">    :param leiden_objective: Objective function for Leiden clustering. One of ``{&quot;CPM&quot;, &quot;RB&quot;, &quot;Modularity&quot;}``.</span>
+<span class="sd">        Defaults to ``&quot;CPM&quot;``.</span>
+<span class="sd">    :type leiden_objective: str, optional</span>
+
+<span class="sd">    :param seed: Random seed for reproducibility. Defaults to ``42``.</span>
+<span class="sd">    :type seed: int, optional</span>
+
+<span class="sd">    :param missingness_proportion_matrix: Optional matrix for biomarker/feature clustering where each entry</span>
+<span class="sd">        is the per-sample proportion of missingness for each feature. If provided, can guide clustering on</span>
+<span class="sd">        missingness patterns. Defaults to ``None``.</span>
+<span class="sd">    :type missingness_proportion_matrix: pandas.DataFrame or numpy.ndarray or None, optional</span>
+
+<span class="sd">    :param scale_features: If ``True``, standardizes features for proportion-matrix-based clustering.</span>
+<span class="sd">        Defaults to ``False``.</span>
+<span class="sd">    :type scale_features: bool, optional</span>
+
+<span class="sd">    :param hidden_dims: Encoder/decoder hidden layer sizes (mirrored architecture). Defaults to ``[150, 120, 60]``.</span>
+<span class="sd">    :type hidden_dims: list[int], optional</span>
+
+<span class="sd">    :param latent_dim: Dimensionality of the latent space. Defaults to ``15``.</span>
+<span class="sd">    :type latent_dim: int, optional</span>
+
+<span class="sd">    :param layer_order_enc: Per-layer specification for encoder blocks; values are</span>
+<span class="sd">        ``&quot;shared&quot;`` or ``&quot;unshared&quot;``. Length should match ``hidden_dims``. Defaults to</span>
+<span class="sd">        ``[&quot;unshared&quot;, &quot;unshared&quot;, &quot;unshared&quot;]``.</span>
+<span class="sd">    :type layer_order_enc: list[str], optional</span>
+
+<span class="sd">    :param layer_order_dec: Per-layer specification for decoder blocks; values are</span>
+<span class="sd">        ``&quot;shared&quot;`` or ``&quot;unshared&quot;``. Length should match ``hidden_dims``. Defaults to</span>
+<span class="sd">        ``[&quot;shared&quot;, &quot;shared&quot;, &quot;shared&quot;]``.</span>
+<span class="sd">    :type layer_order_dec: list[str], optional</span>
+
+<span class="sd">    :param latent_shared: If ``True``, shares latent layer parameters across clusters. Defaults to ``False``.</span>
+<span class="sd">    :type latent_shared: bool, optional</span>
+
+<span class="sd">    :param output_shared: If ``True``, shares final output layer across clusters. Defaults to ``False``.</span>
+<span class="sd">    :type output_shared: bool, optional</span>
+
+<span class="sd">    :param batch_size: Batch size for training. Defaults to ``4000``.</span>
+<span class="sd">    :type batch_size: int, optional</span>
+
+<span class="sd">    :param return_model: If ``True``, include the trained VAE model in the return tuple. Defaults to ``True``.</span>
+<span class="sd">    :type return_model: bool, optional</span>
+
+<span class="sd">    :param epochs: Number of epochs in the initial training phase. Defaults to ``500``.</span>
+<span class="sd">    :type epochs: int, optional</span>
+
+<span class="sd">    :param initial_lr: Initial learning rate for the optimizer. Defaults to ``0.01``.</span>
+<span class="sd">    :type initial_lr: float, optional</span>
+
+<span class="sd">    :param decay_factor: Multiplicative LR decay applied per epoch (``lr *= decay_factor``). Defaults to ``0.999``.</span>
+<span class="sd">    :type decay_factor: float, optional</span>
+
+<span class="sd">    :param beta: Weight of the KL-divergence term in the VAE loss for initial training. Defaults to ``0.001``.</span>
+<span class="sd">    :type beta: float, optional</span>
+
+<span class="sd">    :param device: Compute device, e.g., ``&quot;cpu&quot;`` or ``&quot;cuda&quot;``. If ``None``, selected automatically.</span>
+<span class="sd">        Defaults to ``None``.</span>
+<span class="sd">    :type device: str or torch.device or None, optional</span>
+
+<span class="sd">    :param max_loops: Maximum number of impute–refit loops. Defaults to ``100``.</span>
+<span class="sd">    :type max_loops: int, optional</span>
+
+<span class="sd">    :param patience: Early stopping patience counted in *loops* without improvement. Defaults to ``2``.</span>
+<span class="sd">    :type patience: int, optional</span>
+
+<span class="sd">    :param epochs_per_loop: Number of epochs per refit loop. If ``None``, reuses ``epochs``. Defaults to ``None``.</span>
+<span class="sd">    :type epochs_per_loop: int or None, optional</span>
+
+<span class="sd">    :param initial_lr_refit: Learning rate for refit loops. If ``None``, uses ``initial_lr``. Defaults to ``None``.</span>
+<span class="sd">    :type initial_lr_refit: float or None, optional</span>
+
+<span class="sd">    :param decay_factor_refit: LR decay factor during refit loops. If ``None``, uses ``decay_factor``.</span>
+<span class="sd">        Defaults to ``None``.</span>
+<span class="sd">    :type decay_factor_refit: float or None, optional</span>
+
+<span class="sd">    :param beta_refit: KL weight used in refit loops. If ``None``, uses ``beta``. Defaults to ``None``.</span>
+<span class="sd">    :type beta_refit: float or None, optional</span>
+
+<span class="sd">    :param verbose: If ``True``, prints progress and diagnostics. Defaults to ``False``.</span>
+<span class="sd">    :type verbose: bool, optional</span>
+
+<span class="sd">    :param return_clusters: If ``True``, include sample cluster labels in the return tuple. Defaults to ``False``.</span>
+<span class="sd">    :type return_clusters: bool, optional</span>
+
+<span class="sd">    :param return_silhouettes: If ``True``, include clustering silhouette score(s) in the return tuple.</span>
+<span class="sd">        Defaults to ``False``.</span>
+<span class="sd">    :type return_silhouettes: bool, optional</span>
+
+<span class="sd">    :param return_history: If ``True``, include concatenated training/refit history (e.g., losses, metrics).</span>
+<span class="sd">        Defaults to ``False``.</span>
+<span class="sd">    :type return_history: bool, optional</span>
+
+<span class="sd">    :param return_dataset: If ``True``, include the constructed/processed ``ClusterDataset`` object.</span>
+<span class="sd">        Defaults to ``False``.</span>
+<span class="sd">    :type return_dataset: bool, optional</span>
+
+<span class="sd">    :param debug: If ``True``, enables additional checks/logging for troubleshooting. Defaults to ``False``.</span>
+<span class="sd">    :type debug: bool, optional</span>
+
+<span class="sd">    :returns: By default returns the imputed dataset. Depending on flags, may also return:</span>
+<span class="sd">        ``model``, ``clusters``, ``silhouette_scores``, ``history``, and/or the ``ClusterDataset``.</span>
+<span class="sd">        The order is:</span>
+<span class="sd">        ``(imputed_dataset[, model][, clusters][, silhouette_scores][, history][, dataset])``.</span>
+<span class="sd">    :rtype: pandas.DataFrame</span>
+<span class="sd">        or tuple[ pandas.DataFrame</span>
+<span class="sd">                [, CISSVAE]</span>
+<span class="sd">                [, numpy.ndarray or pandas.Series]</span>
+<span class="sd">                [, float or dict]</span>
+<span class="sd">                [, pandas.DataFrame]</span>
+<span class="sd">                [, ClusterDataset]</span>
+<span class="sd">               ]&quot;&quot;&quot;</span>
+    
+    <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_initial</span><span class="w"> </span><span class="kn">import</span> <span class="n">train_vae_initial</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.train_refit</span><span class="w"> </span><span class="kn">import</span> <span class="n">impute_and_refit_loop</span>
+
+    <span class="c1"># ------------</span>
+    <span class="c1"># Set params</span>
+    <span class="c1"># ------------</span>
+    <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">epochs_per_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="n">epochs</span>
+    
+    <span class="k">if</span> <span class="n">decay_factor_refit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="n">decay_factor</span>
+
+    <span class="k">if</span> <span class="n">beta_refit</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span> 
+        <span class="n">beta_refit</span> <span class="o">=</span> <span class="n">beta</span>
+
+    <span class="n">silh</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_cols_ignore</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">cols_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="c1"># Convert sets/tuples/Index to list</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">cols_ignore</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">)</span>
+        <span class="c1"># Flatten one level if user passed [(&quot;a&quot;,&quot;b&quot;)] or [[...]]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="n">cols_ignore</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cols_ignore</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># Ensure all are strings</span>
+        <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols_ignore</span><span class="p">]</span>
+
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">_normalize_cols_ignore</span><span class="p">(</span><span class="n">columns_ignore</span><span class="p">)</span>
+
+
+    <span class="c1"># ------------</span>
+    <span class="c1"># Cluster if needed</span>
+    <span class="c1"># ------------</span>
+    <span class="k">if</span> <span class="n">clusters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing</span><span class="p">,</span> <span class="n">cluster_on_missing_prop</span>
+        <span class="k">if</span> <span class="n">missingness_proportion_matrix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">clusters</span><span class="p">,</span> <span class="n">silh</span> <span class="o">=</span> <span class="n">cluster_on_missing</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">,</span> 
+                <span class="n">cols_ignore</span> <span class="o">=</span> <span class="n">columns_ignore</span><span class="p">,</span> 
+                <span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_clusters</span><span class="p">,</span> 
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span> 
+                <span class="n">k_neighbors</span> <span class="o">=</span> <span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">leiden_resolution</span> <span class="o">=</span> <span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">leiden_objective</span> <span class="o">=</span> <span class="n">leiden_objective</span><span class="p">)</span>
+            
+            <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                <span class="n">nclusfound</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">clusters</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There were </span><span class="si">{</span><span class="n">nclusfound</span><span class="si">}</span><span class="s2"> clusters, with an average silhouette score of </span><span class="si">{</span><span class="n">silh</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">clusters</span><span class="p">,</span> <span class="n">silh</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
+                <span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">missingness_proportion_matrix</span><span class="p">,</span> 
+                <span class="n">n_clusters</span> <span class="o">=</span> <span class="n">n_clusters</span><span class="p">,</span> 
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span> 
+                <span class="n">k_neighbors</span> <span class="o">=</span> <span class="n">k_neighbors</span><span class="p">,</span>
+                <span class="n">leiden_resolution</span> <span class="o">=</span> <span class="n">leiden_resolution</span><span class="p">,</span>
+                <span class="n">leiden_objective</span> <span class="o">=</span> <span class="n">leiden_objective</span><span class="p">,</span> 
+                <span class="n">scale_features</span> <span class="o">=</span> <span class="n">scale_features</span><span class="p">)</span>
+
+            <span class="k">if</span><span class="p">(</span><span class="n">verbose</span><span class="p">):</span>
+                <span class="n">nclusfound</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">clusters</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;There were </span><span class="si">{</span><span class="n">nclusfound</span><span class="si">}</span><span class="s2"> clusters, with an average silhouette score of </span><span class="si">{</span><span class="n">silh</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------</span>
+    <span class="c1"># MAJOR FIX: Ensure that cluster labeling is consistant and goes from 0 to n-1</span>
+    <span class="c1"># --------------------------</span>
+    <span class="n">unique_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span> 
+    <span class="n">cluster_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="n">old_label</span><span class="p">:</span> <span class="n">new_label</span> <span class="k">for</span> <span class="n">new_label</span><span class="p">,</span> <span class="n">old_label</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">)}</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cluster_mapping</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">])</span>
+    
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span> 
+                            <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span> 
+                            <span class="n">val_proportion</span> <span class="o">=</span> <span class="n">val_proportion</span><span class="p">,</span>
+                            <span class="n">replacement_value</span> <span class="o">=</span> <span class="n">replacement_value</span><span class="p">,</span> 
+                            <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">columns_ignore</span><span class="p">,</span>
+                            <span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable_matrix</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">print_dataset</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cluster dataset:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+    
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">vae</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">hidden_dims</span> <span class="o">=</span> <span class="n">hidden_dims</span><span class="p">,</span>
+        <span class="n">latent_dim</span> <span class="o">=</span> <span class="n">latent_dim</span><span class="p">,</span>
+        <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">layer_order_enc</span><span class="p">,</span>
+        <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">layer_order_dec</span><span class="p">,</span>
+        <span class="n">latent_shared</span> <span class="o">=</span> <span class="n">latent_shared</span><span class="p">,</span>
+        <span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span><span class="p">,</span>
+        <span class="n">num_clusters</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">n_clusters</span><span class="p">,</span>
+        <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span> 
+        <span class="n">vae</span><span class="p">,</span> <span class="n">initial_history_df</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">return_history</span> <span class="o">=</span> <span class="n">return_history</span>
+        <span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">vae</span> <span class="o">=</span> <span class="n">train_vae_initial</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">return_history</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="p">)</span>
+
+    <span class="n">imputed_dataset</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">=</span><span class="n">vae</span><span class="p">,</span>
+        <span class="n">train_loader</span><span class="o">=</span><span class="n">train_loader</span><span class="p">,</span>
+        <span class="n">max_loops</span><span class="o">=</span><span class="n">max_loops</span><span class="p">,</span>
+        <span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span>
+        <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
+        <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr_refit</span><span class="p">,</span> <span class="c1">## should start from last learning rate</span>
+        <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor_refit</span><span class="p">,</span>
+        <span class="n">beta</span><span class="o">=</span><span class="n">beta_refit</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    
+    <span class="c1"># ----------------</span>
+    <span class="c1"># Construct history dataframe</span>
+    <span class="c1"># ----------------</span>
+    <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span>
+        <span class="n">combined_history_df</span> <span class="o">=</span> <span class="n">vae</span><span class="o">.</span><span class="n">training_history_</span>
+        
+    <span class="c1"># -------------------</span>
+    <span class="c1"># Return statements</span>
+    <span class="c1"># -------------------</span>
+
+    <span class="c1"># Build return tuple dynamically</span>
+    <span class="n">return_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">imputed_dataset</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">return_model</span><span class="p">:</span>
+        <span class="n">return_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vae</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_dataset</span><span class="p">:</span>
+        <span class="n">return_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_clusters</span><span class="p">:</span>
+        <span class="n">return_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_silhouettes</span><span class="p">:</span>
+        <span class="n">return_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">silh</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span>
+        <span class="n">return_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">combined_history_df</span><span class="p">)</span>
+
+    <span class="c1"># Return as tuple if multiple items, single item otherwise</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">return_items</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">return_items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">return_items</span><span class="p">)</span></div>
+
+
+    
+
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

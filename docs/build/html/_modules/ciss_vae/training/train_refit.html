@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.training.train_refit &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.training.train_refit &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -45,13 +46,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -92,9 +96,15 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">copy</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">train_vae_refit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">imputed_data</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
-                    <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
-                    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">progress_callback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">train_vae_refit</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> 
+    <span class="n">imputed_data</span><span class="p">,</span> 
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> 
+    <span class="n">initial_lr</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span> 
+    <span class="n">beta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> 
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">progress_callback</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Train the VAE model on imputed data without masking for one refit iteration.</span>
 <span class="sd">    </span>
 <span class="sd">    Performs training on the complete imputed dataset.</span>
@@ -123,22 +133,37 @@
     <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">optimizer</span> <span class="o">=</span> <span class="n">Adam</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">parameters</span><span class="p">(),</span> <span class="n">lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">)</span>
     <span class="n">scheduler</span> <span class="o">=</span> <span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">gamma</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">)</span>
+    <span class="n">refit_history</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
+    <span class="c1">## Added to handle return history</span>
+        <span class="c1"># Container to collect per-epoch metrics</span>
 
     <span class="k">for</span> <span class="n">epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">epochs</span><span class="p">):</span>
         <span class="n">model</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
         <span class="n">total_loss</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">imputed_data</span><span class="p">:</span>
-            <span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">mask_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">batch</span>
+            <span class="c1"># MODIFIED: Capture idx_batch properly instead of using *_</span>
+            <span class="c1"># print(f&quot;Batch is: {len(batch)}\n&quot;)</span>
+            <span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">mask_batch</span><span class="p">,</span> <span class="n">idx_batch</span> <span class="o">=</span> <span class="n">batch</span>
             <span class="n">x_batch</span> <span class="o">=</span> <span class="n">x_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
             <span class="n">cluster_batch</span> <span class="o">=</span> <span class="n">cluster_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
             <span class="n">mask_batch</span> <span class="o">=</span> <span class="n">mask_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
+            <span class="c1"># ADDED: Get imputable mask for this batch</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">imputed_data</span><span class="o">.</span><span class="n">dataset</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;imputable&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">imputable_batch</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="p">[</span><span class="n">idx_batch</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">imputable_batch</span> <span class="o">=</span> <span class="kc">None</span>
+            
             <span class="n">recon_x</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">)</span>
+            
+            <span class="c1"># MODIFIED: Pass imputable_mask to loss function</span>
             <span class="n">loss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">loss_function_nomask</span><span class="p">(</span>
                 <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">recon_x</span><span class="p">,</span> <span class="n">x_batch</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span>
-                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">return_components</span><span class="o">=</span><span class="kc">True</span>
+                <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span> <span class="n">return_components</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">imputable_mask</span><span class="o">=</span><span class="n">imputable_batch</span>  <span class="c1"># ADDED</span>
             <span class="p">)</span>
 
             <span class="n">optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
@@ -150,6 +175,24 @@
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Epoch </span><span class="si">{</span><span class="n">epoch</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, Refit Loss: </span><span class="si">{</span><span class="n">avg_loss</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">, LR: </span><span class="si">{</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
+        <span class="c1"># -------------------------------</span>
+        <span class="c1"># Logging to history</span>
+        <span class="c1"># -------------------------------</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">,</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">avg_loss</span><span class="p">,</span>
+            <span class="s2">&quot;train_recon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_kl&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;lr&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;refit_training&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;loop&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="p">}</span>
+        <span class="c1">## this weird thing b/c pandas doesn&#39;t have append anymore</span>
+        <span class="n">refit_history</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">refit_history</span><span class="p">,</span>
+         <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">record</span><span class="p">])],</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
         <span class="c1">#------------------</span>
         <span class="c1"># progress bar hook</span>
         <span class="c1">#------------------</span>
@@ -168,7 +211,8 @@
         <span class="c1">#         break</span>
 
     <span class="n">model</span><span class="o">.</span><span class="n">set_final_lr</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">param_groups</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;lr&#39;</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">model</span>
+
+    <span class="k">return</span> <span class="n">model</span><span class="p">,</span> <span class="n">refit_history</span>
 
 
 
@@ -249,19 +293,19 @@
     
     <span class="n">refit_lr</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_final_lr</span><span class="p">()</span>
 
-    <span class="c1"># --- History container (schema matches train_vae_initial + extras) ---</span>
-    <span class="n">history_rows</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">_append_history_row</span><span class="p">(</span><span class="n">epoch_int</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">lr_val</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">loop_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
-        <span class="n">history_rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-            <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">epoch_int</span><span class="p">),</span>
-            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;train_recon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;train_kl&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">val_mse</span><span class="p">),</span>
-            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">lr_val</span><span class="p">),</span>
-            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="n">phase</span><span class="p">,</span>
-            <span class="s2">&quot;loop&quot;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">loop_idx</span><span class="p">),</span>
-        <span class="p">})</span>
+    <span class="c1"># # --- History container (schema matches train_vae_initial + extras) ---</span>
+    <span class="c1"># history_rows = []</span>
+    <span class="c1"># def _append_history_row(epoch_int: int, val_mse: float, lr_val: float, phase: str, loop_idx: int):</span>
+    <span class="c1">#     history_rows.append({</span>
+    <span class="c1">#         &quot;epoch&quot;: int(epoch_int),</span>
+    <span class="c1">#         &quot;train_loss&quot;: np.nan,</span>
+    <span class="c1">#         &quot;train_recon&quot;: np.nan,</span>
+    <span class="c1">#         &quot;train_kl&quot;: np.nan,</span>
+    <span class="c1">#         &quot;val_mse&quot;: float(val_mse),</span>
+    <span class="c1">#         &quot;lr&quot;: float(lr_val),</span>
+    <span class="c1">#         &quot;phase&quot;: phase,</span>
+    <span class="c1">#         &quot;loop&quot;: int(loop_idx),</span>
+    <span class="c1">#     })</span>
 
     <span class="c1"># Determine where to continue the epoch counter</span>
     <span class="c1"># If user trained with train_vae_initial and attached .training_history_, keep continuity.</span>
@@ -277,10 +321,29 @@
     <span class="c1"># Compute initial MSE (before loop)</span>
     <span class="c1"># --------------------------</span>
     <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-    <span class="n">_append_history_row</span><span class="p">(</span><span class="n">epoch_int</span><span class="o">=</span><span class="n">start_epoch</span><span class="p">,</span> <span class="n">val_mse</span><span class="o">=</span><span class="n">val_mse</span><span class="p">,</span> <span class="n">lr_val</span><span class="o">=</span><span class="n">refit_lr</span><span class="p">,</span> <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;refit_init&quot;</span><span class="p">,</span> <span class="n">loop_idx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># -------------------------------</span>
+        <span class="c1"># Logging to history</span>
+        <span class="c1"># -------------------------------</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">start_epoch</span><span class="p">,</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_recon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_kl&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="n">val_mse</span><span class="p">,</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">refit_lr</span><span class="p">,</span>
+            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;refit&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;loop&quot;</span><span class="p">:</span> <span class="mi">0</span>
+        <span class="p">}</span>
+
+    <span class="n">model</span><span class="o">.</span><span class="n">training_history_</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">model</span><span class="o">.</span><span class="n">training_history_</span><span class="p">,</span>
+         <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">record</span><span class="p">])],</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Initial Validation MSE (pre-refit): </span><span class="si">{</span><span class="n">val_mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
+    <span class="n">loop_history</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
     <span class="k">for</span> <span class="n">loop</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_loops</span><span class="p">):</span>
         
@@ -292,7 +355,7 @@
         <span class="c1"># --------------------------</span>
         <span class="c1"># Refit the model</span>
         <span class="c1"># --------------------------</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">train_vae_refit</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span> <span class="n">refit_history</span> <span class="o">=</span> <span class="n">train_vae_refit</span><span class="p">(</span>
             <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>
             <span class="n">imputed_data</span><span class="o">=</span><span class="n">data_loader</span><span class="p">,</span>
             <span class="n">epochs</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
@@ -313,16 +376,28 @@
         <span class="c1"># --------------------------</span>
         <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
         <span class="c1"># Advance epoch counter by the epochs we just trained</span>
-        <span class="n">epoch_after_loop</span> <span class="o">=</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="n">loop</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
+        <span class="n">epoch_after_loop</span> <span class="o">=</span> <span class="n">start_epoch</span> <span class="o">+</span> <span class="p">(</span><span class="n">loop</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">epochs_per_loop</span>
         <span class="n">refit_lr</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">get_final_lr</span><span class="p">())</span>
                 <span class="c1"># Log history row for this loop</span>
-        <span class="n">_append_history_row</span><span class="p">(</span>
-            <span class="n">epoch_int</span><span class="o">=</span><span class="n">epoch_after_loop</span><span class="p">,</span>
-            <span class="n">val_mse</span><span class="o">=</span><span class="n">val_mse</span><span class="p">,</span>
-            <span class="n">lr_val</span><span class="o">=</span><span class="n">refit_lr</span><span class="p">,</span>
-            <span class="n">phase</span><span class="o">=</span><span class="s2">&quot;refit_loop&quot;</span><span class="p">,</span>
-            <span class="n">loop_idx</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c1"># -------------------------------</span>
+        <span class="c1"># Logging to history</span>
+        <span class="c1"># -------------------------------</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;epoch&quot;</span><span class="p">:</span> <span class="n">epoch_after_loop</span><span class="p">,</span>
+            <span class="s2">&quot;train_loss&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_recon&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;train_kl&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="n">val_mse</span><span class="p">,</span>
+            <span class="s2">&quot;lr&quot;</span><span class="p">:</span> <span class="n">refit_lr</span><span class="p">,</span>
+            <span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;refit_loop&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;loop&quot;</span><span class="p">:</span> <span class="n">loop</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">}</span>
+
+        <span class="n">loop_history</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">loop_history</span><span class="p">,</span>
+         <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">record</span><span class="p">])],</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">loop_history</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">loop_history</span><span class="p">,</span> <span class="n">refit_history</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loop </span><span class="si">{</span><span class="n">loop</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> Validation MSE: </span><span class="si">{</span><span class="n">val_mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -342,6 +417,10 @@
                     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Early stopping triggered.&quot;</span><span class="p">)</span>
                 <span class="k">break</span>
 
+    <span class="c1">## Add histories to best model</span>
+    <span class="n">best_model</span><span class="o">.</span><span class="n">training_history_</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">best_model</span><span class="o">.</span><span class="n">training_history_</span><span class="p">,</span>
+         <span class="n">loop_history</span><span class="p">],</span>
+        <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>            
     <span class="c1"># -----------------------------</span>
     <span class="c1"># Final denormalized output</span>
     <span class="c1"># Get mean and sd from this</span>
@@ -361,13 +440,13 @@
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best Val MSE </span><span class="si">{</span><span class="n">best_val_mse</span><span class="si">}</span><span class="s2">. Imputed Dataset MSE </span><span class="si">{</span><span class="n">final_val_mse</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
-    <span class="c1"># --- Assemble the refit history DataFrame ---</span>
-    <span class="n">refit_history_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
-        <span class="n">history_rows</span><span class="p">,</span>
-        <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;epoch&quot;</span><span class="p">,</span> <span class="s2">&quot;train_loss&quot;</span><span class="p">,</span> <span class="s2">&quot;train_recon&quot;</span><span class="p">,</span> <span class="s2">&quot;train_kl&quot;</span><span class="p">,</span> <span class="s2">&quot;val_mse&quot;</span><span class="p">,</span> <span class="s2">&quot;lr&quot;</span><span class="p">,</span> <span class="s2">&quot;phase&quot;</span><span class="p">,</span> <span class="s2">&quot;loop&quot;</span><span class="p">],</span>
-    <span class="p">)</span>
+    <span class="c1"># # --- Assemble the refit history DataFrame ---</span>
+    <span class="c1"># refit_history_df = pd.DataFrame(</span>
+    <span class="c1">#     history_rows,</span>
+    <span class="c1">#     columns=[&quot;epoch&quot;, &quot;train_loss&quot;, &quot;train_recon&quot;, &quot;train_kl&quot;, &quot;val_mse&quot;, &quot;lr&quot;, &quot;phase&quot;, &quot;loop&quot;],</span>
+    <span class="c1"># )</span>
 
-    <span class="k">return</span> <span class="n">imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_dataset</span><span class="p">,</span> <span class="n">refit_history_df</span></div>
+    <span class="k">return</span> <span class="n">imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">best_dataset</span></div>
 
 </pre></div>
 
@@ -378,7 +457,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

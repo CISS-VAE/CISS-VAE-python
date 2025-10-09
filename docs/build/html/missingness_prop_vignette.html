@@ -6,16 +6,17 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Using make_missingness_prop_matrix: A Complete Guide &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>Using create_missingness_prop_matrix: A Complete Guide &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
       <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="_static/documentation_options.js?v=baaebd52"></script>
+      <script src="_static/documentation_options.js?v=14ed45bf"></script>
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="_static/clipboard.min.js?v=a7894cd8"></script>
@@ -23,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="api.html" />
+    <link rel="next" title="Avoiding imputation undesired data entries" href="dni_vignette.html" />
     <link rel="prev" title="Overview" href="vignette.html" /> 
 </head>
 
@@ -48,13 +49,15 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#data-format-support">Data Format Support</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#wide-format-default">1. <strong>Wide Format</strong> (default)</a></li>
@@ -73,12 +76,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#example-6-long-format-with-expected-timepoints">Example 6: Long Format with Expected Timepoints</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#advanced-options">Advanced Options</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#filtering-features">Filtering Features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#controlling-output">Controlling Output</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#integration-with-feature-clustering">Integration with Feature Clustering</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#integration-with-sample-clustering">Integration with Sample Clustering</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#integration-with-ciss-vae-pipeline">Integration with CISS-VAE Pipeline</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#complete-workflow-example">Complete Workflow Example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#common-use-cases">Common Use Cases</a><ul>
@@ -89,6 +87,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#tips-and-best-practices">Tips and Best Practices</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -106,7 +105,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</li>
+      <li class="breadcrumb-item active">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/missingness_prop_vignette.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -116,9 +115,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="using-make-missingness-prop-matrix-a-complete-guide">
-<h1>Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide<a class="headerlink" href="#using-make-missingness-prop-matrix-a-complete-guide" title="Link to this heading"></a></h1>
-<p>The <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code> function creates a matrix showing the proportion of missing values for each sample-feature combination across multiple timepoints. This matrix can then be used for <strong>feature clustering</strong> with <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code> or as input to the complete CISS-VAE pipeline via <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code>.</p>
+  <section id="using-create-missingness-prop-matrix-a-complete-guide">
+<h1>Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide<a class="headerlink" href="#using-create-missingness-prop-matrix-a-complete-guide" title="Link to this heading"></a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix()</span></code> function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for <strong>sample clustering</strong> with <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code> or as input to the complete CISS-VAE pipeline via <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code>.</p>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <p>The function returns a <strong>n_samples × n_features</strong> matrix where each cell contains a value between 0 and 1 representing:</p>
@@ -149,7 +148,7 @@
 <h3>Example 1: Basic Wide Format with Regex Parsing<a class="headerlink" href="#example-1-basic-wide-format-with-regex-parsing" title="Link to this heading"></a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_missingness_prop_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_missingness_prop_matrix</span>
 
 <span class="c1"># Create sample wide-format data</span>
 <span class="c1"># Columns follow pattern: feature_timepoint</span>
@@ -164,7 +163,7 @@
 <span class="p">})</span>
 
 <span class="c1"># Basic usage - regex automatically extracts features</span>
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_wide</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span>
@@ -192,12 +191,20 @@
     <span class="s1">&#39;height.day7&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">9.8</span><span class="p">]</span>
 <span class="p">})</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_custom</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span>
     <span class="n">wide_regex</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(?P&lt;feature&gt;.+?)\.(?P&lt;time&gt;.+)$&quot;</span>  <span class="c1"># Custom pattern</span>
 <span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Output:</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="n">weight</span>  <span class="n">height</span>
+<span class="n">ID</span>                
+<span class="n">A</span>      <span class="mf">0.0</span>     <span class="mf">0.0</span>
+<span class="n">B</span>      <span class="mf">0.5</span>     <span class="mf">0.5</span>
+<span class="n">C</span>      <span class="mf">0.5</span>     <span class="mf">0.5</span>
 </pre></div>
 </div>
 </section>
@@ -222,12 +229,21 @@
     <span class="s1">&#39;insulin_end&#39;</span><span class="p">:</span> <span class="s1">&#39;insulin&#39;</span>
 <span class="p">}</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_mixed</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span>
     <span class="n">wide_col_to_feature</span><span class="o">=</span><span class="n">column_mapping</span>
 <span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Output</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>          <span class="n">glucose</span>  <span class="n">insulin</span>
+<span class="n">subject</span>                   
+<span class="n">S1</span>       <span class="mf">0.333333</span>      <span class="mf">0.0</span>
+<span class="n">S2</span>       <span class="mf">0.333333</span>      <span class="mf">0.5</span>
 </pre></div>
 </div>
 </section>
@@ -247,11 +263,21 @@
     <span class="p">(</span><span class="s1">&#39;insulin&#39;</span><span class="p">,</span> <span class="s1">&#39;t1&#39;</span><span class="p">):</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">5.2</span><span class="p">]</span>
 <span class="p">},</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;mouse1&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse2&#39;</span><span class="p">])</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">data_multi</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">columns</span>
+
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_multi</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">wide_multiindex_feature_level</span><span class="o">=</span><span class="s2">&quot;feature&quot;</span>  <span class="c1"># Use &#39;feature&#39; level</span>
 <span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Output</strong></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>        <span class="n">glucose</span>  <span class="n">insulin</span>
+<span class="n">mouse1</span>      <span class="mf">0.0</span>      <span class="mf">0.5</span>
+<span class="n">mouse2</span>      <span class="mf">0.5</span>      <span class="mf">0.0</span>
 </pre></div>
 </div>
 </section>
@@ -269,7 +295,7 @@
     <span class="s1">&#39;measurement&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">105</span><span class="p">,</span> <span class="mf">4.8</span><span class="p">,</span> <span class="mf">5.2</span><span class="p">]</span>
 <span class="p">})</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_long</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;subject_id&quot;</span><span class="p">,</span>
@@ -302,7 +328,7 @@
 <span class="c1"># Specify the complete timepoint grid</span>
 <span class="n">expected_days</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;d1&#39;</span><span class="p">,</span> <span class="s1">&#39;d2&#39;</span><span class="p">,</span> <span class="s1">&#39;d3&#39;</span><span class="p">]</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">incomplete_long</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;mouse&quot;</span><span class="p">,</span>
@@ -325,83 +351,53 @@
 </section>
 </section>
 <hr class="docutils" />
-<section id="advanced-options">
-<h2>Advanced Options<a class="headerlink" href="#advanced-options" title="Link to this heading"></a></h2>
-<section id="filtering-features">
-<h3>Filtering Features<a class="headerlink" href="#filtering-features" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Only keep features with at least 3 timepoints</span>
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
-    <span class="n">data_wide</span><span class="p">,</span>
-    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
-    <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span><span class="p">,</span>
-    <span class="n">min_timepoints_per_feature</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">drop_features_below_min</span><span class="o">=</span><span class="kc">True</span>  <span class="c1"># Exclude features with &lt; 3 timepoints</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</section>
-<section id="controlling-output">
-<h3>Controlling Output<a class="headerlink" href="#controlling-output" title="Link to this heading"></a></h3>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
-    <span class="n">data_wide</span><span class="p">,</span>
-    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span> 
-    <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span><span class="p">,</span>
-    <span class="n">sort_features</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Keep original feature order</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-</section>
-</section>
-<hr class="docutils" />
-<section id="integration-with-feature-clustering">
-<h2>Integration with Feature Clustering<a class="headerlink" href="#integration-with-feature-clustering" title="Link to this heading"></a></h2>
-<p>The primary use case is to cluster <strong>features</strong> (not samples) based on their missingness patterns using <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span>
+<section id="integration-with-sample-clustering">
+<h2>Integration with Sample Clustering<a class="headerlink" href="#integration-with-sample-clustering" title="Link to this heading"></a></h2>
+<p>The primary use case is to cluster <strong>samples</strong> based on their missingness patterns using <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span>
+
+<span class="n">data_wide</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;sample_id&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;mouse1&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse2&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse3&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse4&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse5&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span>      <span class="mi">95</span><span class="p">,</span>       <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mi">102</span><span class="p">,</span>      <span class="mi">98</span>     <span class="p">],</span>
+    <span class="s1">&#39;glucose_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">110</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mi">105</span><span class="p">,</span>      <span class="mi">108</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="p">],</span>
+    <span class="s1">&#39;glucose_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">115</span><span class="p">,</span>      <span class="mi">100</span><span class="p">,</span>      <span class="mi">107</span><span class="p">,</span>   <span class="mi">118</span><span class="p">,</span>   <span class="mi">112</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.2</span><span class="p">,</span>      <span class="mf">4.8</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mf">5.1</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mf">5.5</span><span class="p">,</span>      <span class="mf">5.3</span><span class="p">,</span>      <span class="mf">5.4</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.0</span><span class="p">,</span>      <span class="mf">5.1</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="p">],</span>
+<span class="p">})</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">data_wide</span><span class="p">)</span>
 
 <span class="c1"># Create missingness proportion matrix</span>
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_wide</span><span class="p">,</span> 
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span> 
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span>
 <span class="p">)</span>
 
-<span class="c1"># Cluster features based on similar missingness patterns across samples</span>
-<span class="n">feature_clusters</span><span class="p">,</span> <span class="n">silhouette</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">)</span>
+
+<span class="c1"># Cluster samples based on similar missingness patterns across features</span>
+<span class="n">clusters</span><span class="p">,</span> <span class="n">silhouette</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
     <span class="n">prop_matrix</span><span class="p">,</span>
     <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
     <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
     <span class="n">scale_features</span><span class="o">=</span><span class="kc">True</span>
 <span class="p">)</span>
 
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Feature clusters:&quot;</span><span class="p">,</span> <span class="n">feature_clusters</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clusters:&quot;</span><span class="p">,</span> <span class="n">clusters</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Silhouette score:&quot;</span><span class="p">,</span> <span class="n">silhouette</span><span class="p">)</span>
 
-<span class="c1"># Map cluster labels back to feature names</span>
-<span class="n">feature_names</span> <span class="o">=</span> <span class="n">prop_matrix</span><span class="o">.</span><span class="n">columns</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">: Cluster </span><span class="si">{</span><span class="n">feature_clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p><strong>Key Point</strong>: <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code> clusters the <strong>columns</strong> (features) of the proportion matrix, treating each feature as a point in the space defined by its missingness pattern across all samples.</p>
 </section>
 <hr class="docutils" />
 <section id="integration-with-ciss-vae-pipeline">
 <h2>Integration with CISS-VAE Pipeline<a class="headerlink" href="#integration-with-ciss-vae-pipeline" title="Link to this heading"></a></h2>
 <p>The proportion matrix can be used directly in the complete CISS-VAE pipeline via the <code class="docutils literal notranslate"><span class="pre">missingness_proportion_matrix</span></code> parameter:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
 
-<span class="c1"># Option 1: Let run_cissvae create the proportion matrix internally</span>
-<span class="c1"># (if your main data follows the standard wide format)</span>
-<span class="n">imputed_data</span><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">data_wide</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;sample_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>  <span class="c1"># Remove ID column</span>
-    <span class="n">missingness_proportion_matrix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Will cluster on raw missingness patterns</span>
-    <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span>
-<span class="p">)</span>
-
-<span class="c1"># Option 2: Provide a custom proportion matrix</span>
-<span class="c1"># (useful for complex longitudinal data or custom feature groupings)</span>
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data_wide</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span> 
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span>
@@ -423,8 +419,8 @@
 <p>Here’s a complete example showing the entire pipeline:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">make_missingness_prop_matrix</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span><span class="p">,</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_missingness_prop_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span><span class="p">,</span> <span class="n">run_cissvae</span>
 
 <span class="c1"># 1. Create longitudinal data with complex missingness patterns</span>
 <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
@@ -443,7 +439,7 @@
 <span class="p">})</span>
 
 <span class="c1"># 2. Create missingness proportion matrix</span>
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">data</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;patient_id&quot;</span><span class="p">,</span>
@@ -453,18 +449,14 @@
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Missingness Proportion Matrix:&quot;</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">head</span><span class="p">())</span>
 
-<span class="c1"># 3. Cluster features by missingness patterns</span>
-<span class="n">feature_clusters</span><span class="p">,</span> <span class="n">sil_score</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
+<span class="c1"># 3. Cluster by missingness patterns</span>
+<span class="n">clusters</span><span class="p">,</span> <span class="n">sil_score</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
     <span class="n">prop_matrix</span><span class="p">,</span>
     <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
     <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
     <span class="n">scale_features</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">seed</span><span class="o">=</span><span class="mi">42</span>
 <span class="p">)</span>
-
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Feature Clustering Results (Silhouette: </span><span class="si">{</span><span class="n">sil_score</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">feature</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">feature</span><span class="si">}</span><span class="s2">: Cluster </span><span class="si">{</span><span class="n">feature_clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 <span class="c1"># 4. Run complete CISS-VAE pipeline</span>
 <span class="n">main_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;patient_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -502,7 +494,7 @@
     <span class="s1">&#39;hba1c_month6&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.8</span><span class="p">,</span> <span class="mf">6.3</span><span class="p">,</span> <span class="mf">6.1</span><span class="p">]</span>
 <span class="p">})</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">clinical_data</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;wide&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;patient_id&quot;</span>
@@ -527,7 +519,7 @@
     <span class="s1">&#39;expression&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">180</span><span class="p">,</span> <span class="mi">110</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">95</span><span class="p">,</span> <span class="mi">190</span><span class="p">,</span> <span class="mi">105</span><span class="p">,</span> <span class="mi">210</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
 <span class="p">})</span>
 
-<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">make_missingness_prop_matrix</span><span class="p">(</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
     <span class="n">omics_long</span><span class="p">,</span>
     <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;long&quot;</span><span class="p">,</span>
     <span class="n">sample_col</span><span class="o">=</span><span class="s2">&quot;sample&quot;</span><span class="p">,</span>
@@ -556,15 +548,14 @@
 <section id="tips-and-best-practices">
 <h2>Tips and Best Practices<a class="headerlink" href="#tips-and-best-practices" title="Link to this heading"></a></h2>
 <ol class="arabic simple">
-<li><p><strong>Feature vs Sample Clustering</strong>: Remember that <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code> clusters <strong>features</strong> (columns), not samples (rows). This identifies groups of features that have similar missingness patterns across your sample population.</p></li>
-<li><p><strong>Choose the right format</strong>: Use wide format for data that’s naturally wide (e.g., Excel exports). Use long format when you have explicit time series data.</p></li>
-<li><p><strong>Regex patterns</strong>: The default regex <code class="docutils literal notranslate"><span class="pre">r&quot;^(?P&lt;feature&gt;.+?)_(?P&lt;time&gt;[^_]+)$&quot;</span></code> assumes <code class="docutils literal notranslate"><span class="pre">feature_timepoint</span></code> naming. Adjust for your naming convention.</p></li>
-<li><p><strong>Expected timepoints</strong>: In long format, always specify <code class="docutils literal notranslate"><span class="pre">expected_timepoints</span></code> if you know the complete time grid, otherwise missing timepoints won’t be counted.</p></li>
-<li><p><strong>Feature filtering</strong>: Use <code class="docutils literal notranslate"><span class="pre">min_timepoints_per_feature</span></code> to exclude features with insufficient temporal coverage.</p></li>
-<li><p><strong>Scaling for clustering</strong>: When using <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code>, consider setting <code class="docutils literal notranslate"><span class="pre">scale_features=True</span></code> if your features have very different scales of missingness.</p></li>
-<li><p><strong>Metric selection</strong>: For proportion data, <code class="docutils literal notranslate"><span class="pre">metric=&quot;cosine&quot;</span></code> often works better than <code class="docutils literal notranslate"><span class="pre">&quot;euclidean&quot;</span></code> as it focuses on the pattern rather than magnitude of missingness.</p></li>
+<li><p><strong>Sample Clustering</strong>: <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop</span></code> clusters <strong>samples (rows)</strong> based on their missingness profiles across features. This groups subjects with similar patterns of missing data.</p></li>
+<li><p><strong>Data format</strong>: Provide the input as a matrix or DataFrame with <strong>rows = samples</strong> and <strong>columns = features</strong>, where entries are missingness proportions in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>Regex helpers (optional)</strong>: If you need to parse wide column names like <code class="docutils literal notranslate"><span class="pre">feature_timepoint</span></code>, adjust your regex (default <code class="docutils literal notranslate"><span class="pre">r&quot;^(?P&lt;feature&gt;.+?)_(?P&lt;time&gt;[^_]+)$&quot;</span></code>) to match your naming convention before constructing the matrix.</p></li>
+<li><p><strong>Expected timepoints</strong>: When starting from long-format data, always specify the complete set of <code class="docutils literal notranslate"><span class="pre">expected_timepoints</span></code> before pivoting to wide format. Otherwise, unobserved timepoints won’t be registered as missing.</p></li>
+<li><p><strong>Feature filtering</strong>: Apply a threshold like <code class="docutils literal notranslate"><span class="pre">min_timepoints_per_feature</span></code> during preprocessing to exclude features that don’t have sufficient data across samples.</p></li>
+<li><p><strong>Scaling</strong>: Use <code class="docutils literal notranslate"><span class="pre">scale_features=True</span></code> if features differ greatly in their overall missingness rates. This standardizes the columns so no single feature dominates the clustering.</p></li>
+<li><p><strong>Metric selection</strong>: For proportion vectors, <code class="docutils literal notranslate"><span class="pre">metric=&quot;cosine&quot;</span></code> often highlights <strong>pattern similarity</strong> in missingness more effectively than <code class="docutils literal notranslate"><span class="pre">&quot;euclidean&quot;</span></code>.</p></li>
 </ol>
-<p>The resulting feature clusters can help inform the CISS-VAE model about which features should share parameters, leading to more effective imputation of missing values in longitudinal datasets.</p>
 </section>
 </section>
 
@@ -573,13 +564,13 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="vignette.html" class="btn btn-neutral float-left" title="Overview" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="dni_vignette.html" class="btn btn-neutral float-right" title="Avoiding imputation undesired data entries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

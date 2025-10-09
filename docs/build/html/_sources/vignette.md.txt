@@ -7,7 +7,7 @@ toc-title: Table of contents
 
 The **Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)** is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.
  
-A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers, which allows knowledge transfer across clusters and enhance parameter stability, especially important when certain clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.
+A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.
  
 Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.
 
@@ -16,6 +16,8 @@ parameters you want to use, you can use the {py:func}`ciss_vae.utils.run_cissvae
 run the model once for the given set of parameters. If you want to tune
 the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
 
+The R package associated with this model can be found at [rCISS-VAE] (https://ciss-vae.github.io/rCISS-VAE/).
+
 # Installation
 
 The CISS-VAE package is currently available for python, with an R
@@ -23,7 +25,7 @@ package to be released soon. It can be installed from either
 [github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
-# From PyPI
+# From PyPI (not released yet)
 pip install ciss-vae
 
 ```
@@ -38,10 +40,10 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 > **Note**
 >
 > If you want run_cissvae to handle clustering, please install the
-> clustering dependencies scikit-learn and hdbscan with pip.
+> clustering dependencies scikit-learn, leidenalg, python-igraph with pip.
 >
 > ``` bash
-> pip install scikit-learn hdbscan
+> pip install scikit-learn leidenalg python-igraph
 >
 > OR
 >
@@ -50,12 +52,20 @@ pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 
 </div>
 
-# Quickstart
+# Running the CISS-VAE Model
 
-If you already know what parameters you want for your model (or do not
-want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function for your imputation.
+You can use your own dataset or load the example dataset included with this package. 
 
-Your input dataset should be one of the following:
+To load the sample dataset:
+
+``` python
+from ciss_vae.data import load_example_dataset
+df_missing, df_complete, clusters = load_example_dataset()
+```
+
+If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function to perform the imputation.
+
+The input dataset should be one of the following:
 
     - A Pandas DataFrame  
 
@@ -65,30 +75,52 @@ Your input dataset should be one of the following:
 
 Missing values should be represented using np.nan or None.
 
+**Assigning cluster labels**  
+There are three options for assigning cluster labels to the data:    
+    1. Manually assign cluster labels and provide them to the function via the `clusters` argument.     
+    2. Let `run_cissvae()` determine clusters based on patterns of missingness in the data by setting `clusters = None`.  
+        - To use Kmeans clustering, set n_clusters to the desired number of clusters.    
+        - To use Leiden Clustering clustering, leave `n_clusters = None`.       
+    3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix` argument.   
+        - To use Kmeans clustering, set n_clusters to the desired number of clusters.     
+        - To use Leiden Clustering clustering, leave `n_clusters = None`.      
+    .. raw:: html
+
+    <details>
+    <summary>Click for more details on missingness proportion matrix</summary>
+    <p>For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p>
+    </details>   
+           
+
+To run the CISSVAE model with default parameters:
+
 ``` python
 import pandas as pd
 from ciss_vae.utils.run_cissvae import run_cissvae
+from ciss_vae.data import load_example_dataset
 
 # optional, display vae architecture
 from ciss_vae.utils.helpers import plot_vae_architecture
 
-data = pd.read_csv("/data/test_data.csv")
-
-clusters = data.clusters
-data = data.drop(columns = ["clusters", "Unnamed: 0"])
+df_missing, _, clusters = load_example_dataset()
 
 imputed_data, vae = run_cissvae(data = data,
 ## Dataset params
-    val_percent = 0.1, ## Fraction of non-missing data held out for validation
+    val_proportion = 0.1, ## Fraction of non-missing data held out for validation. Can input a list here if you want different proportions for different clusters. 
     replacement_value = 0.0, 
     columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
     print_dataset = True, 
 
 ## Cluster params
-    clusters = None, ## Where your cluster list goes. If none, will do clustering for you  
-    n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have
-    cluster_selection_epsilon = 0.25, ## Cluster Selection Epsilon for HDBSCAN 
+    clusters = clusters, ## Where your cluster list goes. If none, will do clustering for you  
+    n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have, enter that number here
+    # -- Params for Leiden Clustering --
+    k_neighbors = 15,
+    leiden_resolution = 0.5, ## Lower resolution = fewer clusters and bigger clusters, higher resolution = more, smaller clusters
+    leiden_objective = "CPM", 
+    # -- End Params for Leiden Clustering --
     seed = 42,
+    missingness_proportion_matrix = None,
     
 ## VAE model params
     hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
@@ -118,6 +150,8 @@ imputed_data, vae = run_cissvae(data = data,
 ## Other params
     verbose = False, 
     return_silhouettes = False, ## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return "None"
+    return_history = False, ## if true, will return training MSE history as pandas dataframe
+    return_clusters = False, ## if true, will return the cluster labels. Helpful if run_cissvae performs clustering
 )
 
 ## OPTIONAL - PLOT VAE ARCHITECTURE
@@ -132,12 +166,29 @@ plot_vae_architecture(model = vae,
                         figsize=(16, 8),
                         return_fig = False)
 ```
-![Output of plot_vae_architecture](image-1.png)
+![Output of plot_vae_architecture](image-1v2.png)
+
+Use the `return_clusters` parameter to get the cluster labels.
+Use the `return_history` parameter to get a dataframe with the training MSE history.
+
+### Avoiding imputation of certain entries
+In some cases, not all missing entries in a dataset are viable for imputation. For example, biomarker values after time of death would not necessarily be reasonable to impute and therefore should be ignored during the impute-refit training loop. To set certain data entries as un-imputable, create a do_not_impute matrix of the same size as the dataset, with 0 for entries that are non-missing or viable for imputation and 1 for entries that are missing and non-viable for imputation. 
+
+This matrix (or pandas.Dataframe) can then be passed to the `run_cissvae()` function. Make sure that the do_not_impute matrix has the same column labels as the original data set to use the `cols_ignore` option to ignore certain columns during imputation. 
+
+For more information, see the [dni vignette](https://ciss-vae.readthedocs.io/en/latest/dni_vignette.html) 
 
 # Hyperparameter Tuning with Optuna
 
 The {py:func}`ciss_vae.training.autotune.autotune` function lets you tune the model's hyperparameters with
 optuna to get the best possible model.
+
+To load the sample dataset:
+
+``` python
+from ciss_vae.data import load_example_dataset
+df_missing, df_complete, clusters = load_example_dataset()
+```
 
 ## Dataset Preparation
 
@@ -151,40 +202,46 @@ Your dataset should be one of the following:
 
 Missing values should be represented using np.nan or None.
 
-Once your dataset is loaded, the first step is to identify patterns of
+Once the dataset is loaded, the first step is to identify patterns of
 missingness using clustering.
 
 ## Clustering on missingness pattern
 
-Before fitting the model, the dataset is clustered based on its
+Before fitting the model, the dataset should clustered based on its
 missingness pattern (i.e., which variables are missing in each
 observation).
 
-You can use the built-in function:
+The built-in function can perfrom either leiden clustering or Kmeans clustering:
 
 ``` python
 from ciss_vae.utils import cluster_on_missing
 
-clusters = cluster_on_missing(data, cols_ignore=None, n_clusters=None, seed=42)
+clusters = cluster_on_missing(
+    df_missing, 
+    cols_ignore=None, 
+    n_clusters=None, 
+    k_neigbors=500, ## use higher k for fewer clusters generally
+    use_snn=True,
+    leiden_resolution=0.005, ## higher resolution -> more clusters
+    leiden_objective="CPM"
+    seed=42)
 ```
 
-This function uses HDBSCAN clustering to detect structure in binary
+This function uses Leiden Clustering clustering to detect structure in binary
 missingness masks, and will automatically determine the number of
 clusters if not specified. If n_clusters is specified, uses KMeans.
 
 **Options:**  
 - cols_ignore: list of columns to exclude when computing the missingness
-pattern.  
+pattern. Ex: identifiers
 - n_clusters: set this to use K-Means instead of nonparametric
     clustering.  
 
-You should store your cluster labels separately for input into the model
-constructor.
+**To cluster on proportion of missingness, see (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.**
 
 # Creating a `ClusterDataset` object
 
-Once you've computed the cluster labels, you'll convert your dataset
-into a {py:class}`ciss_vae.classes.cluster_dataset.ClusterDataset`.
+After obtaining cluster labels, construct a {py:class}`ciss_vae.classes.cluster_dataset.ClusterDataset`. This is the object that is fed into the autotune function.
 
 ``` python
 from ciss_vae.classes.cluster_dataset import ClusterDataset
@@ -192,7 +249,7 @@ from ciss_vae.training.autotune import SearchSpace, autotune
 
 dataset = ClusterDataset(data = data,
 cluster_labels = clusters,
-val_percent = 0.1, ## 10% non-missing data is default.
+val_proportion = 0.1, ## 10% non-missing data is default. You can also input a list if you want different val_proportions for each cluster
 replacement_value = 0, ## value to replace all missing data with before running model. Could be set to 0 or random
 columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entries demographic columns for validation
 )
@@ -214,7 +271,7 @@ Types of parameters:
 
 searchspace = SearchSpace(
                  num_hidden_layers=(1, 4), ## Set number of hidden layers
-                 hidden_dims=[64, 512],
+                 hidden_dims=[64, 512], ## Allowable dimensions of hidden layers
                  latent_dim=[10, 100],
                  latent_shared=[True, False],
                  output_shared=[True,False],
@@ -225,6 +282,8 @@ searchspace = SearchSpace(
                  batch_size=64,
                  num_shared_encode=[0, 1, 3],
                  num_shared_decode=[0, 1, 3],
+                 encoder_shared_placement = ["at_end", "at_start", "alternating", "random"], ## where should the shared layers be placed in the encoder
+                 decoder_shared_placement = ["at_end", "at_start", "alternating", "random"], ## where should the shared layers be placed in the decoder
                  refit_patience=2,
                  refit_loops=100,
                  epochs_per_loop = 1000,
@@ -234,6 +293,19 @@ searchspace = SearchSpace(
 ## Run the `autotune` function:
 
 Once the search space is set, the autotune function can be run.
+
+There are a few options for running the autotune function, depending on your goals.   
+    1. Default:     
+        - Tune on a random sample of parameters from the SearchSpace obbject. This is the traditional autotune behavior.   
+        - For this behavior, set `constant_layer_size=False` and `evaluate_all_orders=False`.  
+    2. Tune with constant layer size:  
+        - All layers will be the same size. The size will be one selected from searchspace. 
+        (ex: if `searchspace.num_hidden_layers` = [64, 512], all layers will be 64 or all layers will be 512),  
+        - For this behavior, set `constant_layer_size=False`  
+    3. Tune for all permutations of shared layer placement:  
+        - Will tune all possible layer orders/placements. Use `max_exhaustive_orders` to set a cap on the number of permutations to try.  
+        - For this behavior, set `evaluate_all_orders=True`  
+
 
 ``` python
 
@@ -260,9 +332,13 @@ to visualize the importance of your tuning parameters. If you use VSCode
 or [Positron](https://positron.posit.co/download.html) there is an
 extension for viewing optuna dashboards in your development environment.
 
-To use optuna dashboard, set your database in the autotune function. You
-can have multiple autotune 'studies' in the same database and compare
-them.
+![Screenshot of Optuna Dashboard](optuna_dash_v1.png)
+
+The optuna database file can be opened via commandline as well. (tutorial)[https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html#command-line-interface]  
+
+
+To use optuna dashboard, set your database url in the autotune function. You
+can have multiple autotune 'studies' in the same database.
 
 ``` python
 best_imputed_df,  best_model, study, results_df = autotune(
@@ -274,11 +350,13 @@ best_imputed_df,  best_model, study, results_df = autotune(
     study_name="vae_autotune",                 # Default study name
     device_preference="cuda",
     show_progress=False,                       # Show progress bar for training
-    optuna_dashboard_db="sqlite:///db.sqlite3",                  # If using optuna dashboard set db location here
-    load_if_exists=True,
+    optuna_dashboard_db="sqlite:///db.sqlite3",                  # If using optuna dashboard set db location here, otherwise set to None
+    load_if_exists=True,                       # Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard
     seed = 42,
 )
 ```
+
+
 
 # Saving and loading models
 

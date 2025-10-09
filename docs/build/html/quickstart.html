@@ -1,0 +1,195 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; CISS-VAE 1.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/styles.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=14ed45bf"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=00122899"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Overview" href="vignette.html" />
+    <link rel="prev" title="CISS-VAE documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/quickstart.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>The CISS-VAE package is currently available for python, with an R
+package to be released soon. It can be installed from either
+<a class="reference external" href="https://github.com/CISS-VAE/CISS-VAE-python">github</a> or PyPI.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From PyPI (not released yet)</span>
+pip<span class="w"> </span>install<span class="w"> </span>ciss-vae
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># From GitHub (latest development version)</span>
+pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/CISS-VAE/CISS-VAE-python.git
+</pre></div>
+</div>
+<div>
+<blockquote>
+<div><p><strong>Note</strong></p>
+<p>If you want run_cissvae to handle clustering, please install the
+clustering dependencies scikit-learn, leidenalg, python-igraph with pip.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>scikit-learn<span class="w"> </span>leidenalg<span class="w"> </span>python-igraph
+
+OR
+
+pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o">[</span>clustering<span class="o">]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</div>
+</section>
+<section id="quickstart">
+<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
+<p>To load the sample dataset:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>To run the CISSVAE imputation model with default parameters (assuming known clusters).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
+
+<span class="c1"># optional, display vae architecture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
+
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
+
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusters</span>
+<span class="p">)</span>
+
+<span class="c1">## OPTIONAL - PLOT VAE ARCHITECTURE</span>
+<span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
+                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><img alt="Output of plot_vae_architecture" src="_images/image-1v2.png" /></p>
+<p>To have run_cissvae() perform data clustering with Leiden:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
+
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
+
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span> <span class="o">=</span> <span class="mf">0.005</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="CISS-VAE documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="vignette.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

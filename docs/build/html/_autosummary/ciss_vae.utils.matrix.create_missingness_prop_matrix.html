@@ -1,0 +1,191 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ciss_vae.utils.matrix.create_missingness_prop_matrix &mdash; CISS-VAE 1.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=14ed45bf"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=00122899"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ciss_vae.utils.helpers.plot_vae_architecture" href="ciss_vae.utils.helpers.plot_vae_architecture.html" />
+    <link rel="prev" title="ciss_vae.utils.clustering.cluster_on_missing_prop" href="ciss_vae.utils.clustering.cluster_on_missing_prop.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api.html#training-tuning">Training &amp; Tuning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../api.html#utilities-helpers">Utilities &amp; Helpers</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.clustering.cluster_on_missing.html">ciss_vae.utils.clustering.cluster_on_missing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.clustering.cluster_on_missing_prop.html">ciss_vae.utils.clustering.cluster_on_missing_prop</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.matrix.create_missingness_prop_matrix</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.matrix.create_missingness_prop_matrix"><code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">ciss_vae.utils.matrix.create_missingness_prop_matrix</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/_autosummary/ciss_vae.utils.matrix.create_missingness_prop_matrix.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="ciss-vae-utils-matrix-create-missingness-prop-matrix">
+<h1>ciss_vae.utils.matrix.create_missingness_prop_matrix<a class="headerlink" href="#ciss-vae-utils-matrix-create-missingness-prop-matrix" title="Link to this heading"></a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="ciss_vae.utils.matrix.create_missingness_prop_matrix">
+<span class="sig-name descname"><span class="pre">create_missingness_prop_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/matrix.html#create_missingness_prop_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.matrix.create_missingness_prop_matrix" title="Link to this definition"></a></dt>
+<dd><p>Create a missingness proportion matrix summarizing feature-level missingness per sample.</p>
+<p>Computes the proportion of missing values for each feature within each sample,
+optionally accounting for repeated measurements of the same feature (e.g., across timepoints).
+This matrix can be used for downstream clustering on missingness patterns (e.g., via
+<code class="xref py py-func docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code>).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<em>pandas.DataFrame</em><em> or </em><em>numpy.ndarray</em>) – Input dataset containing features that may include missing values.
+Must be coercible to a pandas DataFrame.</p></li>
+<li><p><strong>index_col</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Name of the column to treat as the sample index. This column is excluded
+from missingness calculations but preserved in the output metadata. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>cols_ignore</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – List of column names to exclude from missingness calculations
+(e.g., identifiers, non-feature columns). Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>na_values</strong> (<em>list</em><em>[</em><em>Any</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Additional values to treat as missing beyond standard <code class="docutils literal notranslate"><span class="pre">NaN</span></code> and <code class="docutils literal notranslate"><span class="pre">None</span></code>.
+Defaults to <code class="docutils literal notranslate"><span class="pre">[NA,</span> <span class="pre">NaN,</span> <span class="pre">Inf,</span> <span class="pre">-Inf]</span></code> if <code class="docutils literal notranslate"><span class="pre">None</span></code> is provided.</p></li>
+<li><p><strong>repeat_feature_names</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Optional list of feature base names for features with repeated timepoints.
+Repeat measurements must follow the pattern <code class="docutils literal notranslate"><span class="pre">&lt;feature&gt;_&lt;timepoint&gt;</span></code> where
+<code class="docutils literal notranslate"><span class="pre">&lt;timepoint&gt;</span></code> is an integer. The function will aggregate missingness across
+all timepoints for each listed feature. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">MissingnessMatrix</span></code> object containing:
+- <strong>data</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>): Matrix of missingness proportions, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>.
+- <strong>feature_columns_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>): Mapping of base feature names to column indices.
+- <strong>to_dataframe()</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>): Method to convert to a DataFrame.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>MissingnessMatrix</p>
+</dd>
+</dl>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;patient_id&quot;</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">cols_ignore</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;study_site&quot;</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="n">repeat_feature_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ALT&quot;</span><span class="p">,</span> <span class="s2">&quot;AST&quot;</span><span class="p">,</span> <span class="s2">&quot;Bilirubin&quot;</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(150, 12)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+<span class="go">     ALT  AST  Bilirubin  ...</span>
+<span class="go">patient_01  0.00  0.25  0.10  ...</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="ciss_vae.utils.clustering.cluster_on_missing_prop.html" class="btn btn-neutral float-left" title="ciss_vae.utils.clustering.cluster_on_missing_prop" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ciss_vae.utils.helpers.plot_vae_architecture.html" class="btn btn-neutral float-right" title="ciss_vae.utils.helpers.plot_vae_architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

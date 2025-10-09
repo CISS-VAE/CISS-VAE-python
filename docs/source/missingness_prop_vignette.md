@@ -1,6 +1,6 @@
-# Using `make_missingness_prop_matrix`: A Complete Guide
+# Using `create_missingness_prop_matrix`: A Complete Guide
 
-The `make_missingness_prop_matrix()` function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for **sample clustering** with `cluster_on_missing_prop()` or as input to the complete CISS-VAE pipeline via `run_cissvae()`.
+The `create_missingness_prop_matrix()` function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for **sample clustering** with `cluster_on_missing_prop()` or as input to the complete CISS-VAE pipeline via `run_cissvae()`.
 
 ## Overview
 
@@ -32,7 +32,7 @@ Each row represents one sample/feature/timepoint observation.
 ```python
 import pandas as pd
 import numpy as np
-from ciss_vae.utils.matrix import make_missingness_prop_matrix
+from ciss_vae.utils.matrix import create_missingness_prop_matrix
 
 # Create sample wide-format data
 # Columns follow pattern: feature_timepoint
@@ -47,7 +47,7 @@ data_wide = pd.DataFrame({
 })
 
 # Basic usage - regex automatically extracts features
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_wide,
     format="wide",
     sample_col="sample_id"
@@ -76,7 +76,7 @@ data_custom = pd.DataFrame({
     'height.day7': [10.2, np.nan, 9.8]
 })
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_custom,
     format="wide",
     sample_col="ID",
@@ -117,7 +117,7 @@ column_mapping = {
     'insulin_end': 'insulin'
 }
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_mixed,
     format="wide",
     sample_col="subject",
@@ -155,7 +155,7 @@ data_multi = pd.DataFrame({
 
 data_multi.columns = columns
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_multi,
     format="wide",
     wide_multiindex_feature_level="feature"  # Use 'feature' level
@@ -187,7 +187,7 @@ data_long = pd.DataFrame({
     'measurement': [100, 110, 5.0, np.nan, np.nan, 105, 4.8, 5.2]
 })
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_long,
     format="long",
     sample_col="subject_id",
@@ -221,7 +221,7 @@ incomplete_long = pd.DataFrame({
 # Specify the complete timepoint grid
 expected_days = ['d1', 'd2', 'd3']
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     incomplete_long,
     format="long",
     sample_col="mouse",
@@ -249,7 +249,7 @@ M2          1.0  0.666667  # height missing at d2,d3; weight missing at d1,d2
 The primary use case is to cluster **samples** based on their missingness patterns using `cluster_on_missing_prop`:
 
 ```python
-from ciss_vae.utils.run_cissvae import cluster_on_missing_prop
+from ciss_vae.training.run_cissvae import cluster_on_missing_prop
 
 data_wide = pd.DataFrame({
     'sample_id':  ['mouse1', 'mouse2', 'mouse3', 'mouse4', 'mouse5'],
@@ -264,7 +264,7 @@ data_wide = pd.DataFrame({
 print(data_wide)
 
 # Create missingness proportion matrix
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_wide, 
     format="wide", 
     sample_col="sample_id"
@@ -293,9 +293,9 @@ print("Silhouette score:", silhouette)
 The proportion matrix can be used directly in the complete CISS-VAE pipeline via the `missingness_proportion_matrix` parameter:
 
 ```python
-from ciss_vae.utils.run_cissvae import run_cissvae
+from ciss_vae.training.run_cissvae import run_cissvae
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data_wide,
     format="wide", 
     sample_col="sample_id"
@@ -319,8 +319,8 @@ Here's a complete example showing the entire pipeline:
 ```python
 import pandas as pd
 import numpy as np
-from ciss_vae.utils.matrix import make_missingness_prop_matrix
-from ciss_vae.utils.run_cissvae import cluster_on_missing_prop, run_cissvae
+from ciss_vae.utils.matrix import create_missingness_prop_matrix
+from ciss_vae.training.run_cissvae import cluster_on_missing_prop, run_cissvae
 
 # 1. Create longitudinal data with complex missingness patterns
 np.random.seed(42)
@@ -339,7 +339,7 @@ data = pd.DataFrame({
 })
 
 # 2. Create missingness proportion matrix
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     data,
     format="wide",
     sample_col="patient_id",
@@ -394,7 +394,7 @@ clinical_data = pd.DataFrame({
     'hba1c_month6': [5.8, 6.3, 6.1]
 })
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     clinical_data,
     format="wide",
     sample_col="patient_id"
@@ -418,7 +418,7 @@ omics_long = pd.DataFrame({
     'expression': [100, 200, np.nan, 180, 110, np.nan, 95, 190, 105, 210, 90, np.nan]
 })
 
-prop_matrix = make_missingness_prop_matrix(
+prop_matrix = create_missingness_prop_matrix(
     omics_long,
     format="long",
     sample_col="sample",

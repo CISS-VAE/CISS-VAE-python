@@ -5,16 +5,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.3 documentation</title>
+  <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
   
       <script src="../../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../../_static/documentation_options.js?v=baaebd52"></script>
+      <script src="../../../_static/documentation_options.js?v=14ed45bf"></script>
       <script src="../../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -45,13 +46,16 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">make_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -139,6 +143,9 @@
 <span class="sd">        Value to fill missing/held-out entries in ``self.data`` after masking.</span>
 <span class="sd">    columns_ignore : list[str | int] or None, default=None</span>
 <span class="sd">        Columns to exclude from validation masking (names for DataFrame, indices otherwise).</span>
+<span class="sd">    imputable : pandas.DataFrame | numpy.ndarray | torch.Tensor</span>
+<span class="sd">        Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``.</span>
+<span class="sd">        Should be same shape as ``data``. </span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -178,7 +185,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="ClusterDataset.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val_seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the dataset, apply per-cluster validation masking, and normalize.</span>
 <span class="sd">        </span>
 <span class="sd">        Steps:</span>
@@ -201,7 +208,13 @@
 <span class="sd">        :type replacement_value: float, optional</span>
 <span class="sd">        :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None</span>
 <span class="sd">        :type columns_ignore: list[str or int] or None, optional</span>
+<span class="sd">        :param imputable: Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. </span>
+<span class="sd">        :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor, optional</span>
+<span class="sd">        :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1">## set seed for selecting valdata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">val_seed</span><span class="p">)</span>
 
         <span class="c1">## set columns ignore </span>
         <span class="k">if</span> <span class="n">columns_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -218,26 +231,97 @@
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Convert input data to numpy</span>
         <span class="c1"># ----------------------------------------</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;iloc&#39;</span><span class="p">):</span>  <span class="c1"># pandas DataFrame</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="c1">## Additions -&gt; check if the index column is non-numeric &amp;&amp; give error if there are other non-numeric columns</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;iloc&quot;</span><span class="p">):</span>  <span class="c1"># pandas DataFrame</span>
+            <span class="n">n_rows</span><span class="p">,</span> <span class="n">n_cols</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>  <span class="c1"># safe for any index dtype</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
-            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span><span class="p">]</span>
+
+            <span class="c1"># Build ignore index list by name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span><span class="p">]</span>
+
+            <span class="c1"># Build a numeric matrix column-by-column:</span>
+            <span class="c1"># - ignored columns -&gt; float column filled with NaN (kept in shape, never used)</span>
+            <span class="c1"># - non-ignored columns -&gt; must be numeric; error if not</span>
+            <span class="n">converted_cols</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">bad_cols</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">):</span>
+                <span class="n">s</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span><span class="p">:</span>
+                    <span class="c1"># If column is numeric, keep as-is; if not, replace with NaN float column</span>
+                    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">api</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">is_numeric_dtype</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+                        <span class="n">converted_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">converted_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">s</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Must be numeric; coerce and detect non-numeric values (not counting real NaNs)</span>
+                    <span class="n">sc</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s2">&quot;coerce&quot;</span><span class="p">)</span>
+                    <span class="n">introduced_nonnumeric</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">())</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">isna</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">introduced_nonnumeric</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                        <span class="n">bad_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">col</span><span class="p">)</span>
+                    <span class="n">converted_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sc</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;float32&quot;</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">bad_cols</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Non-numeric values found in columns not listed in columns_ignore: &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">bad_cols</span><span class="si">}</span><span class="s2">. Convert them to numeric or add them to `columns_ignore`.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Stack back to (n_rows, n_cols) float32</span>
+            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">c</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">converted_cols</span><span class="p">])</span>
+
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
-            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="c1"># Ensure numeric array</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;ndarray input must be numeric. For mixed types, pass a DataFrame and use columns_ignore.&quot;</span><span class="p">)</span>
+            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="c1"># For ndarray, columns_ignore is by index only</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
-            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">is_complex</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating_point</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="n">raw_data_np</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="p">[]</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported data format. Must be DataFrame, ndarray, or Tensor.&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">raw_data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">raw_data_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
+
+        <span class="c1"># --------------------</span>
+        <span class="c1"># Added &#39;imputable&#39; matrix</span>
+        <span class="c1"># --------------------</span>
+
+        <span class="k">if</span> <span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">imputable</span><span class="p">,</span> <span class="s1">&#39;iloc&#39;</span><span class="p">):</span>  <span class="c1"># pandas DataFrame</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">imputable</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">imputable</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported imputable matrix format. Must be DataFrame, ndarray, or Tensor.&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">imputable</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">expected_shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>  <span class="c1"># (n_samples, n_features)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="n">expected_shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;`imputable` shape </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> does not match &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;data shape </span><span class="si">{</span><span class="n">expected_shape</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">dni_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">dni_np</span> <span class="o">=</span> <span class="kc">None</span>
         
 
         <span class="c1"># ----------------------------------------</span>
@@ -246,6 +330,7 @@
         <span class="k">if</span> <span class="n">cluster_labels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># create a LongTensor of zeros, one per sample</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+            <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span> 
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">cluster_labels</span><span class="p">,</span> <span class="s1">&#39;iloc&#39;</span><span class="p">):</span>
                 <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">values</span>
@@ -317,7 +402,7 @@
             <span class="k">if</span> <span class="n">row_idxs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
 
-            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">raw_data_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">]</span>
+            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">raw_data_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">]</span>      <span class="c1"># shape: (n_rows_in_cluster, n_features)</span>
             <span class="n">prop</span> <span class="o">=</span> <span class="n">per_cluster_prop</span><span class="p">[</span><span class="n">cluster_id</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">prop</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
                 <span class="k">continue</span>  <span class="c1"># nothing to select for this cluster</span>
@@ -325,14 +410,27 @@
             <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cluster_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span><span class="p">:</span>
                     <span class="k">continue</span>
-                <span class="n">non_missing</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cluster_data</span><span class="p">[:,</span> <span class="n">col</span><span class="p">]))[</span><span class="mi">0</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">non_missing</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+
+                <span class="c1"># boolean masks (same length as row_idxs)</span>
+                <span class="n">mask_non_missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cluster_data</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+                
+                <span class="n">candidate_mask</span> <span class="o">=</span> <span class="n">mask_non_missing</span> 
+                <span class="n">candidate_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">candidate_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># local indices within row_idxs</span>
+
+                <span class="k">if</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">continue</span>
-                <span class="n">n_val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">non_missing</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">prop</span><span class="p">))</span>
+
+                <span class="c1">## Put back as floor but will mask at least one value if floor is 0</span>
+                <span class="k">if</span> <span class="n">prop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">n_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">prop</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                
                 <span class="k">if</span> <span class="n">n_val</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">continue</span>
-                <span class="n">chosen</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">non_missing</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_val</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="n">val_mask_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen</span><span class="p">],</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="n">chosen_local</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_val</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="n">val_mask_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen_local</span><span class="p">],</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">val_mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
 
@@ -348,6 +446,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">raw_data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># mask validation entries</span>
 
+
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Normalize non-missing entries</span>
         <span class="c1"># ----------------------------------------</span>
@@ -355,6 +454,16 @@
         <span class="n">data_np</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_means</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">data_np</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanstd</span><span class="p">(</span><span class="n">data_np</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">zero_std_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">zero_std_idx</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">bad_feats</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">zero_std_idx</span><span class="p">]</span>
+            <span class="nb">print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;[Warning] </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">zero_std_idx</span><span class="p">)</span><span class="si">}</span><span class="s2"> feature(s) had zero std after masking. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Replaced with 1.0 to avoid div-by-zero. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;Features: </span><span class="si">{</span><span class="n">bad_feats</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># avoid division by zero</span>
 
         <span class="c1">## Normalize (in-place)</span>
@@ -414,7 +523,13 @@
         <span class="n">val_entries</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_data</span><span class="p">))</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>  <span class="c1"># number of validation-held entries</span>
         <span class="n">val_pct_of_nonmissing</span> <span class="o">=</span> <span class="mi">100</span> <span class="o">*</span> <span class="n">val_entries</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_values</span> <span class="o">-</span> <span class="n">original_missing</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="p">(</span>
+        <span class="c1">## Count non-imputable entries (where can_impute == 0)</span>
+        <span class="n">non_imputable_count</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;imputable&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">non_imputable_count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">imputable</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>        
+
+        <span class="c1">## Build string</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;ClusterDataset(n_samples=</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">, n_features=</span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">, n_clusters=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">))</span><span class="si">}</span><span class="s2">)</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="sa">f</span><span class="s2">&quot;  • Original missing: </span><span class="si">{</span><span class="n">original_missing</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">total_values</span><span class="si">}</span><span class="s2"> &quot;</span>
             <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">original_missing_pct</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">%)</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -424,6 +539,9 @@
             <span class="sa">f</span><span class="s2">&quot;  • .masks shape:    </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="sa">f</span><span class="s2">&quot;  • .val_data shape: </span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="n">non_imputable_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  • Non-imputable entries: </span><span class="si">{</span><span class="n">non_imputable_count</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">out</span>
 
     <span class="c1"># ----------------------------------------</span>
     <span class="c1"># Added copy method</span>
@@ -448,6 +566,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span></div>
 
+
+
+    
+
+
 </pre></div>
 
            </div>
@@ -457,7 +580,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam.</p>
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
