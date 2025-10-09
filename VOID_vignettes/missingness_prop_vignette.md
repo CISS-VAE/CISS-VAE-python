@@ -13,16 +13,6 @@ proportion = (number of missing timepoints) / (total timepoints)
 - **0.0** = no missing values for that sample-feature combination
 - **1.0** = all timepoints missing for that sample-feature combination
 
-## Data Format Support
-
-The function supports two input formats:
-
-### 1. **Wide Format** (default)
-Columns represent feature×timepoint combinations, rows represent samples.
-
-### 2. **Long Format** 
-Each row represents one sample/feature/timepoint observation.
-
 ---
 
 ## Wide Format Examples
@@ -249,7 +239,7 @@ M2          1.0  0.666667  # height missing at d2,d3; weight missing at d1,d2
 The primary use case is to cluster **samples** based on their missingness patterns using `cluster_on_missing_prop`:
 
 ```python
-from ciss_vae.training.run_cissvae import cluster_on_missing_prop
+from ciss_vae.utils.clustering import cluster_on_missing_prop
 
 data_wide = pd.DataFrame({
     'sample_id':  ['mouse1', 'mouse2', 'mouse3', 'mouse4', 'mouse5'],
@@ -320,7 +310,8 @@ Here's a complete example showing the entire pipeline:
 import pandas as pd
 import numpy as np
 from ciss_vae.utils.matrix import create_missingness_prop_matrix
-from ciss_vae.training.run_cissvae import cluster_on_missing_prop, run_cissvae
+from ciss_vae.utils.clustering import cluster_on_missing_prop
+from ciss_vae.training.run_cissvae import run_cissvae
 
 # 1. Create longitudinal data with complex missingness patterns
 np.random.seed(42)

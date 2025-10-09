@@ -1,40 +1,44 @@
 from __future__ import annotations
-from typing import Dict, Optional, List, Any, Union
+from typing import Dict, Optional, List, Any, Union, Set
 import re
 import numpy as np
 import pandas as pd
 
+
 class MissingnessMatrix:
     """A matrix with missingness proportions and metadata."""
-    
-    def __init__(self, data: np.ndarray, feature_columns_map: Dict[str, List[str]], 
-                 feature_names: List[str], sample_names: Optional[List[str]] = None):
+
+    def __init__(
+        self,
+        data: np.ndarray,
+        feature_columns_map: Dict[str, List[str]],
+        feature_names: List[str],
+        sample_names: Optional[List[str]] = None,
+    ):
         self.data = data
         self.feature_columns_map = feature_columns_map
         self.feature_names = feature_names
         self.sample_names = sample_names or list(range(len(data)))
-    
+
     @property
     def shape(self):
+        """Return (n_samples, n_features)."""
         return self.data.shape
-    
+
     def __getitem__(self, key):
+        """Index into the underlying array."""
         return self.data[key]
-    
+
     def __array__(self):
-        """Allow numpy operations on this object."""
+        """Allow NumPy ops directly on this object."""
         return self.data
-    
-    def to_dataframe(self):
-        """Convert to pandas DataFrame."""
-        return pd.DataFrame(
-            self.data, 
-            columns=self.feature_names,
-            index=self.sample_names
-        )
+
+    def to_dataframe(self) -> pd.DataFrame:
+        """Convert to pandas DataFrame with preserved names."""
+        return pd.DataFrame(self.data, columns=self.feature_names, index=self.sample_names)
 
     def to_numpy(self, dtype=None, copy: bool = False) -> np.ndarray:
-        """Return the underlying numpy array."""
+        """Return the underlying NumPy array (optionally cast/copied)."""
         arr = self.data
         if dtype is not None and arr.dtype != dtype:
             arr = arr.astype(dtype, copy=False)
@@ -42,210 +46,214 @@ class MissingnessMatrix:
             arr = arr.copy()
         return arr
 
+    def __repr__(self) -> str:
+        """Full string representation (no preview/truncation)."""
+        return str(self.to_dataframe())
+
+    def __str__(self) -> str:
+        """Full string representation (no preview/truncation)."""
+        return str(self.to_dataframe())
+
+    def head(self):
+        return(self.to_dataframe().head())
+
+
 def create_missingness_prop_matrix(
     data: Union[pd.DataFrame, np.ndarray],
     index_col: Optional[str] = None,
     cols_ignore: Optional[List[str]] = None,
     na_values: Optional[List[Any]] = None,
-    repeat_feature_names: Optional[List[str]] = None
+    repeat_feature_names: Optional[List[str]] = None,
+    timepoint_prefix: Optional[str] = None,
+    nonint_timepoint: bool = False,
+    column_mapping: Optional[Dict[str, List[str]]] = None,
 ) -> MissingnessMatrix:
     """
     Create a missingness proportion matrix summarizing feature-level missingness per sample.
 
     Computes the proportion of missing values for each feature within each sample,
-    optionally accounting for repeated measurements of the same feature (e.g., across timepoints).
-    This matrix can be used for downstream clustering on missingness patterns (e.g., via
-    :func:`cluster_on_missing_prop`).
+    optionally aggregating repeated measurements (e.g., ``feature_t1``, ``feature_t2``).
+    Can also accept an explicit ``column_mapping`` from base feature → list of columns.
 
-    :param data: Input dataset containing features that may include missing values.
-        Must be coercible to a pandas DataFrame.
+    :param data: Input dataset (coercible to DataFrame).
     :type data: pandas.DataFrame or numpy.ndarray
-
-    :param index_col: Name of the column to treat as the sample index. This column is excluded
-        from missingness calculations but preserved in the output metadata. Defaults to ``None``.
+    :param index_col: Optional column to use as sample index in the output metadata (not scored).
     :type index_col: str or None, optional
-
-    :param cols_ignore: List of column names to exclude from missingness calculations
-        (e.g., identifiers, non-feature columns). Defaults to ``None``.
+    :param cols_ignore: Columns to exclude from scoring (e.g., IDs, non-features).
     :type cols_ignore: list[str] or None, optional
-
-    :param na_values: Additional values to treat as missing beyond standard ``NaN`` and ``None``.
-        Defaults to ``[NA, NaN, Inf, -Inf]`` if ``None`` is provided.
+    :param na_values: Extra values to treat as missing (in addition to NaN/None/±Inf).
     :type na_values: list[Any] or None, optional
-
-    :param repeat_feature_names: Optional list of feature base names for features with repeated timepoints.
-        Repeat measurements must follow the pattern ``<feature>_<timepoint>`` where
-        ``<timepoint>`` is an integer. The function will aggregate missingness across
-        all timepoints for each listed feature. Defaults to ``None``.
+    :param repeat_feature_names: Base feature names that have repeated timepoints to be aggregated.
+                                 Columns matched by regex pattern:
+                                 - if ``timepoint_prefix`` is provided: ``^<feat>_<prefix>\\d+$``
+                                 - else: ``^<feat>_\\d+$``
     :type repeat_feature_names: list[str] or None, optional
+    :param timepoint_prefix: Optional prefix that appears before the timepoint integer, e.g., ``t`` to match ``feat_t1``.
+    :type timepoint_prefix: str or None, optional
+    :param nonint_timepoint: If true, any text after '_' will count as timepoint (eg Baseline).
+    :type nonint_timepoint: bool, optional
+    :param column_mapping: Explicit mapping { base_feature: [col1, col2, ...] } to aggregate. Takes precedence.
+    :type column_mapping: dict[str, list[str]] or None, optional
 
-    :returns: A :class:`MissingnessMatrix` object containing:
-        - **data** (:class:`numpy.ndarray`): Matrix of missingness proportions, shape ``(n_samples, n_features)``.
-        - **feature_columns_map** (:class:`dict`): Mapping of base feature names to column indices.
-        - **to_dataframe()** (:class:`pandas.DataFrame`): Method to convert to a DataFrame.
+    :returns: MissingnessMatrix with:
+              - ``data``: (n_samples, n_features) matrix of missingness proportions
+              - ``feature_columns_map``: mapping of base features → contributing columns
+              - ``to_dataframe()`` to view as DataFrame
     :rtype: MissingnessMatrix
-
-    **Example**::
-
-        >>> prop_matrix = create_missingness_prop_matrix(
-        ...     data=df,
-        ...     index_col="patient_id",
-        ...     cols_ignore=["study_site"],
-        ...     repeat_feature_names=["ALT", "AST", "Bilirubin"]
-        ... )
-        >>> prop_matrix.data.shape
-        (150, 12)
-        >>> prop_matrix.to_dataframe().head()
-             ALT  AST  Bilirubin  ...
-        patient_01  0.00  0.25  0.10  ...
     """
-
-    
-    # ------------------------------- 
-    # 1) Validate & normalize inputs  
-    # ------------------------------- 
+    # -------------------------------
+    # 1) Validate & normalize inputs
+    # -------------------------------
     if not isinstance(data, (pd.DataFrame, np.ndarray)):
-        raise ValueError("`data` must be a pandas DataFrame or numpy array.")
-    
-    # Convert to DataFrame for uniform handling
-    if isinstance(data, np.ndarray):
-        df = pd.DataFrame(data)
-    else:
-        df = data.copy()
-    
-    # Set default values
-    if na_values is None:
-        na_values = [np.nan, np.inf, -np.inf]
-    if repeat_feature_names is None:
-        repeat_feature_names = []
-    if cols_ignore is None:
-        cols_ignore = []
-    
-    # Validate inputs
+        raise ValueError("`data` must be a pandas DataFrame or numpy.ndarray.")
+
+    # Coerce to DataFrame (no in-place mutation of original)
+    df = pd.DataFrame(data).copy() if isinstance(data, np.ndarray) else data.copy()
+
+    # Normalize column names to strings (prevents regex/type issues)
+    df.columns = df.columns.astype(str)
+
+    # Defaults
+    cols_ignore = [] if cols_ignore is None else list(cols_ignore)
+    repeat_feature_names = [] if repeat_feature_names is None else list(repeat_feature_names)
+    # pandas.isna already covers None/NaN; we also treat ±Inf as missing
+    na_values = [np.inf, -np.inf] if na_values is None else list(na_values)
+
+    # Validate basic types
     if index_col is not None and not isinstance(index_col, str):
         raise ValueError("`index_col` must be None or a string.")
-    
     if not isinstance(cols_ignore, list):
-        raise ValueError("`cols_ignore` must be None or a list of column names.")
-    
+        raise ValueError("`cols_ignore` must be a list or None.")
     if not isinstance(repeat_feature_names, list):
-        raise ValueError("`repeat_feature_names` must be a list of strings.")
-    
-    # Determine columns to drop
-    cols_to_drop = []
+        raise ValueError("`repeat_feature_names` must be a list or None.")
+    if column_mapping is not None and not isinstance(column_mapping, dict):
+        raise ValueError("`column_mapping` must be a dict or None.")
+
+    # -------------------------------
+    # 2) Sample names & drop columns
+    # -------------------------------
+    # Determine sample names (prefer explicit index_col if present)
     if index_col is not None and index_col in df.columns:
-        cols_to_drop.append(index_col)
-    if cols_ignore:
-        cols_to_drop.extend([col for col in cols_ignore if col in df.columns])
-    
-    cols_to_drop = list(set(cols_to_drop))  # Remove duplicates
-    
-    # --------------------------------------- 
-    # 2) Build helper for missingness checks  
-    # --------------------------------------- 
-    def is_missing(x):
-        """Check if values are missing according to our criteria."""
-        if isinstance(x, pd.Series):
-            x = x.values
-        
-        # Start with standard missing flags
-        miss = pd.isna(x)
-        
-        # Check for infinite values
-        try:
-            numeric_x = pd.to_numeric(x, errors='coerce')
-            miss = miss | np.isinf(numeric_x)
-        except:
-            pass
-        
-        # Check user-provided values
-        if na_values:
-            for na_val in na_values:
-                try:
-                    miss = miss | (x == na_val)
-                except:
-                    # Handle type mismatches gracefully
-                    pass
-        
-        return miss
-    
-    # --------------------------------------------------
-    # 3) Identify columns for repeated vs single features 
-    # --------------------------------------------------- 
+        sample_names = df[index_col].astype(str).tolist()
+    else:
+        # fallback: use DataFrame index if useful; otherwise None → class will auto-range
+        sample_names = df.index.astype(str).tolist() if hasattr(df, "index") else None
+
+    # Columns excluded from scoring
+    cols_to_drop: Set[str] = set()
+    if index_col is not None and index_col in df.columns:
+        cols_to_drop.add(index_col)
+    for c in cols_ignore:
+        if c in df.columns:
+            cols_to_drop.add(c)
+
+    # Candidate feature columns (post-exclusions)
     all_cols = list(df.columns)
-    if len(all_cols) == 0:
-        raise ValueError("Input `data` has no columns.")
-    
-    # Remove drop columns from consideration
-    feature_candidate_cols = [col for col in all_cols if col not in cols_to_drop]
-    
-    # For each base feature in repeat_feature_names, collect its timepoint columns
-    feature_to_cols = {}
-    consumed_cols = []
-    
+    feature_candidate_cols = [c for c in all_cols if c not in cols_to_drop]
+    if not feature_candidate_cols:
+        raise ValueError("After excluding `index_col` and `cols_ignore`, no feature columns remain.")
+
+    # --------------------------------------------------
+    # 3) Build feature → columns mapping
+    #     precedence: column_mapping (explicit) > repeat_feature_names (regex) > singletons
+    # --------------------------------------------------
+    feature_to_cols: Dict[str, List[str]] = {}
+    consumed_cols: Set[str] = set()
+
+    # (A) explicit mapping takes precedence
+    if column_mapping:
+        # validate columns exist
+        missing = {base: [c for c in cols if c not in df.columns] for base, cols in column_mapping.items()}
+        missing = {k: v for k, v in missing.items() if v}
+        if missing:
+            raise ValueError(f"`column_mapping` refers to missing columns: {missing}")
+        # adopt mapping (preserve key order)
+        for base, cols in column_mapping.items():
+            cols_list = [str(c) for c in cols]
+            feature_to_cols[base] = cols_list
+            consumed_cols.update(cols_list)
+
+    # (B) repeated features by regex (only those not already covered by mapping)
     if repeat_feature_names:
         for feat in repeat_feature_names:
-            # Escape special regex characters and create pattern
+            if feat in feature_to_cols:
+                # already defined via mapping; skip regex collection for this base
+                continue
             feat_escaped = re.escape(feat)
-            pattern = f"^{feat_escaped}_\\d+$"
-            
-            # Find matching columns
-            matching_cols = [col for col in feature_candidate_cols 
-                           if re.match(pattern, col)]
-            
-            if len(matching_cols) == 0:
+            if nonint_timepoint:
+                pattern = rf"^{feat_escaped}_[A-Za-z0-9]+$"
+            elif timepoint_prefix:
+                pattern = rf"^{feat_escaped}_{re.escape(timepoint_prefix)}\d+$"
+            else:
+                pattern = rf"^{feat_escaped}_\d+$"
+            matching_cols = [c for c in feature_candidate_cols if re.match(pattern, c)]
+            if not matching_cols:
                 raise ValueError(
                     f"No columns found for repeated feature '{feat}' using pattern '{pattern}'. "
-                    f"Ensure columns are named like '{feat}_1', '{feat}_2', ..."
+                    f"Ensure columns look like '{feat}_1', '{feat}_2', ... (or '{feat}_{timepoint_prefix}1', ...)."
                 )
-            
             feature_to_cols[feat] = matching_cols
-            consumed_cols.extend(matching_cols)
-    
-    # Remaining feature columns (not part of repeated features and not dropped)
-    remaining_cols = [col for col in feature_candidate_cols if col not in consumed_cols]
-    
-    # Treat each remaining column as a single-timepoint feature
-    for col in remaining_cols:
-        feature_to_cols[col] = [col]
-    
-    # Determine output feature order
-    out_features = list(repeat_feature_names) + remaining_cols
-    
-    if len(out_features) == 0:
-        raise ValueError("After excluding `index_col` and `cols_ignore`, no feature columns remain.")
-    
-    # ------------------------------------------- 
-    # 4) Compute per-sample missingness proportion 
-    # ------------------------------------------- 
+            consumed_cols.update(matching_cols)
+
+    # (C) remaining single columns become their own features
+    for c in feature_candidate_cols:
+        if c not in consumed_cols:
+            feature_to_cols[c] = [c]
+
+    # Final feature order:
+    # - preserve dict insertion order (mapping keys first, then repeats, then singletons)
+    out_features: List[str] = list(feature_to_cols.keys())
+    if not out_features:
+        raise ValueError("No features to score after processing mapping and repeats.")
+
+    # -------------------------------------------
+    # 4) Missingness checker (vectorized friendly)
+    # -------------------------------------------
+    def is_missing(arr_like: Union[pd.Series, np.ndarray]) -> np.ndarray:
+        """
+        Return boolean mask where values are considered missing:
+        - pandas.isna (NaN/None)
+        - ±Inf
+        - any user-specified values in `na_values`
+        """
+        x = arr_like.values if isinstance(arr_like, pd.Series) else np.asarray(arr_like)
+        miss = pd.isna(x)
+
+        # include ±Inf as missing
+        with np.errstate(all="ignore"):
+            miss |= np.isinf(pd.to_numeric(x, errors="coerce"))
+
+        # include any explicit values
+        for na in na_values:
+            try:
+                miss |= (x == na)
+            except Exception:
+                # Comparisons may fail for mixed dtypes; ignore safely
+                pass
+        return miss
+
+    # -------------------------------------------
+    # 5) Compute per-sample missingness proportion
+    # -------------------------------------------
     n_samples = len(df)
     n_features = len(out_features)
-    
-    # Initialize output matrix
     out = np.full((n_samples, n_features), np.nan, dtype=float)
-    
-    # Fill the matrix column-by-column
+
     for j, feat in enumerate(out_features):
         cols = feature_to_cols[feat]
-        
-        # Get data for this feature's columns
         subdf = df[cols]
-        
-        # Compute missingness for each column
+        # boolean matrix: True where missing
         miss_matrix = subdf.apply(is_missing, axis=0)
-        
-        # Compute proportion missing per row (sample)
-        prop_missing = miss_matrix.mean(axis=1).values
-        
+        # mean across timepoints/columns → per-row proportion missing for this feature
+        prop_missing = miss_matrix.mean(axis=1).to_numpy(dtype=float)
         out[:, j] = prop_missing
-    
-    # Get sample names if available
-    sample_names = list(data.index) if hasattr(data, 'index') else None
-    
-    # Return custom object with metadata
+
+    # -------------------------------------------
+    # 6) Package result
+    # -------------------------------------------
     return MissingnessMatrix(
         data=out,
         feature_columns_map=feature_to_cols,
         feature_names=out_features,
-        sample_names=sample_names
+        sample_names=sample_names,
     )

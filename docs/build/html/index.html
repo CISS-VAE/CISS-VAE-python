@@ -9,7 +9,7 @@
   <title>CISS-VAE documentation &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -24,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installation" href="quickstart.html" /> 
+    <link rel="next" title="CISS-VAE Quickstart" href="quickstart.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -48,15 +48,20 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">CISS-VAE Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
@@ -99,9 +104,11 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
 <div class="toctree-wrapper compound">
 <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">CISS-VAE Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="vignette.html#avoiding-imputation-of-certain-entries">Avoiding imputation of certain entries</a></li>
@@ -127,12 +134,12 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#data-format-support">Data Format Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#wide-format-examples">Wide Format Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#long-format-examples">Long Format Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with Sample Clustering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-ciss-vae-pipeline">Integration with CISS-VAE Pipeline</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#complete-workflow-example">Complete Workflow Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#common-use-cases">Common Use Cases</a></li>
-<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#tips-and-best-practices">Tips and Best Practices</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#extra-tips">Extra tips</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a><ul>
@@ -176,7 +183,7 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quickstart.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="CISS-VAE Quickstart" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -6,10 +6,10 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Installation &mdash; CISS-VAE 1.0.18 documentation</title>
+  <title>CISS-VAE Quickstart &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -24,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Overview" href="vignette.html" />
+    <link rel="next" title="How to use CISS-VAE" href="vignette.html" />
     <link rel="prev" title="CISS-VAE documentation" href="index.html" /> 
 </head>
 
@@ -49,15 +49,20 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CISS-VAE Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
@@ -76,9 +81,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Installation</li>
+      <li class="breadcrumb-item active">CISS-VAE Quickstart</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="_sources/quickstart.md.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/quickstart.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -86,7 +91,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+  <section id="ciss-vae-quickstart">
+<h1>CISS-VAE Quickstart<a class="headerlink" href="#ciss-vae-quickstart" title="Link to this heading"></a></h1>
+<p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+</section>
 <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
 <p>The CISS-VAE package is currently available for python, with an R
@@ -113,51 +121,80 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 </pre></div>
 </div>
 </div></blockquote>
-</div>
-</section>
+</div></section>
 <section id="quickstart">
 <h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
 <p>To load the sample dataset:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
-<span class="n">df_missing</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.data import load_example_dataset
+df_missing, df_complete, clusters = load_example_dataset()
 </pre></div>
+</div>
+</div>
 </div>
 <p>To run the CISSVAE imputation model with default parameters (assuming known clusters).</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
+from ciss_vae.training.run_cissvae import run_cissvae
+# optional, display vae architecture
+from ciss_vae.utils.helpers import plot_vae_architecture
 
-<span class="c1"># optional, display vae architecture</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
+imputed_data, vae = run_cissvae(
+    data = df_missing,
+    columns_ignore = df_missing.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).
+    clusters = clusters
+)
 
-<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
-
-<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
-    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).</span>
-    <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusters</span>
-<span class="p">)</span>
-
-<span class="c1">## OPTIONAL - PLOT VAE ARCHITECTURE</span>
-<span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
-                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span>
+## OPTIONAL - PLOT VAE ARCHITECTURE
+plot_vae_architecture(model = vae,
+                        title = None)
 </pre></div>
 </div>
-<p><img alt="Output of plot_vae_architecture" src="_images/image-1v2.png" /></p>
-<p>To have run_cissvae() perform data clustering with Leiden:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
-
-<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
-
-<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
-    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
-    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).</span>
-    <span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">leiden_resolution</span> <span class="o">=</span> <span class="mf">0.005</span>
-<span class="p">)</span>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Cluster dataset:
+ ClusterDataset(n_samples=8000, n_features=30, n_clusters=4)
+  • Original missing: 61800 / 200000 (30.90%)
+  • Validation held-out: 13783 (9.97% of non-missing)
+  • .data shape:     (8000, 30)
+  • .masks shape:    (8000, 30)
+  • .val_data shape: (8000, 30)
 </pre></div>
+</div>
+<img alt="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" src="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" />
+</div>
+</div>
+<p>To have run_cissvae() perform data clustering with Leiden:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>imputed_data, vae = run_cissvae(
+    data = df_missing,
+    columns_ignore = df_missing.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters).
+    clusters = None,
+    k_neighbors = 500,
+    leiden_resolution = 0.001,
+    epochs = 100
+)
+## OPTIONAL - PLOT VAE ARCHITECTURE
+plot_vae_architecture(model = vae,
+                        title = None)
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Cluster dataset:
+ ClusterDataset(n_samples=8000, n_features=30, n_clusters=2)
+  • Original missing: 61800 / 200000 (30.90%)
+  • Validation held-out: 13808 (9.99% of non-missing)
+  • .data shape:     (8000, 30)
+  • .masks shape:    (8000, 30)
+  • .val_data shape: (8000, 30)
+</pre></div>
+</div>
+<img alt="_images/dd4360625d002bd43e11fb0fc5469b67d12ff743d7b1aca2f1520f71c3ad99ad.png" src="_images/dd4360625d002bd43e11fb0fc5469b67d12ff743d7b1aca2f1520f71c3ad99ad.png" />
+</div>
 </div>
 </section>
 
@@ -166,7 +203,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="CISS-VAE documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="vignette.html" class="btn btn-neutral float-right" title="Overview" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vignette.html" class="btn btn-neutral float-right" title="How to use CISS-VAE" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -12,7 +12,7 @@ A key feature of CISS-VAE is the use of unsupervised clustering to capture disti
 Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.
 
 There are two ways to run the CISS-VAE process. If you know what model
-parameters you want to use, you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function to
+parameters you want to use, you can use the {py:func}`ciss_vae.training.run_cissvae.run_cissvae` function to
 run the model once for the given set of parameters. If you want to tune
 the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
 
@@ -63,7 +63,7 @@ from ciss_vae.data import load_example_dataset
 df_missing, df_complete, clusters = load_example_dataset()
 ```
 
-If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.utils.run_cissvae.run_cissvae` function to perform the imputation.
+If you already know what parameters you want for your model (or do not want to use the {py:func}`ciss_vae.training.autotune.autotune` function), you can use the {py:func}`ciss_vae.training.run_cissvae.run_cissvae` function to perform the imputation.
 
 The input dataset should be one of the following:
 
@@ -96,7 +96,7 @@ To run the CISSVAE model with default parameters:
 
 ``` python
 import pandas as pd
-from ciss_vae.utils.run_cissvae import run_cissvae
+from ciss_vae.training.run_cissvae import run_cissvae
 from ciss_vae.data import load_example_dataset
 
 # optional, display vae architecture
@@ -373,7 +373,7 @@ import torch
 torch.save(model.state_dict(), "trained_vae.pt")
 ```
 
-If you want to save the entire model (not usually recommended):
+If you want to save the entire model:
 
 ``` python
 torch.save(model, "trained_vae_full.pt")

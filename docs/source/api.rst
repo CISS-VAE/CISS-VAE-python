@@ -4,7 +4,7 @@ API Reference
 .. currentmodule:: ciss_vae
 
 Classes
--------
+---------
 .. currentmodule:: ciss_vae.classes
 .. autosummary::
    :toctree: _autosummary
@@ -14,7 +14,7 @@ Classes
    cluster_dataset.ClusterDataset
 
 Training & Tuning
--------
+-------------------
 .. currentmodule:: ciss_vae.training
 .. autosummary::
    :toctree: _autosummary
@@ -25,7 +25,7 @@ Training & Tuning
    run_cissvae.run_cissvae
 
 Utilities & Helpers
--------
+---------------------
 .. currentmodule:: ciss_vae.utils
 .. autosummary::
    :toctree: _autosummary

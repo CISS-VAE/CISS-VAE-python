@@ -9,7 +9,7 @@
   <title>ciss_vae.utils.matrix.create_missingness_prop_matrix &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
@@ -49,15 +49,20 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">CISS-VAE Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="../api.html#classes">Classes</a></li>
@@ -106,53 +111,37 @@
 <h1>ciss_vae.utils.matrix.create_missingness_prop_matrix<a class="headerlink" href="#ciss-vae-utils-matrix-create-missingness-prop-matrix" title="Link to this heading"></a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="ciss_vae.utils.matrix.create_missingness_prop_matrix">
-<span class="sig-name descname"><span class="pre">create_missingness_prop_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/matrix.html#create_missingness_prop_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.matrix.create_missingness_prop_matrix" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">create_missingness_prop_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timepoint_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nonint_timepoint</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_mapping</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/matrix.html#create_missingness_prop_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.matrix.create_missingness_prop_matrix" title="Link to this definition"></a></dt>
 <dd><p>Create a missingness proportion matrix summarizing feature-level missingness per sample.</p>
 <p>Computes the proportion of missing values for each feature within each sample,
-optionally accounting for repeated measurements of the same feature (e.g., across timepoints).
-This matrix can be used for downstream clustering on missingness patterns (e.g., via
-<code class="xref py py-func docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code>).</p>
+optionally aggregating repeated measurements (e.g., <code class="docutils literal notranslate"><span class="pre">feature_t1</span></code>, <code class="docutils literal notranslate"><span class="pre">feature_t2</span></code>).
+Can also accept an explicit <code class="docutils literal notranslate"><span class="pre">column_mapping</span></code> from base feature → list of columns.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>pandas.DataFrame</em><em> or </em><em>numpy.ndarray</em>) – Input dataset containing features that may include missing values.
-Must be coercible to a pandas DataFrame.</p></li>
-<li><p><strong>index_col</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Name of the column to treat as the sample index. This column is excluded
-from missingness calculations but preserved in the output metadata. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-<li><p><strong>cols_ignore</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – List of column names to exclude from missingness calculations
-(e.g., identifiers, non-feature columns). Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
-<li><p><strong>na_values</strong> (<em>list</em><em>[</em><em>Any</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Additional values to treat as missing beyond standard <code class="docutils literal notranslate"><span class="pre">NaN</span></code> and <code class="docutils literal notranslate"><span class="pre">None</span></code>.
-Defaults to <code class="docutils literal notranslate"><span class="pre">[NA,</span> <span class="pre">NaN,</span> <span class="pre">Inf,</span> <span class="pre">-Inf]</span></code> if <code class="docutils literal notranslate"><span class="pre">None</span></code> is provided.</p></li>
-<li><p><strong>repeat_feature_names</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Optional list of feature base names for features with repeated timepoints.
-Repeat measurements must follow the pattern <code class="docutils literal notranslate"><span class="pre">&lt;feature&gt;_&lt;timepoint&gt;</span></code> where
-<code class="docutils literal notranslate"><span class="pre">&lt;timepoint&gt;</span></code> is an integer. The function will aggregate missingness across
-all timepoints for each listed feature. Defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p></li>
+<li><p><strong>data</strong> (<em>pandas.DataFrame</em><em> or </em><em>numpy.ndarray</em>) – Input dataset (coercible to DataFrame).</p></li>
+<li><p><strong>index_col</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional column to use as sample index in the output metadata (not scored).</p></li>
+<li><p><strong>cols_ignore</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Columns to exclude from scoring (e.g., IDs, non-features).</p></li>
+<li><p><strong>na_values</strong> (<em>list</em><em>[</em><em>Any</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Extra values to treat as missing (in addition to NaN/None/±Inf).</p></li>
+<li><p><strong>repeat_feature_names</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Base feature names that have repeated timepoints to be aggregated.
+Columns matched by regex pattern:
+- if <code class="docutils literal notranslate"><span class="pre">timepoint_prefix</span></code> is provided: <code class="docutils literal notranslate"><span class="pre">^&lt;feat&gt;_&lt;prefix&gt;\d+$</span></code>
+- else: <code class="docutils literal notranslate"><span class="pre">^&lt;feat&gt;_\d+$</span></code></p></li>
+<li><p><strong>timepoint_prefix</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional prefix that appears before the timepoint integer, e.g., <code class="docutils literal notranslate"><span class="pre">t</span></code> to match <code class="docutils literal notranslate"><span class="pre">feat_t1</span></code>.</p></li>
+<li><p><strong>nonint_timepoint</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, any text after ‘_’ will count as timepoint (eg Baseline).</p></li>
+<li><p><strong>column_mapping</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>[</em><em>str</em><em>]</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Explicit mapping { base_feature: [col1, col2, …] } to aggregate. Takes precedence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">MissingnessMatrix</span></code> object containing:
-- <strong>data</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>): Matrix of missingness proportions, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>.
-- <strong>feature_columns_map</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code>): Mapping of base feature names to column indices.
-- <strong>to_dataframe()</strong> (<code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code>): Method to convert to a DataFrame.</p>
+<dd class="field-even"><p>MissingnessMatrix with:
+- <code class="docutils literal notranslate"><span class="pre">data</span></code>: (n_samples, n_features) matrix of missingness proportions
+- <code class="docutils literal notranslate"><span class="pre">feature_columns_map</span></code>: mapping of base features → contributing columns
+- <code class="docutils literal notranslate"><span class="pre">to_dataframe()</span></code> to view as DataFrame</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>MissingnessMatrix</p>
 </dd>
 </dl>
-<p><strong>Example</strong>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="n">data</span><span class="o">=</span><span class="n">df</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;patient_id&quot;</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">cols_ignore</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;study_site&quot;</span><span class="p">],</span>
-<span class="gp">... </span>    <span class="n">repeat_feature_names</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ALT&quot;</span><span class="p">,</span> <span class="s2">&quot;AST&quot;</span><span class="p">,</span> <span class="s2">&quot;Bilirubin&quot;</span><span class="p">]</span>
-<span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">(150, 12)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
-<span class="go">     ALT  AST  Bilirubin  ...</span>
-<span class="go">patient_01  0.00  0.25  0.10  ...</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>
