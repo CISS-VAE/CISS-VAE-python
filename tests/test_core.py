@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import pandas as pd
 import torch
-from ciss_vae.utils.run_cissvae import run_cissvae
+from ciss_vae.training.run_cissvae import run_cissvae
 from ciss_vae.classes.vae import CISSVAE
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.utils.matrix import create_missingness_prop_matrix

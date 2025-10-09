@@ -1,17 +1,8 @@
 from __future__ import annotations
-from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple, Union, Callable
+from typing import Dict, Optional, List, Any, Union
 import re
 import numpy as np
 import pandas as pd
-
-import pandas as pd
-import numpy as np
-import re
-from typing import Optional, List, Union, Dict, Any
-import pandas as pd
-import numpy as np
-import re
-from typing import Optional, List, Union, Dict, Any
 
 class MissingnessMatrix:
     """A matrix with missingness proportions and metadata."""
@@ -59,24 +50,60 @@ def create_missingness_prop_matrix(
     repeat_feature_names: Optional[List[str]] = None
 ) -> MissingnessMatrix:
     """
-    Creates a matrix where each entry represents the proportion of missing values
-    for each sample–feature combination across multiple timepoints.
-    
-    [Previous docstring content remains the same]
-    
-    Returns
-    -------
-    MissingnessMatrix
-        A custom matrix object with missingness proportions and metadata.
-        Access the numpy array with .data, feature mapping with .feature_columns_map,
-        and convert to DataFrame with .to_dataframe().
+    Create a missingness proportion matrix summarizing feature-level missingness per sample.
+
+    Computes the proportion of missing values for each feature within each sample,
+    optionally accounting for repeated measurements of the same feature (e.g., across timepoints).
+    This matrix can be used for downstream clustering on missingness patterns (e.g., via
+    :func:`cluster_on_missing_prop`).
+
+    :param data: Input dataset containing features that may include missing values.
+        Must be coercible to a pandas DataFrame.
+    :type data: pandas.DataFrame or numpy.ndarray
+
+    :param index_col: Name of the column to treat as the sample index. This column is excluded
+        from missingness calculations but preserved in the output metadata. Defaults to ``None``.
+    :type index_col: str or None, optional
+
+    :param cols_ignore: List of column names to exclude from missingness calculations
+        (e.g., identifiers, non-feature columns). Defaults to ``None``.
+    :type cols_ignore: list[str] or None, optional
+
+    :param na_values: Additional values to treat as missing beyond standard ``NaN`` and ``None``.
+        Defaults to ``[NA, NaN, Inf, -Inf]`` if ``None`` is provided.
+    :type na_values: list[Any] or None, optional
+
+    :param repeat_feature_names: Optional list of feature base names for features with repeated timepoints.
+        Repeat measurements must follow the pattern ``<feature>_<timepoint>`` where
+        ``<timepoint>`` is an integer. The function will aggregate missingness across
+        all timepoints for each listed feature. Defaults to ``None``.
+    :type repeat_feature_names: list[str] or None, optional
+
+    :returns: A :class:`MissingnessMatrix` object containing:
+        - **data** (:class:`numpy.ndarray`): Matrix of missingness proportions, shape ``(n_samples, n_features)``.
+        - **feature_columns_map** (:class:`dict`): Mapping of base feature names to column indices.
+        - **to_dataframe()** (:class:`pandas.DataFrame`): Method to convert to a DataFrame.
+    :rtype: MissingnessMatrix
+
+    **Example**::
+
+        >>> prop_matrix = create_missingness_prop_matrix(
+        ...     data=df,
+        ...     index_col="patient_id",
+        ...     cols_ignore=["study_site"],
+        ...     repeat_feature_names=["ALT", "AST", "Bilirubin"]
+        ... )
+        >>> prop_matrix.data.shape
+        (150, 12)
+        >>> prop_matrix.to_dataframe().head()
+             ALT  AST  Bilirubin  ...
+        patient_01  0.00  0.25  0.10  ...
     """
+
     
-    # [All the previous validation and processing code remains the same until the end]
-    
-    # ------------------------------- #
-    # 1) Validate & normalize inputs  #
-    # ------------------------------- #
+    # ------------------------------- 
+    # 1) Validate & normalize inputs  
+    # ------------------------------- 
     if not isinstance(data, (pd.DataFrame, np.ndarray)):
         raise ValueError("`data` must be a pandas DataFrame or numpy array.")
     
@@ -113,9 +140,9 @@ def create_missingness_prop_matrix(
     
     cols_to_drop = list(set(cols_to_drop))  # Remove duplicates
     
-    # --------------------------------------- #
-    # 2) Build helper for missingness checks  #
-    # --------------------------------------- #
+    # --------------------------------------- 
+    # 2) Build helper for missingness checks  
+    # --------------------------------------- 
     def is_missing(x):
         """Check if values are missing according to our criteria."""
         if isinstance(x, pd.Series):
@@ -142,9 +169,9 @@ def create_missingness_prop_matrix(
         
         return miss
     
-    # --------------------------------------------------- #
-    # 3) Identify columns for repeated vs single features #
-    # --------------------------------------------------- #
+    # --------------------------------------------------
+    # 3) Identify columns for repeated vs single features 
+    # --------------------------------------------------- 
     all_cols = list(df.columns)
     if len(all_cols) == 0:
         raise ValueError("Input `data` has no columns.")
@@ -188,9 +215,9 @@ def create_missingness_prop_matrix(
     if len(out_features) == 0:
         raise ValueError("After excluding `index_col` and `cols_ignore`, no feature columns remain.")
     
-    # ------------------------------------------- #
-    # 4) Compute per-sample missingness proportion #
-    # ------------------------------------------- #
+    # ------------------------------------------- 
+    # 4) Compute per-sample missingness proportion 
+    # ------------------------------------------- 
     n_samples = len(df)
     n_features = len(out_features)
     

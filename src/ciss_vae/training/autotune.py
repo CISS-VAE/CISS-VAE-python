@@ -166,6 +166,8 @@ def autotune(
     :type max_exhaustive_orders: int, optional
     :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False
     :type return_history: bool, optional
+    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1
+    :type n_jobs: int, optional
     
     :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])
     :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]
