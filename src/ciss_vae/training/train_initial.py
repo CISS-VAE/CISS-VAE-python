@@ -18,6 +18,7 @@ def train_vae_initial(
     *,
     return_history: bool = False,
     progress_callback = None,
+    weight_decay = 0.001,
 ):
     """Train a VAE on masked data with validation monitoring for initial training phase.
     
@@ -51,7 +52,7 @@ def train_vae_initial(
     """
 
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=initial_lr)
+    optimizer = optim.Adam(model.parameters(), lr=initial_lr, weight_decay = weight_decay)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
 
     # Pull dataset object from loader to get validation targets

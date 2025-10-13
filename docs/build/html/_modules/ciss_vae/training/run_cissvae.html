@@ -8,7 +8,7 @@
   <title>ciss_vae.training.run_cissvae &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -129,6 +129,7 @@
     <span class="n">epochs</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> 
     <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> 
     <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> 
+    <span class="n">weight_decay</span> <span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span>
     <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> 
     <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
     <span class="c1">## initial training params</span>
@@ -416,6 +417,7 @@
         <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
         <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
         <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
         <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
@@ -428,6 +430,7 @@
         <span class="n">epochs</span><span class="o">=</span><span class="n">epochs</span><span class="p">,</span>
         <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr</span><span class="p">,</span>
         <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor</span><span class="p">,</span>
+        <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
         <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
@@ -441,6 +444,7 @@
         <span class="n">patience</span><span class="o">=</span><span class="n">patience</span><span class="p">,</span>
         <span class="n">epochs_per_loop</span><span class="o">=</span><span class="n">epochs_per_loop</span><span class="p">,</span>
         <span class="n">initial_lr</span><span class="o">=</span><span class="n">initial_lr_refit</span><span class="p">,</span> <span class="c1">## should start from last learning rate</span>
+        <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
         <span class="n">decay_factor</span><span class="o">=</span><span class="n">decay_factor_refit</span><span class="p">,</span>
         <span class="n">beta</span><span class="o">=</span><span class="n">beta_refit</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>

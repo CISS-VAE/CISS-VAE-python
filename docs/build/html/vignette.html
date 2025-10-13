@@ -425,6 +425,20 @@ searchspace = SearchSpace(
 </pre></div>
 </div>
 </div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-10-09 15:52:05,032] A new study created in memory with name: vae_autotune
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
+Starting Optuna optimization with 20 trials...
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/nfs/vaithid1/CISS-VAE/CISS-VAE/src/ciss_vae/training/autotune.py:549: ExperimentalWarning: set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+  study.set_metric_names([&quot;Validation MSE&quot;])
+[I 2025-10-09 16:12:32,538] Trial 0 finished with value: {&#39;Validation MSE&#39;: 5.61246919631958} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.00039843586858746887, &#39;decay_factor&#39;: 0.9684395881174177, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 0 with value: 5.61246919631958.
+</pre></div>
+</div>
+</div>
 </div>
 </section>
 <section id="optional-using-optuna-dashboard">

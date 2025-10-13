@@ -36,6 +36,7 @@ def run_cissvae(
     epochs = 500, 
     initial_lr = 0.01, 
     decay_factor = 0.999, 
+    weight_decay = 0.001,
     beta= 0.001, 
     device = None, 
     ## initial training params
@@ -323,6 +324,7 @@ def run_cissvae(
         epochs=epochs,
         initial_lr=initial_lr,
         decay_factor=decay_factor,
+        weight_decay = weight_decay,
         beta=beta,
         device=device,
         verbose=verbose,
@@ -335,6 +337,7 @@ def run_cissvae(
         epochs=epochs,
         initial_lr=initial_lr,
         decay_factor=decay_factor,
+        weight_decay = weight_decay,
         beta=beta,
         device=device,
         verbose=verbose,
@@ -348,6 +351,7 @@ def run_cissvae(
         patience=patience,
         epochs_per_loop=epochs_per_loop,
         initial_lr=initial_lr_refit, ## should start from last learning rate
+        weight_decay = weight_decay,
         decay_factor=decay_factor_refit,
         beta=beta_refit,
         device=device,

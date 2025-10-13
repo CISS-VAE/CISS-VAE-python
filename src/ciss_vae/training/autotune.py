@@ -75,6 +75,7 @@ class SearchSpace:
                  output_shared=[True,False],
                  lr=(1e-4, 1e-3),
                  decay_factor=(0.9, 0.999),
+                 weight_decay =0.001,
                  beta=0.01,
                  num_epochs=1000,
                  batch_size=64,
@@ -93,6 +94,7 @@ class SearchSpace:
         self.output_shared = output_shared
         self.lr = lr
         self.decay_factor = decay_factor
+        self.weight_decay = weight_decay
         self.beta = beta
         self.num_epochs = num_epochs
         self.batch_size = batch_size
@@ -265,7 +267,7 @@ def autotune(
     # ------------------------------------------------
     # Wrapper for train_initial and impute_refit functions that uses track()
     # ------------------------------------------------
-    def train_vae_initial_with_progress(model, train_loader, epochs, initial_lr, decay_factor, beta, device, verbose_inner=False):
+    def train_vae_initial_with_progress(model, train_loader, epochs, initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False):
         """Wrapper for train_vae_initial that uses Rich track() for progress"""
         if show_progress:
             # Create a simple progress tracker using track()
@@ -280,6 +282,7 @@ def autotune(
                     decay_factor=decay_factor,
                     beta=beta,
                     device=device,
+                    weight_decay = weight_decay,
                     verbose=False  # Disable verbose to avoid spam
                 )
         else:
@@ -290,6 +293,7 @@ def autotune(
                 epochs=epochs,
                 initial_lr=initial_lr,
                 decay_factor=decay_factor,
+                weight_decay = weight_decay,
                 beta=beta,
                 device=device,
                 verbose=verbose_inner
@@ -297,7 +301,7 @@ def autotune(
         return model
     
     def impute_and_refit_loop_with_progress(model, train_loader, max_loops, patience, epochs_per_loop, 
-                                          initial_lr, decay_factor, beta, device, verbose_inner=False, batch_size=64):
+                                          initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False, batch_size=64, ):
         """Wrapper for impute_and_refit_loop that uses Rich track() for progress"""
         if show_progress:
             # Estimate total epochs for progress bar
@@ -327,6 +331,7 @@ def autotune(
                 epochs_per_loop=epochs_per_loop,
                 initial_lr=initial_lr,
                 decay_factor=decay_factor,
+                weight_decay = weight_decay,
                 beta=beta,
                 device=device,
                 verbose=verbose_inner,
@@ -343,6 +348,7 @@ def autotune(
                 epochs_per_loop=epochs_per_loop,
                 initial_lr=initial_lr,
                 decay_factor=decay_factor,
+                weight_decay = weight_decay,
                 beta=beta,
                 device=device,
                 verbose=verbose_inner,
@@ -407,6 +413,7 @@ def autotune(
         output_shared = sample_param(trial, "output_shared", search_space.output_shared)
         learning_rate = sample_param(trial, "lr", search_space.lr)
         decay_factor = sample_param(trial, "decay_factor", search_space.decay_factor)
+        weight_decay = sample_param(trial, "weight_decay", search_space.weight_decay)
         beta = sample_param(trial, "beta", search_space.beta)
         num_epochs = sample_param(trial, "num_epochs", search_space.num_epochs)
         batch_size = sample_param(trial, "batch_size", search_space.batch_size)
@@ -491,6 +498,7 @@ def autotune(
                 epochs=num_epochs,
                 initial_lr=learning_rate,
                 decay_factor=decay_factor,
+                weight_decay=weight_decay,
                 beta=beta,
                 device=device,
                 verbose_inner=verbose
@@ -504,6 +512,7 @@ def autotune(
                 epochs_per_loop=epochs_per_loop,
                 initial_lr=lr_refit,
                 decay_factor=decay_factor,
+                weight_decay=weight_decay,
                 beta=beta,
                 device=device,
                 verbose_inner=verbose,
@@ -635,7 +644,7 @@ def autotune(
     refit_loops = int(get_best_param("refit_loops"))
     epochs_per_loop = int(get_best_param("epochs_per_loop"))
     reset_lr_refit = bool(get_best_param("reset_lr_refit"))
-    
+    weight_decay = float(get_best_param("weight_decay"))
     # ---------------------------
     # Build & train final model
     # ---------------------------
@@ -669,6 +678,7 @@ def autotune(
                     epochs=1,
                     initial_lr=lr,
                     decay_factor=decay_factor,
+                    weight_decay = weight_decay,
                     beta=beta,
                     device=device,
                     verbose=False,
@@ -687,6 +697,7 @@ def autotune(
                     epochs=1,
                     initial_lr=lr,
                     decay_factor=decay_factor,
+                    weight_decay = weight_decay,
                     beta=beta,
                     device=device,
                     verbose=False,
@@ -718,6 +729,7 @@ def autotune(
             epochs_per_loop=epochs_per_loop,
             initial_lr=lr,
             decay_factor=decay_factor,
+            weight_decay = weight_decay,
             beta=beta,
             device=device,
             verbose=verbose,
@@ -736,6 +748,7 @@ def autotune(
                 epochs=num_epochs,
                 initial_lr=lr,
                 decay_factor=decay_factor,
+                weight_decay = weight_decay,
                 beta=beta,
                 device=device,
                 verbose=verbose,
@@ -753,6 +766,7 @@ def autotune(
                 epochs=num_epochs,
                 initial_lr=lr,
                 decay_factor=decay_factor,
+                weight_decay = weight_decay,
                 beta=beta,
                 device=device,
                 verbose=verbose,
@@ -767,6 +781,7 @@ def autotune(
             epochs_per_loop=epochs_per_loop,
             initial_lr=lr,
             decay_factor=decay_factor,
+            weight_decay = weight_decay,
             beta=beta,
             device=device,
             verbose=verbose

@@ -18,7 +18,8 @@ def train_vae_refit(model,
     beta=0.1,
     device="cpu", 
     verbose=False, 
-    progress_callback = None):
+    progress_callback = None,
+    weight_decay = 0.001):
     """Train the VAE model on imputed data without masking for one refit iteration.
     
     Performs training on the complete imputed dataset.
@@ -45,7 +46,7 @@ def train_vae_refit(model,
     :rtype: torch.nn.Module
     """
     model.to(device)
-    optimizer = Adam(model.parameters(), lr=initial_lr)
+    optimizer = Adam(model.parameters(), lr=initial_lr, weight_decay = weight_decay)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
     refit_history = pd.DataFrame()
 
@@ -132,7 +133,7 @@ def train_vae_refit(model,
 
 
 def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
-                          epochs_per_loop=5, initial_lr=None, decay_factor=0.999,
+                          epochs_per_loop=5, initial_lr=None, decay_factor=0.999, weight_decay = 0.001,
                           beta=0.1, device="cpu", verbose=False, batch_size=4000,
                           progress_epoch=None):
     """Iterative impute-refit loop with validation MSE early stopping.
@@ -274,6 +275,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
             initial_lr=refit_lr,
             decay_factor=decay_factor,
             beta=beta,
+            weight_decay = weight_decay,
             device=device,
             verbose=verbose,
             progress_callback = progress_epoch
