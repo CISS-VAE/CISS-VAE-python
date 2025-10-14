@@ -110,6 +110,8 @@ class CISSVAE(nn.Module):
         mask = None
         if binary_feature_mask is not None:
             # Accept torch.Tensor or sequence of bools; validate length
+            if(self.debug):
+                print(f"Binary Feature Mask: {binary_feature_mask}\n\n")
             mask = torch.as_tensor(binary_feature_mask, dtype=torch.bool)
             if mask.ndim != 1 or mask.numel() != input_dim:
                 raise ValueError("binary_feature_mask must be a 1D boolean vector of length input_dim.")
@@ -522,6 +524,8 @@ class CISSVAE(nn.Module):
         Returns:
             Tensor of same shape with sigmoid applied only to binary columns.
         """
+        if(self.debug):
+                print(f"From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n")
         if logits.shape[1] != self.input_dim:
             raise RuntimeError("Output dim mismatch; expected last dim == input_dim.")
         if self.binary_mask is None:

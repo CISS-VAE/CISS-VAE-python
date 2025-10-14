@@ -25,6 +25,7 @@ The R package associated with this model can be found at `rCISS-VAE <https://cis
 
    quickstart.ipynb
    vignette.ipynb
+   binary_vignette.ipynb
    missingness_prop_vignette.ipynb
    dni_vignette.ipynb
    api
