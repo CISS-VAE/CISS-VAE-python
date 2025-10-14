@@ -314,7 +314,8 @@ def run_cissvae(
         latent_shared = latent_shared,
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
-        debug = debug
+        debug = debug,
+        binary_feature_mask = dataset.binary_feature_mask
     )
 
     if return_history: 
