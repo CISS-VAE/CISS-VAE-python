@@ -373,7 +373,7 @@ class CISSVAE(nn.Module):
                                  dtype=z.dtype)
             for cluster_mask, z_out in outputs:
                 logits[cluster_mask] = z_out
-            return self._apply_output_activations(logits)
+        return self._apply_output_activations(logits)
 
     def forward(self, x, cluster_labels):
         r"""
