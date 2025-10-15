@@ -79,7 +79,7 @@ def train_vae_initial(
 
         for batch in train_loader:
             # print(f"Batch is: {len(batch)}\n")
-            x_batch, cluster_batch, mask_batch, idx_batch = batch
+            x_batch, cluster_batch, mask_batch, idx_batch= batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
             mask_batch = mask_batch.to(device)
@@ -92,9 +92,10 @@ def train_vae_initial(
             recon_x, mu, logvar = model(x_batch, cluster_batch)
 
             loss, recon_loss, kl_loss = loss_function(
-                cluster_batch, mask_batch, recon_x, x_batch, mu, logvar,
+                cluster_batch, mask_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta,
-                return_components=True
+                return_components=True,
+                device = device
             )
 
 

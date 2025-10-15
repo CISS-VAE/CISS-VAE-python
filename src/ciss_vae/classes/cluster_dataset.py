@@ -138,7 +138,10 @@ class ClusterDataset(Dataset):
             else:
                 self.columns_ignore = list(columns_ignore)
 
-        self.binary_feature_mask = binary_feature_mask
+        if binary_feature_mask is None:
+            self.binary_feature_mask = None
+        else:
+            self.binary_feature_mask = np.array(binary_feature_mask)
 
         ## set to one cluster as default
 
@@ -380,8 +383,17 @@ class ClusterDataset(Dataset):
 
         self.feature_stds[self.feature_stds == 0] = 1.0  # avoid division by zero
 
-        ## Normalize (in-place)
-        norm_data_np = (data_np - self.feature_means) / self.feature_stds
+        
+
+        if self.binary_feature_mask is not None:
+            norm_data_cont = (data_np - self.feature_means) / self.feature_stds
+            norm_data_np = data_np * self.binary_feature_mask + norm_data_cont * ~self.binary_feature_mask
+
+        else:
+            ## Normalize (in-place)
+            norm_data_np = (data_np - self.feature_means) / self.feature_stds
+
+
         self.data = torch.tensor(norm_data_np, dtype=torch.float32)
 
         # ----------------------------------------
@@ -416,7 +428,7 @@ class ClusterDataset(Dataset):
             self.data[index],            # input with missing replaced
             self.cluster_labels[index], # cluster label
             self.masks[index],          # binary mask
-            self.indices[index]         # original row index
+            self.indices[index],         # original row index
         )
 
     def __repr__(self):

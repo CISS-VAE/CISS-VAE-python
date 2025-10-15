@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
 import pandas as pd
 from ciss_vae.classes.vae import CISSVAE
 import copy
@@ -388,51 +389,158 @@ def compute_val_mse(model, dataset, device="cpu"):
     """
     model.eval()
 
-    # Get normalized inputs and val data
-    full_x = dataset.data.to(device)                       # (N, D), normalized
-    full_cluster = dataset.cluster_labels.to(device)       # (N,)
-    val_data = dataset.val_data.to(device)                 # (N, D), not normalized
-    val_mask = ~torch.isnan(val_data)                      # (N, D)
+    # Inputs
+    full_x = dataset.data.to(device)                 # (N, D) normalized
+    full_cluster = dataset.cluster_labels.to(device) # (N,)
+    val_data = dataset.val_data.to(device)           # (N, D) original scale
+    val_mask = ~torch.isnan(val_data)                # (N, D) bool: True = observed (validation target exists)
 
-    with torch.no_grad():
-        recon_x, _, _ = model(full_x, full_cluster)        # normalized output
+    # feature stats
+    means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
+    stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)  # (D,)
 
-    # Retrieve per-feature stats
-    means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
-    stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
-
-        # 🔎 Check for zero std features
+    # avoid div-by-zero on denorm
     zero_std_idx = torch.where(stds == 0)[0]
     if zero_std_idx.numel() > 0:
-        bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
-        print(
-            f"[Warning] {len(bad_feats)} feature(s) have std == 0. "
-            f"Replaced with 1.0. Features: {bad_feats}"
-        )
-        stds[zero_std_idx] = 1.0  # safe replacement
+        bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()] if hasattr(dataset, "feature_names") else zero_std_idx.tolist()
+        print(f"[Warning] {len(bad_feats)} feature(s) have std == 0. Replaced with 1.0. Features: {bad_feats}")
+        stds = stds.clone()
+        stds[zero_std_idx] = 1.0
+
+    # binary mask (D,) → bool, on device
+    bin_mask_1d = torch.as_tensor(getattr(dataset, "binary_feature_mask", None),
+                                  dtype=torch.bool, device=device) if getattr(dataset, "binary_feature_mask", None) is not None \
+                  else torch.zeros(full_x.shape[1], dtype=torch.bool, device=device)
+    cont_mask_1d = ~bin_mask_1d
+
+    with torch.no_grad():
+        # recon_x should already have sigmoid on binary cols 
+        recon_x, _, _ = model(full_x, full_cluster)   # (N, D)
+
+        # Denormalize only continuous columns; keep binary as probabilities
+        recon_denorm = recon_x.clone()
+
+        if cont_mask_1d.any():
+            # (N, C) = (N, D_cont) * std + mean  — broadcast via indexing
+            ccols = torch.nonzero(cont_mask_1d, as_tuple=False).squeeze(1)
+            recon_denorm[:, ccols] = recon_x[:, ccols] * stds[ccols] + means[ccols]
+
+        if bin_mask_1d.any():
+            # Guard against numerical edge-cases
+            bcols = torch.nonzero(bin_mask_1d, as_tuple=False).squeeze(1)
+            recon_denorm[:, bcols] = recon_denorm[:, bcols].clamp_(min=1e-7, max=1-1e-7)
+
+        # ---------------------------
+        # Continuous: MSE on val entries only
+        # ---------------------------
+        mse_loss = recon_denorm.new_zeros(())
+        if cont_mask_1d.any():
+            cont_mask_2d = cont_mask_1d.unsqueeze(0).expand_as(val_mask)       # (N, D)
+            use_mask_c = val_mask & cont_mask_2d                                # (N, D)
+            # elementwise squared error, then select masked elements
+            se = (recon_denorm - val_data).pow(2)
+            se_c = se[use_mask_c]
+            if se_c.numel() == 0:
+                raise ValueError("No validation continuous entries found.")
+            mse_loss = se_c.mean()  # mean over observed continuous validation entries
+
+        # ---------------------------
+        # Binary: BCE on val entries only
+        # ---------------------------
+        bce_loss = recon_denorm.new_zeros(())
+        if bin_mask_1d.any():
+            bin_mask_2d = bin_mask_1d.unsqueeze(0).expand_as(val_mask)         # (N, D)
+            use_mask_b = val_mask & bin_mask_2d
+            # slice to binary columns
+            bcols = torch.nonzero(bin_mask_1d, as_tuple=False).squeeze(1)
+            prob = recon_denorm[:, bcols]                       # (N, B)
+            target = val_data[:, bcols]                         # (N, B) expected 0/1
+            # elementwise BCE, then mask and mean
+            bce_elem = F.binary_cross_entropy(prob, target, reduction="none")  # (N, B)
+            bce_masked = bce_elem[use_mask_b[:, bcols]]
+            if bce_masked.numel() == 0:
+                # ok if there were no binary validation entries; keep as zero
+                pass
+            else:
+                bce_loss = bce_masked.mean()
+
+        total = (mse_loss + bce_loss).item()
+        return total
+
+    # model.eval()
+
+    # # Get normalized inputs and val data
+    # full_x = dataset.data.to(device)                       # (N, D), normalized
+    # full_cluster = dataset.cluster_labels.to(device)       # (N,)
+    # val_data = dataset.val_data.to(device)                 # (N, D), not normalized
+    # val_mask = ~torch.isnan(val_data)                      # (N, D)
+
+    # with torch.no_grad():
+    #     recon_x, _, _ = model(full_x, full_cluster)        # normalized output
+
+    # # Retrieve per-feature stats
+    # means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
+    # stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+
+    #     # Check for zero std features
+    # zero_std_idx = torch.where(stds == 0)[0]
+    # if zero_std_idx.numel() > 0:
+    #     bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
+    #     print(
+    #         f"[Warning] {len(bad_feats)} feature(s) have std == 0. "
+    #         f"Replaced with 1.0. Features: {bad_feats}"
+    #     )
+    #     stds[zero_std_idx] = 1.0  # safe replacement
+
+    # ## ---------------------------
+    # ## 15 OCT 2025 - Added handling for binary features
+    # ## ---------------------------
+
+    # # Denormalize model output
+    # if dataset.binary_feature_mask is None:
+    #     recon_x_denorm = recon_x * stds + means
+    #         ## Masked validation entries should not include the imputable_mask
+    #     squared_error = (recon_x_denorm - val_data) ** 2
+    #     masked_error = squared_error[val_mask]
+
+    #     if getattr(model, "debug", True):
+    #         print("[DEBUG] recon_x_denorm (first 2 rows):")
+    #         print(recon_x_denorm[:2])
+
+    #     if getattr(model, "debug", True):
+    #         print(f"[DEBUG] squared_error (first 2 rows): {squared_error[:2]}")
+    #         print(f"[DEBUG] val_mask (first 2 rows): {val_mask[:2]}")
+    #         print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
+
+    #     if masked_error.numel() == 0:
+    #         raise ValueError("No validation entries found. Increase `val_proportion` in ClusterDataset.")
+    #     return masked_error.mean().item()
+    # else:
+    #     recon_x_cont = recon_x * stds + means
+    #     recon_x_denorm = recon_x * dataset.binary_feature_mask + recon_x_cont * ~dataset.binary_feature_mask
+    #     if getattr(model, "debug", True):
+    #         print(f"[DEBUG]: Recon_x_cont: \n{recon_x_cont}\n\n Recon_x_denorm \n{recon_x_denorm}\n\n")
+    #         ## Err for continuous data
+    #     squared_error = (recon_x_denorm *  ~dataset.binary_feature_mask - val_data *  ~dataset.binary_feature_mask) ** 2
+    #     masked_error = squared_error[val_mask *  ~dataset.binary_feature_mask]
+        
+    #     y_true = val_data * dataset.binary_feature_mask
+    #     y_pred = recon_x_denorm * val_mask * dataset.binary_feature_mask
+    
+    #     bce_mat =  -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+
+    #     total_error = masked_error + bce_mat
+    #     if getattr(model, "debug", True):
+    #         print(f"[DEBUG]: masked_err_continuous: \n{masked_error}\n\n BCE matrix \n{bce_mat}\n\n")
+    #         print(f"[DEBUG]: total error: \n{total_error}\n\n")
+    #         ## err for binary data
+
+    #     return(np.mean(total_error))
 
 
-    # Denormalize model output
-    recon_x_denorm = recon_x * stds + means
 
-    if getattr(model, "debug", True):
-        print("[DEBUG] recon_x_denorm (first 2 rows):")
-        print(recon_x_denorm[:2])
 
-    # Only compute error on masked validation entries
-    ## Masked validation entries should not include the imputable_mask
-    squared_error = (recon_x_denorm - val_data) ** 2
-    masked_error = squared_error[val_mask]
-
-    if getattr(model, "debug", True):
-        print(f"[DEBUG] squared_error (first 2 rows): {squared_error[:2]}")
-        print(f"[DEBUG] val_mask (first 2 rows): {val_mask[:2]}")
-        print(f"[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}")
-
-    if masked_error.numel() == 0:
-        raise ValueError("No validation entries found. Increase `val_proportion` in ClusterDataset.")
-
-    return masked_error.mean().item()
+    
     
 
 
