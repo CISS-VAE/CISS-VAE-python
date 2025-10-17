@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import pandas as pd
 from ciss_vae.classes.vae import CISSVAE
 import copy
+import numpy as np
 
 def plot_vae_architecture(model: nn.Module, 
 title = None, 
@@ -370,7 +371,7 @@ def get_imputed(model, data_loader, device="cpu"):
 
 
 
-def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False):
+def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: float = 1e-7):
     """Compute MSE on validation-masked entries using consistent model predictions.
     
     Evaluates model performance by computing mean squared error between model predictions
@@ -440,11 +441,12 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False):
         # ------------------------
         # 2) Continuous: elementwise MSE, mask & normalize
         # ------------------------
-        mse_elem = (pred - val_data).pow(2)                       # (N, D)
-        mse_weight = use_c.to(pred.dtype)                         # (N, D) 0/1
-        mse_sum = (mse_elem * mse_weight).sum()
-        mse_den = mse_weight.sum().clamp_min(1.0)
-        mse = mse_sum / mse_den                                   # scalar
+        se = (pred - val_data).pow(2)                         # (N, D)
+        use_c = val_mask & cont_2d                            # (N, D)
+        mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
+        if(model.debug):
+            print(f"Maksed Error: {se[use_c]}\n\n")
+            print(f"MSE: {mse}\n\n")
 
         # ------------------------
         # 3) Binary: elementwise BCE, mask & normalize
@@ -486,6 +488,9 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False):
             bce = bce_sum / bce_den
         else:
             bce = pred.new_zeros(())
+
+        if(model.debug):
+            print(f"BCE: bce{bce}\n\n MSE: {mse}\n\n")
 
         # ------------------------
         # 4) Return combined metric
