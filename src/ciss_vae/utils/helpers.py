@@ -370,7 +370,7 @@ def get_imputed(model, data_loader, device="cpu"):
 
 
 
-def compute_val_mse(model, dataset, device="cpu"):
+def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False):
     """Compute MSE on validation-masked entries using consistent model predictions.
     
     Evaluates model performance by computing mean squared error between model predictions
@@ -388,84 +388,95 @@ def compute_val_mse(model, dataset, device="cpu"):
     :raises ValueError: If no validation entries are found in the dataset
     """
     model.eval()
-
-    # Inputs
-    full_x = dataset.data.to(device)                 # (N, D) normalized
+    # ------------------------
+    # 0) Pull tensors to device
+    # ------------------------
+    full_x = dataset.data.to(device)                 # (N, D), normalized
     full_cluster = dataset.cluster_labels.to(device) # (N,)
-    val_data = dataset.val_data.to(device)           # (N, D) original scale
-    val_mask = ~torch.isnan(val_data)                # (N, D) bool: True = observed (validation target exists)
+    val_data = dataset.val_data.to(device)           # (N, D), original scale
+    val_mask = ~torch.isnan(val_data)                # (N, D) bool: True where validation targets exist
 
-    # feature stats
     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
     stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)  # (D,)
-
-    # avoid div-by-zero on denorm
-    zero_std_idx = torch.where(stds == 0)[0]
-    if zero_std_idx.numel() > 0:
-        bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()] if hasattr(dataset, "feature_names") else zero_std_idx.tolist()
-        print(f"[Warning] {len(bad_feats)} feature(s) have std == 0. Replaced with 1.0. Features: {bad_feats}")
+    if (stds == 0).any():
+        # Replace zero std with 1.0 to avoid NaNs on denorm
         stds = stds.clone()
-        stds[zero_std_idx] = 1.0
+        stds[stds == 0] = 1.0
 
-    # binary mask (D,) → bool, on device
-    bin_mask_1d = torch.as_tensor(getattr(dataset, "binary_feature_mask", None),
-                                  dtype=torch.bool, device=device) if getattr(dataset, "binary_feature_mask", None) is not None \
-                  else torch.zeros(full_x.shape[1], dtype=torch.bool, device=device)
-    cont_mask_1d = ~bin_mask_1d
+    # Column mask of binaries (D,) -> bool on device
+    if getattr(dataset, "binary_feature_mask", None) is None:
+        bin_1d = torch.zeros(full_x.shape[1], dtype=torch.bool, device=device)
+    else:
+        bin_1d = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
+    cont_1d = ~bin_1d
 
+    # ------------------------
+    # 1) Forward pass
+    # ------------------------
     with torch.no_grad():
-        # recon_x should already have sigmoid on binary cols 
-        recon_x, _, _ = model(full_x, full_cluster)   # (N, D)
+        recon, _, _ = model(full_x, full_cluster)    # (N, D)
 
-        # Denormalize only continuous columns; keep binary as probabilities
-        recon_denorm = recon_x.clone()
+        # Clone so we can denormalize continuous columns only
+        recon_denorm = recon.clone()
 
-        if cont_mask_1d.any():
-            # (N, C) = (N, D_cont) * std + mean  — broadcast via indexing
-            ccols = torch.nonzero(cont_mask_1d, as_tuple=False).squeeze(1)
-            recon_denorm[:, ccols] = recon_x[:, ccols] * stds[ccols] + means[ccols]
+        # Denormalize continuous columns: recon * std + mean
+        if cont_1d.any():
+            ccols = torch.nonzero(cont_1d, as_tuple=False).squeeze(1)  # (Dc,)
+            recon_denorm[:, ccols] = recon[:, ccols] * stds[ccols] + means[ccols]
 
-        if bin_mask_1d.any():
-            # Guard against numerical edge-cases
-            bcols = torch.nonzero(bin_mask_1d, as_tuple=False).squeeze(1)
-            recon_denorm[:, bcols] = recon_denorm[:, bcols].clamp_(min=1e-7, max=1-1e-7)
+        # Binary columns should be probabilities already; clamp to avoid log(0)
+        if bin_1d.any():
+            bcols = torch.nonzero(bin_1d, as_tuple=False).squeeze(1)   # (Db,)
+            recon_denorm[:, bcols] = recon_denorm[:, bcols].clamp_(1e-7, 1 - 1e-7)
 
-        # ---------------------------
-        # Continuous: MSE on val entries only
-        # ---------------------------
-        mse_loss = recon_denorm.new_zeros(())
-        if cont_mask_1d.any():
-            cont_mask_2d = cont_mask_1d.unsqueeze(0).expand_as(val_mask)       # (N, D)
-            use_mask_c = val_mask & cont_mask_2d                                # (N, D)
-            # elementwise squared error, then select masked elements
-            se = (recon_denorm - val_data).pow(2)
-            se_c = se[use_mask_c]
-            if se_c.numel() == 0:
-                raise ValueError("No validation continuous entries found.")
-            mse_loss = se_c.mean()  # mean over observed continuous validation entries
+        # ------------------------
+        # 2) Continuous part: MSE on validation entries only
+        # ------------------------
+        mse = recon_denorm.new_zeros(())
+        if cont_1d.any():
+            cont_2d = cont_1d.unsqueeze(0).expand_as(val_mask)  # (N, D)
+            use_c = val_mask & cont_2d                          # (N, D)
+            if use_c.any():
+                se = (recon_denorm - val_data).pow(2)           # (N, D)
+                mse = se[use_c].mean()                          # scalar
 
-        # ---------------------------
-        # Binary: BCE on val entries only
-        # ---------------------------
-        bce_loss = recon_denorm.new_zeros(())
-        if bin_mask_1d.any():
-            bin_mask_2d = bin_mask_1d.unsqueeze(0).expand_as(val_mask)         # (N, D)
-            use_mask_b = val_mask & bin_mask_2d
-            # slice to binary columns
-            bcols = torch.nonzero(bin_mask_1d, as_tuple=False).squeeze(1)
-            prob = recon_denorm[:, bcols]                       # (N, B)
-            target = val_data[:, bcols]                         # (N, B) expected 0/1
-            # elementwise BCE, then mask and mean
-            bce_elem = F.binary_cross_entropy(prob, target, reduction="none")  # (N, B)
-            bce_masked = bce_elem[use_mask_b[:, bcols]]
-            if bce_masked.numel() == 0:
-                # ok if there were no binary validation entries; keep as zero
-                pass
-            else:
-                bce_loss = bce_masked.mean()
+        # ------------------------
+        # 3) Binary part: BCE on validation entries only
+        # ------------------------
+        bce = recon_denorm.new_zeros(())
+        if bin_1d.any():
+            bin_2d = bin_1d.unsqueeze(0).expand_as(val_mask)
+            use_b = val_mask & bin_2d                                  # (N, D)
 
-        total = (mse_loss + bce_loss).item()
-        return total
+            if use_b.any():
+                bcols = torch.nonzero(bin_1d, as_tuple=False).squeeze(1)  # (Db,)
+                prob   = recon_denorm[:, bcols]                            # (N, Db)  probs in [0,1]
+                target = val_data[:, bcols]                                # (N, Db)  expected 0/1
+
+                # Validate targets ONLY under the mask
+                use_b_bcols = use_b[:, bcols]                              # (N, Db) bool
+                masked_target = target[use_b_bcols]
+                masked_prob   = prob[use_b_bcols]
+
+                # Optional: strict validation (now safe—only masked values)
+                bad_any = (~torch.isfinite(masked_target)) | (masked_target < 0) | (masked_target > 1)
+                if bad_any.any():
+                    if not auto_fix_binary:
+                        # (you can keep your nice reporting here if you want)
+                        raise RuntimeError("Binary target(s) out of [0,1] under validation mask.")
+                    # Auto-fix masked targets
+                    # Simple and safe: threshold to {0,1}
+                    masked_target = (masked_target > 0.5).to(masked_target.dtype)
+
+                # Compute BCE ONLY on masked entries (so BCE never sees NaN/out-of-range)
+                bce_elem = F.binary_cross_entropy(masked_prob, masked_target, reduction='mean')
+                bce = bce_elem
+
+
+        # ------------------------
+        # 4) Sum the two components and return a Python float
+        # ------------------------
+        return (mse + bce).item()
 
     # model.eval()
 
