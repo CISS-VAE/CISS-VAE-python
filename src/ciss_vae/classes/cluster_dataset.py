@@ -95,7 +95,7 @@ class ClusterDataset(Dataset):
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
-    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None, val_seed = 42):
+    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None, val_seed = 42, binary_feature_mask = None):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
         Steps:
@@ -121,6 +121,8 @@ class ClusterDataset(Dataset):
         :param imputable: Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. 
         :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor, optional
         :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset
+        :type val_seed: int
+        :param binary_feature_mask: 1D bool vector of length 'input_dim' -> true if column is binary.
         """
 
         ## set seed for selecting valdata
@@ -135,6 +137,11 @@ class ClusterDataset(Dataset):
                 self.columns_ignore = columns_ignore.tolist()
             else:
                 self.columns_ignore = list(columns_ignore)
+
+        if binary_feature_mask is None:
+            self.binary_feature_mask = None
+        else:
+            self.binary_feature_mask = np.array(binary_feature_mask)
 
         ## set to one cluster as default
 
@@ -376,8 +383,17 @@ class ClusterDataset(Dataset):
 
         self.feature_stds[self.feature_stds == 0] = 1.0  # avoid division by zero
 
-        ## Normalize (in-place)
-        norm_data_np = (data_np - self.feature_means) / self.feature_stds
+        
+
+        if self.binary_feature_mask is not None:
+            norm_data_cont = (data_np - self.feature_means) / self.feature_stds
+            norm_data_np = data_np * self.binary_feature_mask + norm_data_cont * ~self.binary_feature_mask
+
+        else:
+            ## Normalize (in-place)
+            norm_data_np = (data_np - self.feature_means) / self.feature_stds
+
+
         self.data = torch.tensor(norm_data_np, dtype=torch.float32)
 
         # ----------------------------------------
@@ -412,7 +428,7 @@ class ClusterDataset(Dataset):
             self.data[index],            # input with missing replaced
             self.cluster_labels[index], # cluster label
             self.masks[index],          # binary mask
-            self.indices[index]         # original row index
+            self.indices[index],         # original row index
         )
 
     def __repr__(self):

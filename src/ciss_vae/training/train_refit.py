@@ -60,7 +60,7 @@ def train_vae_refit(model,
         for batch in imputed_data:
             # MODIFIED: Capture idx_batch properly instead of using *_
             # print(f"Batch is: {len(batch)}\n")
-            x_batch, cluster_batch, mask_batch, idx_batch = batch
+            x_batch, cluster_batch, mask_batch, idx_batch= batch
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
             mask_batch = mask_batch.to(device)
@@ -76,9 +76,10 @@ def train_vae_refit(model,
             
             # MODIFIED: Pass imputable_mask to loss function
             loss, _, _ = loss_function_nomask(
-                cluster_batch, recon_x, x_batch, mu, logvar,
+                cluster_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta, return_components=True,
-                imputable_mask=imputable_batch  # ADDED
+                imputable_mask=imputable_batch,  # ADDED
+                device = device
             )
 
             optimizer.zero_grad()

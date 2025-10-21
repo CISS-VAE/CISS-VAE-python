@@ -14,6 +14,7 @@ def run_cissvae(
     columns_ignore = None, 
     print_dataset = True, 
     imputable_matrix = None,
+    binary_feature_mask = None,
     ## dataset params
     clusters = None, 
     n_clusters = None,     
@@ -298,7 +299,8 @@ def run_cissvae(
                             val_proportion = val_proportion,
                             replacement_value = replacement_value, 
                             columns_ignore = columns_ignore,
-                            imputable = imputable_matrix)
+                            imputable = imputable_matrix,
+                            binary_feature_mask=binary_feature_mask)
 
     if print_dataset:
         print("Cluster dataset:\n", dataset)
@@ -314,7 +316,8 @@ def run_cissvae(
         latent_shared = latent_shared,
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
-        debug = debug
+        debug = debug,
+        binary_feature_mask = dataset.binary_feature_mask
     )
 
     if return_history: 

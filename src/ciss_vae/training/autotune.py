@@ -488,7 +488,8 @@ def autotune(
                 latent_shared=latent_shared,
                 num_clusters=num_clusters,
                 latent_dim=latent_dim,
-                output_shared=output_shared
+                output_shared=output_shared,
+                binary_feature_mask = train_dataset.binary_feature_mask
             ).to(device)
             
             ## Use progress wrappers instead of original functions
@@ -660,7 +661,8 @@ def autotune(
         latent_shared=latent_shared,
         num_clusters=num_clusters,
         latent_dim=latent_dim,
-        output_shared=output_shared
+        output_shared=output_shared,
+        binary_feature_mask = train_dataset.binary_feature_mask
     ).to(device)
     
     # Initialize history tracking for final model

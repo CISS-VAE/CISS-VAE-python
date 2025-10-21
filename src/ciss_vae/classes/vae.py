@@ -3,11 +3,13 @@ Variational Autoencoder with cluster‑aware shared/unshared layers.
 
 This module defines :class:`CISSVAE`, a VAE that can route samples through
 either **shared** or **cluster‑specific** (unshared) layers in the encoder and
-decoder, controlled by per‑layer directives.
+decoder, controlled by per‑layer directives. For binary features, a sigmoid activation function is applied at the end to get probabilities.
+
 """
 
 import torch
 import torch.nn as nn
+from typing import Iterable, Optional, Sequence, Union
 
 class CISSVAE(nn.Module):
     r"""
@@ -60,7 +62,11 @@ class CISSVAE(nn.Module):
                  latent_dim,
                  output_shared,
                  num_clusters,
-                 debug=False):
+                 debug=False,
+                 # new optional inputs to define binary features at init time -> udpdate 14OCT2025
+                 binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
+                 feature_names: Optional[Sequence[str]] = None,
+                 binary_feature_names: Optional[Iterable[str]] = None):
         """
         Variational Autoencoder supporting flexible shared/unshared layers across clusters.
 
@@ -93,6 +99,35 @@ class CISSVAE(nn.Module):
         self.input_dim = input_dim
         self.output_shared = output_shared
         self.hidden_dims = hidden_dims
+
+        # -------------------------
+        # (NEW) Binary feature mask
+        # - Added 14 OCT 2025
+        # - Create a mask that dictates which features are binary and which are not 
+        # - allows for sigmoid at end for binary features only
+        # -------------------------
+        # We store this as a registered buffer so it follows the model to CUDA/CPU and into checkpoints.
+        mask = None
+        if binary_feature_mask is not None:
+            # Accept torch.Tensor or sequence of bools; validate length
+            if(self.debug):
+                print(f"Binary Feature Mask: {binary_feature_mask}\n\n")
+            mask = torch.as_tensor(binary_feature_mask, dtype=torch.bool)
+            if mask.ndim != 1 or mask.numel() != input_dim:
+                raise ValueError("binary_feature_mask must be a 1D boolean vector of length input_dim.")
+        elif (feature_names is not None) and (binary_feature_names is not None):
+            feat2idx = {name: i for i, name in enumerate(feature_names)}
+            mask = torch.zeros(input_dim, dtype=torch.bool)
+            for bname in binary_feature_names:
+                if bname not in feat2idx:
+                    raise ValueError(f"Binary feature name '{bname}' not found in feature_names.")
+                mask[feat2idx[bname]] = True
+        else:
+            # Default: if nothing provided, treat no columns as binary until user sets it.
+            mask = torch.zeros(input_dim, dtype=torch.bool)
+
+        # register as buffer to track with device / state_dict
+        self.register_buffer("binary_mask", mask)  # shape: (input_dim,)
 
         # ----------------------------
         # Encoder: shared and unshared
@@ -318,8 +353,12 @@ class CISSVAE(nn.Module):
             self.cluster_decoder_layers
         )
         ## final layer is nn.Linear
+        # ----------------------------------------
+        # 14 OCT 2025 - Add Logic for handling logit sigmoid thingie
+        # - gathers the final layers and applies the output activations according to the mask 
+        # ----------------------------------------
         if self.output_shared:
-            return self.final_layer(z)
+            logits = self.final_layer(z)
         else:
             outputs = []
             for c in range(self.num_clusters):
@@ -329,12 +368,12 @@ class CISSVAE(nn.Module):
                     z_out = self.cluster_final_layer[str(c)](z_c)
                     outputs.append((cluster_mask, z_out))
             out_dim = outputs[0][1].shape[1]
-            output = torch.empty(z.shape[0], out_dim,
+            logits = torch.empty(z.shape[0], out_dim,
                                  device=z.device,
                                  dtype=z.dtype)
             for cluster_mask, z_out in outputs:
-                output[cluster_mask] = z_out
-            return output
+                logits[cluster_mask] = z_out
+        return self._apply_output_activations(logits)
 
     def forward(self, x, cluster_labels):
         r"""
@@ -468,5 +507,76 @@ class CISSVAE(nn.Module):
         recon_x_denorm[val_mask] = float('nan')
 
         return(recon_x_denorm)
+
+        # -----------------------------
+        # NEW -> handles sigmoid
+        # -----------------------------
+
+    def _apply_output_activations(self, logits: torch.Tensor) -> torch.Tensor:
+        """
+        Applies per-feature output activations:
+            - Binary columns (self.binary_mask == True) -> sigmoid
+            - Continuous columns -> identity (no activation)
+
+        Args:
+            logits: Tensor of shape (batch, input_dim) containing final-layer outputs.
+
+        Returns:
+            Tensor of same shape with sigmoid applied only to binary columns.
+        """
+        if(self.debug):
+                print(f"From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n")
+        if logits.shape[1] != self.input_dim:
+            raise RuntimeError("Output dim mismatch; expected last dim == input_dim.")
+        if self.binary_mask is None:
+            # Should not happen, but be safe
+            return logits
+
+        if not torch.any(self.binary_mask):
+            # No binary columns
+            return logits
+
+        # Clone only if needed; avoids extra mem if no binary cols.
+        out = logits.clone()
+        out[:, self.binary_mask] = torch.sigmoid(out[:, self.binary_mask])
+        return out
+
+        # -----------------------------
+        # NEW -> Add mask after initialization
+        # -----------------------------
+    @torch.no_grad()
+    def set_binary_features(self,
+                            mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
+                            feature_names: Optional[Sequence[str]] = None,
+                            binary_feature_names: Optional[Iterable[str]] = None) -> None:
+        """
+        Update which columns are treated as binary at the output.
+
+        You can pass either:
+          - mask: 1D bool vector length `input_dim`, or
+          - feature_names + binary_feature_names: names → mask is computed
+
+        This is safe to call after loading a model or dataset schema.
+
+        Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)
+        """
+        if mask is not None:
+            mask = torch.as_tensor(mask, dtype=torch.bool, device=self.binary_mask.device)
+            if mask.ndim != 1 or mask.numel() != self.input_dim:
+                raise ValueError("mask must be a 1D boolean vector of length input_dim.")
+            self.binary_mask.copy_(mask)  # in-place update to keep buffer reference
+            return
+
+        if (feature_names is None) or (binary_feature_names is None):
+            raise ValueError("Provide either `mask` or (`feature_names` and `binary_feature_names`).")
+
+        feat2idx = {name: i for i, name in enumerate(feature_names)}
+        newmask = torch.zeros(self.input_dim, dtype=torch.bool, device=self.binary_mask.device)
+        for bname in binary_feature_names:
+            if bname not in feat2idx:
+                raise ValueError(f"Binary feature name '{bname}' not found in feature_names.")
+            newmask[feat2idx[bname]] = True
+        self.binary_mask.copy_(newmask)
+
 
 
