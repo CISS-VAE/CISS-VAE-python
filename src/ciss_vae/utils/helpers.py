@@ -212,6 +212,7 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     :return: DataFrame containing imputed (unscaled) data with original row ordering
     :rtype: pandas.DataFrame
     """
+    model.eval()
     dataset = data_loader.dataset
     # -------------------------------
     # Get scaled impued data
@@ -221,32 +222,45 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
 
 
     # -------------------------------
-    # Unscale the imputed data
+    # Unscale the imputed data (only for continuous vars)
     # -------------------------------
-        
-    means = torch.tensor(imputed.feature_means, dtype=torch.float32)
-    stds = torch.tensor(imputed.feature_stds, dtype=torch.float32)
-    # Denormalize imputed values
-    x_all_denorm = x_all * stds + means
+    # Binary vs continuous mask
+    binary_feature_mask = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
+    cont_feat = ~binary_feature_mask  # continuous columns are True
+
+    # Full mean and std tensors
+    means = torch.as_tensor(imputed.feature_means, dtype=torch.float32, device=device)
+    stds  = torch.as_tensor(imputed.feature_stds,  dtype=torch.float32, device=device)
+
+    # Replace zero stds with 1.0 (avoid divide-by-zero or NaN)
+    stds = stds.clone()
+    stds[stds == 0] = 1.0
+
+    # Clone imputed data (still normalized)
+    x_all_denorm = x_all.clone()
+
+    # --- Only denormalize continuous columns ---
+    if cont_feat.any():
+        cont_idx = torch.nonzero(cont_feat, as_tuple=False).squeeze(1)
+        x_all_denorm[:, cont_idx] = x_all[:, cont_idx] * stds[cont_idx] + means[cont_idx]
+
+    # --- Binary columns are already sigmoid probabilities ---
+    if binary_feature_mask.any():
+        bin_idx = torch.nonzero(binary_feature_mask, as_tuple=False).squeeze(1)
+        # Clamp to [0,1] just to be safe
+        x_all_denorm[:, bin_idx] = x_all[:, bin_idx]
+
 
     # -------------------------------------
     # Replace validation-masked entries with true values
     # -------------------------------------
 
-     # Ensure val_data and val_mask are on the same device as x_all_denorm
+    # Ensure val_data and val_mask are on the same device as x_all_denorm
     val_data_tensor = dataset.val_data.to(x_all_denorm.device)
     val_mask_tensor = ~torch.isnan(val_data_tensor)
 
-    # NEW 11SEP2025: Only replace validation entries that are NOT in imputable positions
-    if hasattr(dataset, 'imputable') and dataset.imputable is not None:
-        imputable_mask = dataset.imputable.to(x_all_denorm.device)
-        # Only replace validation values where imputable allows it
-        valid_replacement_mask = val_mask_tensor & (imputable_mask == 1)
-        x_all_denorm[valid_replacement_mask] = val_data_tensor[valid_replacement_mask]
-    else:
-        # Original behavior if no imputable mask
-        # Overwrite imputed values with ground truth at validation positions
-        x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
+
+    x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
     
     # NEW 11SEP2025: Set imputable positions to NaN
     if hasattr(dataset, 'imputable') and dataset.imputable is not None:
