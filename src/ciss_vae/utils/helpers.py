@@ -225,30 +225,37 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     # Unscale the imputed data (only for continuous vars)
     # -------------------------------
     # Binary vs continuous mask
-    binary_feature_mask = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
-    cont_feat = ~binary_feature_mask  # continuous columns are True
+    if(dataset.binary_feature_mask is not None):
+        binary_feature_mask = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
+        cont_feat = ~binary_feature_mask  # continuous columns are True
 
-    # Full mean and std tensors
-    means = torch.as_tensor(imputed.feature_means, dtype=torch.float32, device=device)
-    stds  = torch.as_tensor(imputed.feature_stds,  dtype=torch.float32, device=device)
+        # Full mean and std tensors
+        means = torch.as_tensor(imputed.feature_means, dtype=torch.float32, device=device)
+        stds  = torch.as_tensor(imputed.feature_stds,  dtype=torch.float32, device=device)
 
-    # Replace zero stds with 1.0 (avoid divide-by-zero or NaN)
-    stds = stds.clone()
-    stds[stds == 0] = 1.0
+        # Replace zero stds with 1.0 (avoid divide-by-zero or NaN)
+        stds = stds.clone()
+        stds[stds == 0] = 1.0
 
-    # Clone imputed data (still normalized)
-    x_all_denorm = x_all.clone()
+        # Clone imputed data (still normalized)
+        x_all_denorm = x_all.clone()
 
-    # --- Only denormalize continuous columns ---
-    if cont_feat.any():
-        cont_idx = torch.nonzero(cont_feat, as_tuple=False).squeeze(1)
-        x_all_denorm[:, cont_idx] = x_all[:, cont_idx] * stds[cont_idx] + means[cont_idx]
+        # --- Only denormalize continuous columns ---
+        if cont_feat.any():
+            cont_idx = torch.nonzero(cont_feat, as_tuple=False).squeeze(1)
+            x_all_denorm[:, cont_idx] = x_all[:, cont_idx] * stds[cont_idx] + means[cont_idx]
 
-    # --- Binary columns are already sigmoid probabilities ---
-    if binary_feature_mask.any():
-        bin_idx = torch.nonzero(binary_feature_mask, as_tuple=False).squeeze(1)
-        # Clamp to [0,1] just to be safe
-        x_all_denorm[:, bin_idx] = x_all[:, bin_idx]
+        # --- Binary columns are already sigmoid probabilities ---
+        if binary_feature_mask.any():
+            bin_idx = torch.nonzero(binary_feature_mask, as_tuple=False).squeeze(1)
+            # Clamp to [0,1] just to be safe
+            x_all_denorm[:, bin_idx] = x_all[:, bin_idx]
+    else:
+        means = torch.tensor(imputed.feature_means, dtype=torch.float32)
+        stds = torch.tensor(imputed.feature_stds, dtype=torch.float32)
+        # Denormalize imputed values
+        x_all_denorm = x_all * stds + means
+
 
 
     # -------------------------------------
