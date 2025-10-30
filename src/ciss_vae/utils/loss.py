@@ -3,7 +3,7 @@ import torch.nn.functional as F
 import warnings ## let's see if/when my reconX goes nan
 
 def loss_function(cluster, mask, recon_x, x, binary_feature_mask, mu, 
-logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"):
+logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu", debug = False):
     """VAE loss function with masking and KL annealing.
     
     :param cluster: Cluster labels, shape ``(batch_size,)``
@@ -54,8 +54,9 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
         mse_loss = F.mse_loss(recon_x*mask*cont_feat, x*mask*cont_feat, reduction='sum')
         bce_loss = F.binary_cross_entropy(recon_x*mask*binary_feature_mask, x*mask*binary_feature_mask, reduction = 'sum')
         sum_loss = mse_loss + bce_loss
+        if debug:
+            print(f"Loss Function Initial: sum_loss {sum_loss} = mse_loss {mse_loss} + bce_loss {bce_loss}\n\n")
 
-    # print(f"mse_loss\n{mse_loss} = F.mse_loss(recon_x\n{recon_x}*mask\n{mask}, x\n{x}*mask\n{mask}, reduction='sum')")
 
     ## KL divergence loss
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -72,7 +73,7 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
 
 
 def loss_function_nomask(cluster, recon_x, x, binary_feature_mask, mu, 
-logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"):
+logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu", debug = False):
     """VAE loss function without masking and with KL annealing.
     
     :param cluster: Cluster labels, shape ``(batch_size,)``
@@ -124,6 +125,8 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
             mse_loss = F.mse_loss(recon_x* imputable_mask*cont_feat, x*imputable_mask*cont_feat, reduction='sum')
             bce_loss = F.binary_cross_entropy(recon_x*imputable_mask*binary_feature_mask, x*imputable_mask*binary_feature_mask, reduction = 'sum')
             sum_loss = mse_loss + bce_loss
+            if debug:
+                print(f"Loss Function Refit: sum_loss {sum_loss} = mse_loss {mse_loss} + bce_loss {bce_loss}\n\n")
     else:
         # Original behavior if no mask provided
         if binary_feature_mask is None:
@@ -135,6 +138,8 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
             mse_loss = F.mse_loss(recon_x*cont_feat, x*cont_feat, reduction='sum')
             bce_loss = F.binary_cross_entropy(recon_x*binary_feature_mask, x*binary_feature_mask, reduction = 'sum')
             sum_loss = mse_loss + bce_loss
+            if debug:
+                print(f"Loss Function Refit: sum_loss {sum_loss} = mse_loss {mse_loss} + bce_loss {bce_loss}\n\n")
 
     ## KL divergence loss
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())

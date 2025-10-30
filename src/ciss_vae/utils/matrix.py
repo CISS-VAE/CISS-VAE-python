@@ -67,6 +67,7 @@ def create_missingness_prop_matrix(
     timepoint_prefix: Optional[str] = None,
     nonint_timepoint: bool = False,
     column_mapping: Optional[Dict[str, List[str]]] = None,
+    loose = False,
 ) -> MissingnessMatrix:
     """
     Create a missingness proportion matrix summarizing feature-level missingness per sample.
@@ -184,6 +185,8 @@ def create_missingness_prop_matrix(
                 pattern = rf"^{feat_escaped}_[A-Za-z0-9]+$"
             elif timepoint_prefix:
                 pattern = rf"^{feat_escaped}_{re.escape(timepoint_prefix)}\d+$"
+            elif loose:
+                pattern = rf"^{feat_escaped}"
             else:
                 pattern = rf"^{feat_escaped}_\d+$"
             matching_cols = [c for c in feature_candidate_cols if re.match(pattern, c)]

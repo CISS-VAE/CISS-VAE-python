@@ -79,7 +79,8 @@ def train_vae_refit(model,
                 cluster_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta, return_components=True,
                 imputable_mask=imputable_batch,  # ADDED
-                device = device
+                device = device,
+                debug = model.debug
             )
 
             optimizer.zero_grad()

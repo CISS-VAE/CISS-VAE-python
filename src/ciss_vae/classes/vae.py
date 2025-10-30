@@ -249,13 +249,13 @@ class CISSVAE(nn.Module):
         shared_idx = 0
         unshared_idx = {str(c): 0 for c in range(self.num_clusters)}
 
-        if self.debug:
-            input_hash = torch.arange(x.shape[0], device=x.device)
-            print(f"layer_type_list: {layer_type_list}")
-            print(f"num_clusters: {self.num_clusters}")
-            for c in range(self.num_clusters):
-                print(f"Cluster {c} unshared layers: {len(unshared_layers[str(c)])}")
-            print(f"Number of unshared layers needed: {layer_type_list.count('unshared')}")
+        # if self.debug:
+        #     input_hash = torch.arange(x.shape[0], device=x.device)
+        #     print(f"layer_type_list: {layer_type_list}")
+        #     print(f"num_clusters: {self.num_clusters}")
+        #     for c in range(self.num_clusters):
+        #         print(f"Cluster {c} unshared layers: {len(unshared_layers[str(c)])}")
+        #     print(f"Number of unshared layers needed: {layer_type_list.count('unshared')}")
 
         for layer_num, layer_type in enumerate(layer_type_list):
             if layer_type.lower() in ["shared", "s"]:
@@ -280,9 +280,9 @@ class CISSVAE(nn.Module):
                 for c in range(self.num_clusters):
                     unshared_idx[str(c)] += 1
 
-        if self.debug:
-            out_hash = torch.arange(x.shape[0], device=x.device)
-            assert torch.equal(input_hash, out_hash), "Row order mismatch!"
+        # if self.debug:
+        #     out_hash = torch.arange(x.shape[0], device=x.device)
+        #     assert torch.equal(input_hash, out_hash), "Row order mismatch!"
         return x
 
     def encode(self, x, cluster_labels):
@@ -387,13 +387,13 @@ class CISSVAE(nn.Module):
         :returns: Tuple ``(recon, mu, logvar)``.
         :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
         """
-        if self.debug:
-            print(f"[DEBUG] Forward start: {x.shape}")
+        # if self.debug:
+        #     print(f"[DEBUG] Forward start: {x.shape}")
         mu, logvar = self.encode(x, cluster_labels)
         z = self.reparameterize(mu, logvar)
         recon = self.decode(z, cluster_labels)
-        if self.debug:
-            print(f"[DEBUG] Forward end: {recon.shape}")
+        # if self.debug:
+        #     print(f"[DEBUG] Forward end: {recon.shape}")
         return recon, mu, logvar
 
     def __repr__(self):
@@ -424,6 +424,10 @@ class CISSVAE(nn.Module):
             in_dim = out_dim
         lines.append(f"\nFinal Output Layer: {in_dim} → {self.input_dim}")
         return "\n".join(lines)
+
+    def __str__(self):
+        """Mimics repr"""
+        return self.__repr__()
         
     def set_final_lr(self, final_lr):
         """Stores final lr from initial training loop in model attributes to be accessed in refit loop."""
@@ -524,8 +528,8 @@ class CISSVAE(nn.Module):
         Returns:
             Tensor of same shape with sigmoid applied only to binary columns.
         """
-        if(self.debug):
-                print(f"From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n")
+        # if(self.debug):
+        #         print(f"From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n")
         if logits.shape[1] != self.input_dim:
             raise RuntimeError("Output dim mismatch; expected last dim == input_dim.")
         if self.binary_mask is None:

@@ -4,7 +4,7 @@ import torch.optim as optim
 from torch.optim import lr_scheduler
 from ciss_vae.utils.loss import loss_function
 import torch.nn.functional as F
-from ciss_vae.utils.helpers import compute_val_mse
+from ciss_vae.utils.helpers import compute_val_mse, get_imputed_df
 
 def train_vae_initial(
     model,
@@ -95,8 +95,10 @@ def train_vae_initial(
                 cluster_batch, mask_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta,
                 return_components=True,
-                device = device
+                device = device,
+                debug = model.debug
             )
+            
 
 
             ## Backprop
@@ -153,5 +155,8 @@ def train_vae_initial(
     # Build a DataFrame and attach to the model
     history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "val_mse", "lr"])
     model.training_history_ = history_df
+    if model.debug:
+        val_df = get_imputed_df(model, train_loader, device)
+        val_df.to_csv("val_df_preloop.csv")
 
     return (model, history_df) if return_history else model

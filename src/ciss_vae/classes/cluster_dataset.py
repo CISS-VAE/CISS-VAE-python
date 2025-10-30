@@ -128,7 +128,7 @@ class ClusterDataset(Dataset):
         ## set seed for selecting valdata
         self._rng = np.random.default_rng(val_seed)
 
-        ## set columns ignore 
+        ## set columns ignore -> no validation data selected from these columns
         if columns_ignore is None:
             self.columns_ignore = []
         else:
@@ -143,7 +143,7 @@ class ClusterDataset(Dataset):
         else:
             self.binary_feature_mask = np.array(binary_feature_mask)
 
-        ## set to one cluster as default
+        ## set to one cluster as default!!
 
         # ----------------------------------------
         # Convert input data to numpy
@@ -257,8 +257,8 @@ class ClusterDataset(Dataset):
                 cluster_labels_np = cluster_labels.cpu().numpy()
             else:
                 raise TypeError("Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.")
-
-            self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
+        ## cluster labels stored as torch tensor
+        self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
 
         self.n_clusters = len(np.unique(cluster_labels_np))
         unique_clusters = np.unique(cluster_labels_np)
@@ -350,6 +350,8 @@ class ClusterDataset(Dataset):
                 val_mask_np[row_idxs[chosen_local], col] = True
 
         val_mask_tensor = torch.tensor(val_mask_np, dtype=torch.bool)
+        ## val_mask is a tensor
+        self.val_mask = val_mask_tensor
 
         # ----------------------------------------
         # Set aside val_data
@@ -410,6 +412,7 @@ class ClusterDataset(Dataset):
         :return: ``N`` (number of rows).
         """
         return len(self.data)
+
 
     def __getitem__(self, index):
         """

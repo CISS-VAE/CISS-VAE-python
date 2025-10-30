@@ -463,11 +463,24 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: 
         # 2) Continuous: elementwise MSE, mask & normalize
         # ------------------------
         se = (pred - val_data).pow(2)                         # (N, D)
+        if model.debug:
+            np.savetxt("predicted_vals.csv", pred.numpy(), delimiter=",")
+            np.savetxt("valdata.csv", val_data.numpy(), delimiter=",")
+            np.savetxt("se.csv", se.numpy(), delimiter=",")
+
+        
+
         use_c = val_mask & cont_2d                            # (N, D)
         mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
         if(model.debug):
-            print(f"Maksed Error: {se[use_c]}\n\n")
+            print(f"Masked Error: {min(se[use_c])}, {max(se[use_c])} \n")
             print(f"MSE: {mse}\n\n")
+            mse_elem = F.mse_loss(pred, val_data, reduction="none")
+            print(
+                f"MSE_elem: min={mse_elem[use_c].min().item():.6g}, "
+                f"max={mse_elem[use_c].max().item():.6g} | "
+                f"MSE_mean(masked)={(mse_elem[use_c].mean().item() if use_c.any() else float('nan')):.6g}"
+            )
 
         # ------------------------
         # 3) Binary: elementwise BCE, mask & normalize
@@ -502,11 +515,21 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: 
             target_full = target_b[:, bin_1d]                      # (N, Db)
             bce_elem = F.binary_cross_entropy(prob_full, target_full, reduction='none')  # (N, Db)
 
+
             # Weight by validation mask on the same columns
             bmask_full = use_b[:, bin_1d].to(bce_elem.dtype)       # (N, Db)
             bce_sum = (bce_elem * bmask_full).sum()
             bce_den = bmask_full.sum().clamp_min(1.0)
             bce = bce_sum / bce_den
+            if model.debug:
+                # use the (N, Db) mask we already built
+                masked_bce = bce_elem.masked_select(bmask_full.bool())
+                if masked_bce.numel() > 0:
+                    print(f"BCE Elems: min = {masked_bce.min().item()}, max = {masked_bce.max().item()}\n")
+                else:
+                    print("BCE Elems: (no validated binary entries)\n")
+                print(f"BCE: {bce.item()}\n")
+
         else:
             bce = pred.new_zeros(())
 
