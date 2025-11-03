@@ -59,11 +59,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="../api.html#classes">Classes</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html">ciss_vae.classes.vae.CISSVAE</a></li>
@@ -244,6 +245,16 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dl>
 </dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.binary_feature_mask">
+<span class="sig-name descname"><span class="pre">binary_feature_mask</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.binary_feature_mask" title="Link to this definition"></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.array(bool)</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -262,7 +273,7 @@ after validation masking; zero stds are set to 1 to avoid division by zero.</p><
 </ul>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imputable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_proportion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">replacement_value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imputable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">42</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__" title="Link to this definition"></a></dt>
 <dd><p>Build the dataset, apply per-cluster validation masking, and normalize.</p>
 <p>Steps:
 1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
@@ -286,7 +297,8 @@ normalization; then replace remaining NaNs with <code class="docutils literal no
 <li><p><strong>replacement_value</strong> (<em>float</em><em>, </em><em>optional</em>) – Value to fill missing/held-out entries in <code class="docutils literal notranslate"><span class="pre">self.data</span></code> after masking, defaults to 0</p></li>
 <li><p><strong>columns_ignore</strong> (<em>list</em><em>[</em><em>str</em><em> or </em><em>int</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None</p></li>
 <li><p><strong>imputable</strong> (<em>pandas.DataFrame</em><em> | </em><em>numpy.ndarray</em><em> | </em><em>torch.Tensor</em><em>, </em><em>optional</em>) – Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>. Should be same shape as <code class="docutils literal notranslate"><span class="pre">data</span></code>.</p></li>
-<li><p><strong>val_seed</strong> – Optional (default 42), seed for random number generator for selecting validation dataset</p></li>
+<li><p><strong>val_seed</strong> (<em>int</em>) – Optional (default 42), seed for random number generator for selecting validation dataset</p></li>
+<li><p><strong>binary_feature_mask</strong> (<em>list</em><em>[</em><em>bool</em><em>]</em>) – 1D bool vector of length ‘input_dim’ -&gt; true if column is binary.</p></li>
 </ul>
 </dd>
 </dl>

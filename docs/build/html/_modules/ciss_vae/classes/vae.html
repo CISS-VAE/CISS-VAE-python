@@ -8,7 +8,7 @@
   <title>ciss_vae.classes.vae &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -56,11 +56,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -94,11 +95,13 @@
 
 <span class="sd">This module defines :class:`CISSVAE`, a VAE that can route samples through</span>
 <span class="sd">either **shared** or **cluster‑specific** (unshared) layers in the encoder and</span>
-<span class="sd">decoder, controlled by per‑layer directives.</span>
+<span class="sd">decoder, controlled by per‑layer directives. For binary features, a sigmoid activation function is applied at the end to get probabilities.</span>
+
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
 
 <div class="viewcode-block" id="CISSVAE">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE">[docs]</a>
@@ -155,7 +158,11 @@
                  <span class="n">latent_dim</span><span class="p">,</span>
                  <span class="n">output_shared</span><span class="p">,</span>
                  <span class="n">num_clusters</span><span class="p">,</span>
-                 <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                 <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="c1"># new optional inputs to define binary features at init time -&gt; udpdate 14OCT2025</span>
+                 <span class="n">binary_feature_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">binary_feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Variational Autoencoder supporting flexible shared/unshared layers across clusters.</span>
 
@@ -188,6 +195,36 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dims</span> <span class="o">=</span> <span class="n">hidden_dims</span>
+
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># (NEW) Binary feature mask</span>
+        <span class="c1"># - Added 14 OCT 2025</span>
+        <span class="c1"># - Create a mask that dictates which features are binary and which are not </span>
+        <span class="c1"># - allows for sigmoid at end for binary features only</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># We store this as a registered buffer so it follows the model to CUDA/CPU and into checkpoints.</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Accept torch.Tensor or sequence of bools; validate length</span>
+            <span class="c1">## Debug statement - Binary feature mask</span>
+            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary Feature Mask: </span><span class="si">{</span><span class="n">binary_feature_mask</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="n">input_dim</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;binary_feature_mask must be a 1D boolean vector of length input_dim.&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">feature_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">binary_feature_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">feat2idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)}</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">binary_feature_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">bname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">feat2idx</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary feature name &#39;</span><span class="si">{</span><span class="n">bname</span><span class="si">}</span><span class="s2">&#39; not found in feature_names.&quot;</span><span class="p">)</span>
+                <span class="n">mask</span><span class="p">[</span><span class="n">feat2idx</span><span class="p">[</span><span class="n">bname</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default: if nothing provided, treat no columns as binary until user sets it.</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+        <span class="c1"># register as buffer to track with device / state_dict</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;binary_mask&quot;</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>  <span class="c1"># shape: (input_dim,)</span>
 
         <span class="c1"># ----------------------------</span>
         <span class="c1"># Encoder: shared and unshared</span>
@@ -312,13 +349,13 @@
         <span class="n">shared_idx</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">unshared_idx</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">):</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">)}</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="n">input_hash</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;layer_type_list: </span><span class="si">{</span><span class="n">layer_type_list</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;num_clusters: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">):</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cluster </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2"> unshared layers: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">unshared_layers</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Number of unshared layers needed: </span><span class="si">{</span><span class="n">layer_type_list</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;unshared&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># if self.debug:</span>
+        <span class="c1">#     input_hash = torch.arange(x.shape[0], device=x.device)</span>
+        <span class="c1">#     print(f&quot;layer_type_list: {layer_type_list}&quot;)</span>
+        <span class="c1">#     print(f&quot;num_clusters: {self.num_clusters}&quot;)</span>
+        <span class="c1">#     for c in range(self.num_clusters):</span>
+        <span class="c1">#         print(f&quot;Cluster {c} unshared layers: {len(unshared_layers[str(c)])}&quot;)</span>
+        <span class="c1">#     print(f&quot;Number of unshared layers needed: {layer_type_list.count(&#39;unshared&#39;)}&quot;)</span>
 
         <span class="k">for</span> <span class="n">layer_num</span><span class="p">,</span> <span class="n">layer_type</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layer_type_list</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">layer_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">]:</span>
@@ -343,9 +380,9 @@
                 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">):</span>
                     <span class="n">unshared_idx</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="n">out_hash</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">torch</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">input_hash</span><span class="p">,</span> <span class="n">out_hash</span><span class="p">),</span> <span class="s2">&quot;Row order mismatch!&quot;</span>
+        <span class="c1"># if self.debug:</span>
+        <span class="c1">#     out_hash = torch.arange(x.shape[0], device=x.device)</span>
+        <span class="c1">#     assert torch.equal(input_hash, out_hash), &quot;Row order mismatch!&quot;</span>
         <span class="k">return</span> <span class="n">x</span></div>
 
 
@@ -425,8 +462,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">cluster_decoder_layers</span>
         <span class="p">)</span>
         <span class="c1">## final layer is nn.Linear</span>
+        <span class="c1"># ----------------------------------------</span>
+        <span class="c1"># 14 OCT 2025 - Add Logic for handling logit sigmoid thingie</span>
+        <span class="c1"># - gathers the final layers and applies the output activations according to the mask </span>
+        <span class="c1"># ----------------------------------------</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_layer</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_layer</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">outputs</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">):</span>
@@ -436,12 +477,12 @@
                     <span class="n">z_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_final_layer</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)](</span><span class="n">z_c</span><span class="p">)</span>
                     <span class="n">outputs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cluster_mask</span><span class="p">,</span> <span class="n">z_out</span><span class="p">))</span>
             <span class="n">out_dim</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out_dim</span><span class="p">,</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out_dim</span><span class="p">,</span>
                                  <span class="n">device</span><span class="o">=</span><span class="n">z</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
                                  <span class="n">dtype</span><span class="o">=</span><span class="n">z</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">cluster_mask</span><span class="p">,</span> <span class="n">z_out</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
-                <span class="n">output</span><span class="p">[</span><span class="n">cluster_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">z_out</span>
-            <span class="k">return</span> <span class="n">output</span></div>
+                <span class="n">logits</span><span class="p">[</span><span class="n">cluster_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">z_out</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_output_activations</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CISSVAE.forward">
@@ -458,13 +499,13 @@
 <span class="sd">        :returns: Tuple ``(recon, mu, logvar)``.</span>
 <span class="sd">        :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] Forward start: </span><span class="si">{</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># if self.debug:</span>
+        <span class="c1">#     print(f&quot;[DEBUG] Forward start: {x.shape}&quot;)</span>
         <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">)</span>
         <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
         <span class="n">recon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[DEBUG] Forward end: </span><span class="si">{</span><span class="n">recon</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># if self.debug:</span>
+        <span class="c1">#     print(f&quot;[DEBUG] Forward end: {recon.shape}&quot;)</span>
         <span class="k">return</span> <span class="n">recon</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span></div>
 
 
@@ -476,7 +517,8 @@
 <span class="sd">        :rtype: str</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;CISSVAE(input_dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">, latent_dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span><span class="si">}</span><span class="s2">, &quot;</span>
-                 <span class="sa">f</span><span class="s2">&quot;latent_shared=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_shared</span><span class="si">}</span><span class="s2">, num_clusters=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">]</span>
+                 <span class="sa">f</span><span class="s2">&quot;latent_shared=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">latent_shared</span><span class="si">}</span><span class="s2">, output_shared=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span><span class="si">}</span><span class="s2">,&quot;</span>
+                 <span class="sa">f</span><span class="s2">&quot;num_clusters=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">]</span>
         <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Encoder Layers:&quot;</span><span class="p">)</span>
         <span class="n">in_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">out_dim</span><span class="p">,</span> <span class="n">lt</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_dims</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_enc</span><span class="p">)):</span>
@@ -494,8 +536,17 @@
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">out_dim</span><span class="p">,</span> <span class="n">lt</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">hidden_rev</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_dec</span><span class="p">)):</span>
             <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">lt</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">:</span><span class="s2">&lt;8</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">out_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Final Output Layer: </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Final Output Layer:&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   SHARED  </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">):</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  UNSHARED (cluster </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">) </span><span class="si">{</span><span class="n">in_dim</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Mimics repr&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__repr__</span><span class="p">()</span>
         
 <div class="viewcode-block" id="CISSVAE.set_final_lr">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.set_final_lr">[docs]</a>
@@ -587,7 +638,78 @@
         <span class="n">recon_x_denorm</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
 
         <span class="k">return</span><span class="p">(</span><span class="n">recon_x_denorm</span><span class="p">)</span></div>
-</div>
+
+
+        <span class="c1"># -----------------------------</span>
+        <span class="c1"># NEW -&gt; handles sigmoid</span>
+        <span class="c1"># -----------------------------</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_output_activations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Applies per-feature output activations:</span>
+<span class="sd">            - Binary columns (self.binary_mask == True) -&gt; sigmoid</span>
+<span class="sd">            - Continuous columns -&gt; identity (no activation)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            logits: Tensor of shape (batch, input_dim) containing final-layer outputs.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor of same shape with sigmoid applied only to binary columns.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># if(self.debug):</span>
+        <span class="c1">#         print(f&quot;From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n&quot;)</span>
+        <span class="k">if</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Output dim mismatch; expected last dim == input_dim.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Should not happen, but be safe</span>
+            <span class="k">return</span> <span class="n">logits</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">):</span>
+            <span class="c1"># No binary columns</span>
+            <span class="k">return</span> <span class="n">logits</span>
+
+        <span class="c1"># Clone only if needed; avoids extra mem if no binary cols.</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+        <span class="c1"># -----------------------------</span>
+        <span class="c1"># NEW -&gt; Add mask after initialization</span>
+        <span class="c1"># -----------------------------</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_binary_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                            <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">binary_feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update which columns are treated as binary at the output.</span>
+
+<span class="sd">        You can pass either:</span>
+<span class="sd">          - mask: 1D bool vector length `input_dim`, or</span>
+<span class="sd">          - feature_names + binary_feature_names: names → mask is computed</span>
+
+<span class="sd">        This is safe to call after loading a model or dataset schema.</span>
+
+<span class="sd">        Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mask must be a 1D boolean vector of length input_dim.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>  <span class="c1"># in-place update to keep buffer reference</span>
+            <span class="k">return</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">feature_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">binary_feature_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Provide either `mask` or (`feature_names` and `binary_feature_names`).&quot;</span><span class="p">)</span>
+
+        <span class="n">feat2idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)}</span>
+        <span class="n">newmask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">binary_feature_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">bname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">feat2idx</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary feature name &#39;</span><span class="si">{</span><span class="n">bname</span><span class="si">}</span><span class="s2">&#39; not found in feature_names.&quot;</span><span class="p">)</span>
+            <span class="n">newmask</span><span class="p">[</span><span class="n">feat2idx</span><span class="p">[</span><span class="n">bname</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">newmask</span><span class="p">)</span></div>
+
 
 
 

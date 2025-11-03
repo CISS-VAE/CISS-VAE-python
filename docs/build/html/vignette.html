@@ -24,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Using create_missingness_prop_matrix: A Complete Guide" href="missingness_prop_vignette.html" />
+    <link rel="next" title="Handling binary data columns" href="binary_vignette.html" />
     <link rel="prev" title="CISS-VAE Quickstart" href="quickstart.html" /> 
 </head>
 
@@ -65,7 +65,10 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#create-a-searchspace-object">Create a SearchSpace object:</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#create-a-searchspace-object">Create a SearchSpace object:</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#saving-and-loading-searchspace-objects">Saving and Loading SearchSpace Objects</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#run-the-autotune-function">Run the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function:</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#optional-using-optuna-dashboard">(optional) Using Optuna Dashboard</a></li>
 </ul>
@@ -75,11 +78,12 @@
 <li class="toctree-l2"><a class="reference internal" href="#loading-a-model">Loading a Model</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -107,14 +111,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="how-to-use-ciss-vae">
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="how-to-use-ciss-vae">
 <h1>How to use CISS-VAE<a class="headerlink" href="#how-to-use-ciss-vae" title="Link to this heading"></a></h1>
 </section>
 <section id="overview">
 <h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
-<p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+<p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR, scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
+<details><summary>Click Here for More Information</summary>
 <p>A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.</p>
 <p>Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.</p>
+</details>
 <p>There are two ways to run the CISS-VAE process. If you know what model
 parameters you want to use, you can use the <a class="reference internal" href="_autosummary/ciss_vae.training.run_cissvae.run_cissvae.html#ciss_vae.training.run_cissvae.run_cissvae" title="ciss_vae.training.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.run_cissvae.run_cissvae()</span></code></a> function to
 run the model once for the given set of parameters. If you want to tune
@@ -151,12 +167,12 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 </section>
 <section id="running-the-ciss-vae-model">
 <h1>Running the CISS-VAE Model<a class="headerlink" href="#running-the-ciss-vae-model" title="Link to this heading"></a></h1>
-<p>You can use your own dataset or load the example dataset included with this package.</p>
+<p>You can use your own dataset or load the example dataset included with this package. If your data has binary or categorical variables, please see the <a class="reference external" href="https://ciss-vae.readthedocs.io/en/latest/binary_vignette.html">binary data vignette</a>.</p>
 <p>To load the sample dataset:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.data import load_example_dataset
-df_missing, df_complete, clusters = load_example_dataset()
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
 </pre></div>
 </div>
 </div>
@@ -172,91 +188,96 @@ df_missing, df_complete, clusters = load_example_dataset()
 </div>
 <p>Missing values should be represented using np.nan or None.</p>
 <p><strong>Assigning cluster labels</strong><br />
-There are three options for assigning cluster labels to the data:<br />
-1. Manually assign cluster labels and provide them to the function via the <code class="docutils literal notranslate"><span class="pre">clusters</span></code> argument.<br />
-2. Let <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> determine clusters based on patterns of missingness in the data by setting <code class="docutils literal notranslate"><span class="pre">clusters</span> <span class="pre">=</span> <span class="pre">None</span></code>.<br />
-- To use Kmeans clustering, set n_clusters to the desired number of clusters.<br />
-- To use Leiden Clustering clustering, leave <code class="docutils literal notranslate"><span class="pre">n_clusters</span> <span class="pre">=</span> <span class="pre">None</span></code>.<br />
-3. To cluster on proportion of missingness, leave <code class="docutils literal notranslate"><span class="pre">clusters</span> <span class="pre">=</span> <span class="pre">None</span></code> and provide a missingness proportion matrix with the <code class="docutils literal notranslate"><span class="pre">missingness_proportion_matrix</span></code> argument.<br />
-- To use Kmeans clustering, set n_clusters to the desired number of clusters.<br />
-- To use Leiden Clustering clustering, leave <code class="docutils literal notranslate"><span class="pre">n_clusters</span> <span class="pre">=</span> <span class="pre">None</span></code>.<br />
-<details>
-<summary>Click for more details on missingness proportion matrix</summary>
-<p>For the missingness proportion matrix, (either a <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> or <code class="docutils literal notranslate"><span class="pre">numpy.ndarray</span></code>) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p>
-</details></p>
+There are three options for assigning cluster labels to the data:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>1. Manually assign cluster labels and provide them to the function via the `clusters` argument. 
+
+      
+2. Let `run_cissvae()` determine clusters based on patterns of missingness in the data by setting `clusters = None`.  
+    - To use Kmeans clustering, set n_clusters to the desired number of clusters.    
+    - To use Leiden Clustering clustering, leave `n_clusters = None`.     
+
+
+3. To cluster on proportion of missingness, leave `clusters = None` and provide a missingness proportion matrix with the `missingness_proportion_matrix` argument.  
+    - To use Kmeans clustering, set n_clusters to the desired number of clusters.     
+    - To use Leiden Clustering clustering, leave `n_clusters = None`.   
+</pre></div>
+</div>
+<details><summary><i>Click for more details on missingness proportion matrix</i></summary>
+    <p>For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p>
+    </details>    
 <p>To run the CISSVAE model with default parameters:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
-from ciss_vae.training.run_cissvae import run_cissvae
-from ciss_vae.data import load_example_dataset
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span>
 
-# optional, display vae architecture
-from ciss_vae.utils.helpers import plot_vae_architecture
+<span class="c1"># optional, display vae architecture</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
 
-data, _, clusters = load_example_dataset()
+<span class="n">data</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
 
-imputed_data, vae = run_cissvae(data = data,
-## Dataset params
-    val_proportion = 0.1, ## Fraction of non-missing data held out for validation. Can input a list here if you want different proportions for different clusters. 
-    replacement_value = 0.0, 
-    columns_ignore = data.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
-    print_dataset = True, 
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+<span class="c1">## Dataset params</span>
+    <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## Fraction of non-missing data held out for validation. Can input a list here if you want different proportions for different clusters. </span>
+    <span class="n">replacement_value</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> 
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.</span>
+    <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
 
-## Cluster params
-    clusters = clusters, ## Where your cluster list goes. If none, will do clustering for you  
-    n_clusters = None, ## If you want run_cissvae to do clustering and you know how many clusters your data should have, enter that number here
-    # -- Params for Leiden Clustering --
-    k_neighbors = 15,
-    leiden_resolution = 0.5, ## Lower resolution = fewer clusters and bigger clusters, higher resolution = more, smaller clusters
-    leiden_objective = &quot;CPM&quot;, 
-    # -- End Params for Leiden Clustering --
-    seed = 42,
-    missingness_proportion_matrix = None,
+<span class="c1">## Cluster params</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span> <span class="c1">## Where your cluster list goes. If none, will do clustering for you  </span>
+    <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If you want run_cissvae to do clustering and you know how many clusters your data should have, enter that number here</span>
+    <span class="c1"># -- Params for Leiden Clustering --</span>
+    <span class="n">k_neighbors</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="c1">## Lower resolution = fewer clusters and bigger clusters, higher resolution = more, smaller clusters</span>
+    <span class="n">leiden_objective</span> <span class="o">=</span> <span class="s2">&quot;CPM&quot;</span><span class="p">,</span> 
+    <span class="c1"># -- End Params for Leiden Clustering --</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+    <span class="n">missingness_proportion_matrix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     
-## VAE model params
-    hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
-    latent_dim = 15, ## Dimensions of latent embedding
-    layer_order_enc = [&quot;unshared&quot;, &quot;unshared&quot;, &quot;unshared&quot;], ## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)
-    layer_order_dec=[&quot;shared&quot;, &quot;shared&quot;,  &quot;shared&quot;],  ## order of shared vs unshared layers for decode
-    latent_shared=False, 
-    output_shared=False, 
-    batch_size = 4000, ## batch size for data loader
-    return_model = True, ## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`
+<span class="c1">## VAE model params</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="c1">## Dimensions of hidden layers, in order. One number per layer. </span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="c1">## Dimensions of latent embedding</span>
+    <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span> <span class="c1">## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span>  <span class="c1">## order of shared vs unshared layers for decode</span>
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span> <span class="c1">## batch size for data loader</span>
+    <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`</span>
 
-## Initial Training params
-    epochs = 1000, ## default 
-    initial_lr = 0.01, ## default
-    decay_factor = 0.999, ## default, factor learning rate is multiplied by after each epoch, prevents overfitting
-    beta= 0.001, ## default
-    device = None, ## If none, will use gpu if available, cpu if not. See torch.devices for info 
+<span class="c1">## Initial Training params</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="c1">## default </span>
+    <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="c1">## default</span>
+    <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> <span class="c1">## default, factor learning rate is multiplied by after each epoch, prevents overfitting</span>
+    <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="c1">## default</span>
+    <span class="n">device</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, will use gpu if available, cpu if not. See torch.devices for info </span>
 
-## Impute-refit loop params
-    max_loops = 100, ## max number of refit loops
-    patience = 2, ## number of loops to check after best_dataset updated. Can increase to avoid local extrema
-    epochs_per_loop = None, ## If none, same as epochs
-    initial_lr_refit = None, ## If none, picks up from end of initial training
-    decay_factor_refit = None, ## If none, same as decay_factor
-    beta_refit = None, ## if none, same as beta
+<span class="c1">## Impute-refit loop params</span>
+    <span class="n">max_loops</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="c1">## max number of refit loops</span>
+    <span class="n">patience</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="c1">## number of loops to check after best_dataset updated. Can increase to avoid local extrema</span>
+    <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, same as epochs</span>
+    <span class="n">initial_lr_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, picks up from end of initial training</span>
+    <span class="n">decay_factor_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## If none, same as decay_factor</span>
+    <span class="n">beta_refit</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## if none, same as beta</span>
 
-## Other params
-    verbose = False, 
-    return_silhouettes = False, ## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return &quot;None&quot;
-    return_history = False, ## if true, will return training MSE history as pandas dataframe
-    return_clusters = False, ## if true, will return the cluster labels. Helpful if run_cissvae performs clustering
-)
+<span class="c1">## Other params</span>
+    <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+    <span class="n">return_silhouettes</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="c1">## if true, will return silhouettes from clustering. If run_cissvae did not perform clustering, will return &quot;None&quot;</span>
+    <span class="n">return_history</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="c1">## if true, will return training MSE history as pandas dataframe</span>
+    <span class="n">return_clusters</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="c1">## if true, will return the cluster labels. Helpful if run_cissvae performs clustering</span>
+<span class="p">)</span>
 
-## OPTIONAL - PLOT VAE ARCHITECTURE
-plot_vae_architecture(model = vae,
-                        title = None, ## Set title of plot
-                        ## Colors below are default
-                        color_shared = &quot;skyblue&quot;, 
-                        color_unshared =&quot;lightcoral&quot;,
-                        color_latent = &quot;gold&quot;, # xx fix
-                        color_input = &quot;lightgreen&quot;,
-                        color_output = &quot;lightgreen&quot;,
-                        figsize=(16, 8),
-                        return_fig = False)
+<span class="c1">## OPTIONAL - PLOT VAE ARCHITECTURE</span>
+<span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
+                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## Set title of plot</span>
+                        <span class="c1">## Colors below are default</span>
+                        <span class="n">color_shared</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span><span class="p">,</span> 
+                        <span class="n">color_unshared</span> <span class="o">=</span><span class="s2">&quot;lightcoral&quot;</span><span class="p">,</span>
+                        <span class="n">color_latent</span> <span class="o">=</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="c1"># xx fix</span>
+                        <span class="n">color_input</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">color_output</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+                        <span class="n">return_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -308,17 +329,17 @@ observation).</p>
 <p>The built-in function can perfrom either leiden clustering or Kmeans clustering:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.utils.clustering import cluster_on_missing
-data, _, clusters = load_example_dataset()
-clusters, _ = cluster_on_missing(
-    data, 
-    cols_ignore=data.columns[:5], 
-    n_clusters=None, 
-    k_neighbors=500, ## use higher k for fewer clusters generally
-    use_snn=True,
-    leiden_resolution=0.005, ## higher resolution -&gt; more clusters
-    leiden_objective=&quot;CPM&quot;,
-    seed=42)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing</span>
+<span class="n">data</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
+<span class="n">clusters</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cluster_on_missing</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span> 
+    <span class="n">cols_ignore</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> 
+    <span class="n">n_clusters</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+    <span class="n">k_neighbors</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="c1">## use higher k for fewer clusters generally</span>
+    <span class="n">use_snn</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">leiden_resolution</span><span class="o">=</span><span class="mf">0.005</span><span class="p">,</span> <span class="c1">## higher resolution -&gt; more clusters</span>
+    <span class="n">leiden_objective</span><span class="o">=</span><span class="s2">&quot;CPM&quot;</span><span class="p">,</span>
+    <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -341,15 +362,15 @@ clustering.</p></li>
 <p>After obtaining cluster labels, construct a <a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ciss_vae.classes.cluster_dataset.ClusterDataset</span></code></a>. This is the object that is fed into the autotune function.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.classes.cluster_dataset import ClusterDataset
-from ciss_vae.training.autotune import SearchSpace, autotune
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
 
-dataset = ClusterDataset(data = data,
-cluster_labels = clusters,
-val_proportion = 0.1, ## 10% non-missing data is default. You can also input a list if you want different val_proportions for each cluster
-replacement_value = 0, ## value to replace all missing data with before running model. Could be set to 0 or random
-columns_ignore = data.columns[:5] ## Tells ClusterDataset not to hold out entries demographic columns for validation
-)
+
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
+<span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
+<span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## 10% non-missing data is default. You can also input a list if you want different val_proportions for each cluster</span>
+<span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">## value to replace all missing data with before running model. Could be set to 0 or random</span>
+<span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="c1">## Tells ClusterDataset not to hold out entries demographic columns for validation</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -367,31 +388,78 @@ either tunable or non-tunable.</p>
 </ul>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>## These are the default parameters. Please note these parameters may not be best for all datasets depending on size and complexity.
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.autotune</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchSpace</span><span class="p">,</span> <span class="n">autotune</span>
+<span class="c1">## These are the default parameters. Please note these parameters may not be best for all datasets depending on size and complexity.</span>
 
-searchspace = SearchSpace(
-                 num_hidden_layers=(1, 4), ## Set number of hidden layers
-                 hidden_dims=[64, 512], ## Allowable dimensions of hidden layers
-                 latent_dim=[10, 100],
-                 latent_shared=[True, False],
-                 output_shared=[True,False],
-                 lr=(1e-4, 1e-3),
-                 decay_factor=(0.9, 0.999),
-                 beta=0.01,
-                 num_epochs=1000,
-                 batch_size=64,
-                 num_shared_encode=[0, 1, 3],
-                 num_shared_decode=[0, 1, 3],
-                 encoder_shared_placement = [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;], ## where should the shared layers be placed in the encoder
-                 decoder_shared_placement = [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;], ## where should the shared layers be placed in the decoder
-                 refit_patience=2,
-                 refit_loops=100,
-                 epochs_per_loop = 1000,
-                 reset_lr_refit = [True, False])
+<span class="n">searchspace</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">(</span>
+                 <span class="n">num_hidden_layers</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="c1">## Set number of hidden layers</span>
+                 <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span> <span class="c1">## Allowable dimensions of hidden layers</span>
+                 <span class="n">latent_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+                 <span class="n">latent_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+                 <span class="n">output_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">],</span>
+                 <span class="n">lr</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">),</span>
+                 <span class="n">decay_factor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">),</span>
+                 <span class="n">beta</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                 <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">encoder_shared_placement</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span> <span class="c1">## where should the shared layers be placed in the encoder</span>
+                 <span class="n">decoder_shared_placement</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span> <span class="c1">## where should the shared layers be placed in the decoder</span>
+                 <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">refit_loops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
 </pre></div>
 </div>
 </div>
 </div>
+<section id="saving-and-loading-searchspace-objects">
+<h3>Saving and Loading SearchSpace Objects<a class="headerlink" href="#saving-and-loading-searchspace-objects" title="Link to this heading"></a></h3>
+<p>SearchSpace objects can be saved as json files for future use. To save a SearchSpace object:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">searchspace</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;saved_ss.json&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<p>To load a SearchSpace object:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">loaded_ss</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">()</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;saved_ss.json&quot;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="n">loaded_ss</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>SearchSpace(
+  num_hidden_layers: [1, 4]  [TUNABLE]
+  hidden_dims: [64, 512]  [TUNABLE]
+  latent_dim: [10, 100]  [TUNABLE]
+  latent_shared: [True, False]  [TUNABLE]
+  output_shared: [True, False]  [TUNABLE]
+  lr: [0.0001, 0.001]  [TUNABLE]
+  decay_factor: [0.9, 0.999]  [TUNABLE]
+  weight_decay: 0.001  [FIXED]
+  beta: 0.01  [FIXED]
+  num_epochs: 1000  [FIXED]
+  batch_size: 64  [FIXED]
+  num_shared_encode: [0, 1, 3]  [TUNABLE]
+  num_shared_decode: [0, 1, 3]  [TUNABLE]
+  encoder_shared_placement: [&#39;at_end&#39;, &#39;at_start&#39;, &#39;alternating&#39;, &#39;random&#39;]  [TUNABLE]
+  decoder_shared_placement: [&#39;at_end&#39;, &#39;at_start&#39;, &#39;alternating&#39;, &#39;random&#39;]  [TUNABLE]
+  refit_patience: 2  [FIXED]
+  refit_loops: 100  [FIXED]
+  epochs_per_loop: 1000  [FIXED]
+  reset_lr_refit: [True, False]  [TUNABLE]
+)
+</pre></div>
+</div>
+</div>
+</div>
+</section>
 </section>
 <section id="run-the-autotune-function">
 <h2>Run the <code class="docutils literal notranslate"><span class="pre">autotune</span></code> function:<a class="headerlink" href="#run-the-autotune-function" title="Link to this heading"></a></h2>
@@ -409,19 +477,19 @@ searchspace = SearchSpace(
 - For this behavior, set <code class="docutils literal notranslate"><span class="pre">evaluate_all_orders=True</span></code></p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>best_imputed_df,  best_model, study, results_df = autotune(
-    search_space = searchspace,
-    train_dataset = dataset,                   # ClusterDataset object
-    save_model_path=None,
-    save_search_space_path=None,
-    n_trials=20,
-    study_name=&quot;vae_autotune&quot;,                 # Default study name
-    device_preference=&quot;cuda&quot;,
-    show_progress=False,                       # Show progress bar for training
-    optuna_dashboard_db=None,                  # If using optuna dashboard set db location here
-    load_if_exists=True,                       # If using optuna dashboard, if study by &#39;study_name&#39; already exists, will load that study
-    seed = 42,                                 # Sets seed for random order of shared/unshared layers
-)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_imputed_df</span><span class="p">,</span>  <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span> <span class="o">=</span> <span class="n">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span> <span class="o">=</span> <span class="n">searchspace</span><span class="p">,</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># If using optuna dashboard, if study by &#39;study_name&#39; already exists, will load that study</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>                                 <span class="c1"># Sets seed for random order of shared/unshared layers</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -454,19 +522,19 @@ extension for viewing optuna dashboards in your development environment.</p>
 can have multiple autotune ‘studies’ in the same database.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>best_imputed_df,  best_model, study, results_df = autotune(
-    search_space = searchspace,
-    train_dataset = dataset,                   # &#39;ClusterDataset&#39; object
-    save_model_path=None,
-    save_search_space_path=None,
-    n_trials=20,
-    study_name=&quot;vae_autotune&quot;,                 # Default study name
-    device_preference=&quot;cuda&quot;,
-    show_progress=False,                       # Show progress bar for training
-    optuna_dashboard_db=&quot;sqlite:///db.sqlite3&quot;,                  # If using optuna dashboard set db location here, otherwise set to None
-    load_if_exists=True,                       # Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard
-    seed = 42,
-)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">best_imputed_df</span><span class="p">,</span>  <span class="n">best_model</span><span class="p">,</span> <span class="n">study</span><span class="p">,</span> <span class="n">results_df</span> <span class="o">=</span> <span class="n">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span> <span class="o">=</span> <span class="n">searchspace</span><span class="p">,</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># &#39;ClusterDataset&#39; object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///db.sqlite3&quot;</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here, otherwise set to None</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -532,7 +600,7 @@ can have multiple autotune ‘studies’ in the same database.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="quickstart.html" class="btn btn-neutral float-left" title="CISS-VAE Quickstart" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="missingness_prop_vignette.html" class="btn btn-neutral float-right" title="Using create_missingness_prop_matrix: A Complete Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="binary_vignette.html" class="btn btn-neutral float-right" title="Handling binary data columns" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

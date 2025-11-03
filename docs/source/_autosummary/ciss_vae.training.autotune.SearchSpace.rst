@@ -14,6 +14,8 @@
    .. autosummary::
    
       ~SearchSpace.__init__
+      ~SearchSpace.load
+      ~SearchSpace.save
    
    
 

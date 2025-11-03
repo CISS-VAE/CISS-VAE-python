@@ -8,7 +8,7 @@
   <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -56,11 +56,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -172,6 +173,7 @@
 <span class="sd">        Number of unique clusters discovered from ``cluster_labels``.</span>
 <span class="sd">    shape : tuple[int, int]</span>
 <span class="sd">        Shape of ``self.data`` (``n_samples``, ``n_features``).</span>
+<span class="sd">    binary_feature_mask : np.array(bool)</span>
 
 <span class="sd">    Raises</span>
 <span class="sd">    ------</span>
@@ -190,7 +192,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="ClusterDataset.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val_seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val_seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the dataset, apply per-cluster validation masking, and normalize.</span>
 <span class="sd">        </span>
 <span class="sd">        Steps:</span>
@@ -216,12 +218,15 @@
 <span class="sd">        :param imputable: Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. </span>
 <span class="sd">        :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor, optional</span>
 <span class="sd">        :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset</span>
+<span class="sd">        :type val_seed: int</span>
+<span class="sd">        :param binary_feature_mask: 1D bool vector of length &#39;input_dim&#39; -&gt; true if column is binary.</span>
+<span class="sd">        :type binary_feature_mask: list[bool]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set seed for selecting valdata</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">val_seed</span><span class="p">)</span>
 
-        <span class="c1">## set columns ignore </span>
+        <span class="c1">## set columns ignore -&gt; no validation data selected from these columns</span>
         <span class="k">if</span> <span class="n">columns_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
@@ -231,7 +236,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">columns_ignore</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">columns_ignore</span><span class="p">)</span>
 
-        <span class="c1">## set to one cluster as default</span>
+        <span class="k">if</span> <span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">)</span>
+
+        <span class="c1">## set to one cluster as default!!</span>
 
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Convert input data to numpy</span>
@@ -345,8 +355,8 @@
                 <span class="n">cluster_labels_np</span> <span class="o">=</span> <span class="n">cluster_labels</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.&quot;</span><span class="p">)</span>
-
-            <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+        <span class="c1">## cluster labels stored as torch tensor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">))</span>
         <span class="n">unique_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">)</span>
@@ -438,6 +448,8 @@
                 <span class="n">val_mask_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen_local</span><span class="p">],</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 
         <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">val_mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="c1">## val_mask is a tensor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">val_mask</span> <span class="o">=</span> <span class="n">val_mask_tensor</span>
 
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Set aside val_data</span>
@@ -471,8 +483,17 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># avoid division by zero</span>
 
-        <span class="c1">## Normalize (in-place)</span>
-        <span class="n">norm_data_np</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_np</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_means</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span>
+        
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">norm_data_cont</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_np</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_means</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span>
+            <span class="n">norm_data_np</span> <span class="o">=</span> <span class="n">data_np</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="o">+</span> <span class="n">norm_data_cont</span> <span class="o">*</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1">## Normalize (in-place)</span>
+            <span class="n">norm_data_np</span> <span class="o">=</span> <span class="p">(</span><span class="n">data_np</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_means</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_stds</span>
+
+
         <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">norm_data_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
         <span class="c1"># ----------------------------------------</span>
@@ -491,6 +512,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 
+
     <span class="k">def</span><span class="w"> </span><span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Get a single sample.</span>
@@ -508,7 +530,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>            <span class="c1"># input with missing replaced</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span><span class="p">[</span><span class="n">index</span><span class="p">],</span> <span class="c1"># cluster label</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">masks</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>          <span class="c1"># binary mask</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>         <span class="c1"># original row index</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">indices</span><span class="p">[</span><span class="n">index</span><span class="p">],</span>         <span class="c1"># original row index</span>
         <span class="p">)</span>
 
     <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

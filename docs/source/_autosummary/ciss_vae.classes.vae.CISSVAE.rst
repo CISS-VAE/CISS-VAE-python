@@ -21,6 +21,7 @@
       ~CISSVAE.get_imputed_valdata
       ~CISSVAE.reparameterize
       ~CISSVAE.route_through_layers
+      ~CISSVAE.set_binary_features
       ~CISSVAE.set_final_lr
    
    

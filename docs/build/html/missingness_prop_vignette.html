@@ -24,8 +24,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Avoiding imputation undesired data entries" href="dni_vignette.html" />
-    <link rel="prev" title="How to use CISS-VAE" href="vignette.html" /> 
+    <link rel="next" title="Avoiding undesired imputation of certain missing data" href="dni_vignette.html" />
+    <link rel="prev" title="Handling binary data columns" href="binary_vignette.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -59,6 +59,7 @@
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#data-format-support">Data Format Support</a><ul>
@@ -80,7 +81,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#extra-tips">Extra tips</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -108,7 +109,17 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="using-create-missingness-prop-matrix-a-complete-guide">
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<section id="using-create-missingness-prop-matrix-a-complete-guide">
 <h1>Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide<a class="headerlink" href="#using-create-missingness-prop-matrix-a-complete-guide" title="Link to this heading"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix()</span></code> function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for <strong>sample clustering</strong> with <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code> or as input to the complete CISS-VAE pipeline via <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code>.</p>
 <section id="overview">
@@ -141,33 +152,33 @@
 <h3>Example 1: Basic Wide Format with Regex Parsing<a class="headerlink" href="#example-1-basic-wide-format-with-regex-parsing" title="Link to this heading"></a></h3>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
-import numpy as np
-from ciss_vae.utils.matrix import create_missingness_prop_matrix
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_missingness_prop_matrix</span>
 
-# Create sample wide-format data
-# Columns follow pattern: feature_timepoint
-data_wide = pd.DataFrame({
-    &#39;sample_id&#39;: [&#39;mouse1&#39;, &#39;mouse2&#39;, &#39;mouse3&#39;],
-    &#39;glucose_t0&#39;: [100, 95, np.nan],
-    &#39;glucose_t1&#39;: [110, np.nan, 105],
-    &#39;glucose_t2&#39;: [np.nan, 100, 115],
-    &#39;insulin_t0&#39;: [5.2, 4.8, 5.0],
-    &#39;insulin_t1&#39;: [np.nan, np.nan, 5.5],
-    &#39;insulin_t2&#39;: [6.0, 5.1, np.nan]
-})
+<span class="c1"># Create sample wide-format data</span>
+<span class="c1"># Columns follow pattern: feature_timepoint</span>
+<span class="n">data_wide</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;sample_id&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;mouse1&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse2&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse3&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">95</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">110</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">105</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">115</span><span class="p">],</span>
+    <span class="s1">&#39;insulin_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.2</span><span class="p">,</span> <span class="mf">4.8</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+    <span class="s1">&#39;insulin_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">5.5</span><span class="p">],</span>
+    <span class="s1">&#39;insulin_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.0</span><span class="p">,</span> <span class="mf">5.1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
+<span class="p">})</span>
 
-print(f&quot;Data: \n{data_wide}\n\n&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Data: </span><span class="se">\n</span><span class="si">{</span><span class="n">data_wide</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
-# Basic usage - regex automatically extracts features
-prop_matrix = create_missingness_prop_matrix(
-    data_wide,
-    index_col=&quot;sample_id&quot;,
-    repeat_feature_names = [&quot;glucose&quot;, &quot;insulin&quot;],
-    timepoint_prefix = &quot;t&quot;
-)
+<span class="c1"># Basic usage - regex automatically extracts features</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data_wide</span><span class="p">,</span>
+    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span><span class="p">,</span>
+    <span class="n">repeat_feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;glucose&quot;</span><span class="p">,</span> <span class="s2">&quot;insulin&quot;</span><span class="p">],</span>
+    <span class="n">timepoint_prefix</span> <span class="o">=</span> <span class="s2">&quot;t&quot;</span>
+<span class="p">)</span>
 
-print(f&quot;Output: \n{prop_matrix}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output: </span><span class="se">\n</span><span class="si">{</span><span class="n">prop_matrix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -198,23 +209,23 @@ mouse3  0.333333  0.333333
 <h3>Example 2: Custom Regex Pattern<a class="headerlink" href="#example-2-custom-regex-pattern" title="Link to this heading"></a></h3>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span># Data with different naming convention: feature.timepoint
-data_custom = pd.DataFrame({
-    &#39;ID&#39;: [&#39;A&#39;, &#39;B&#39;, &#39;C&#39;],
-    &#39;weight_day1&#39;: [25.0, np.nan, 27.0],
-    &#39;weight_day7&#39;: [24.5, 26.0, np.nan],
-    &#39;height_day1&#39;: [10.0, 9.5, np.nan],
-    &#39;height_day7&#39;: [10.2, np.nan, 9.8]
-})
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Data with different naming convention: feature.timepoint</span>
+<span class="n">data_custom</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;ID&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;weight_day1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">25.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">],</span>
+    <span class="s1">&#39;weight_day7&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">24.5</span><span class="p">,</span> <span class="mf">26.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">],</span>
+    <span class="s1">&#39;height_day1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.0</span><span class="p">,</span> <span class="mf">9.5</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">],</span>
+    <span class="s1">&#39;height_day7&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">10.2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mf">9.8</span><span class="p">]</span>
+<span class="p">})</span>
 
-prop_matrix = create_missingness_prop_matrix(
-    data_custom,
-    index_col=&quot;ID&quot;,
-    repeat_feature_names = [&quot;weight&quot;, &quot;height&quot;],
-    timepoint_prefix = &quot;day&quot;
-)
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data_custom</span><span class="p">,</span>
+    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;ID&quot;</span><span class="p">,</span>
+    <span class="n">repeat_feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;weight&quot;</span><span class="p">,</span> <span class="s2">&quot;height&quot;</span><span class="p">],</span>
+    <span class="n">timepoint_prefix</span> <span class="o">=</span> <span class="s2">&quot;day&quot;</span>
+<span class="p">)</span>
 
-print(f&quot;Output: \n{prop_matrix}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output: </span><span class="se">\n</span><span class="si">{</span><span class="n">prop_matrix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -233,30 +244,30 @@ C     0.5     0.5
 <h3>Example 3: Explicit Column Mapping<a class="headerlink" href="#example-3-explicit-column-mapping" title="Link to this heading"></a></h3>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>data_mixed = pd.DataFrame({
-    &#39;subject&#39;: [&#39;S1&#39;, &#39;S2&#39;],
-    &#39;baseline_glucose&#39;: [90, np.nan],
-    &#39;followup_glucose&#39;: [95, 88],
-    &#39;glucose_final&#39;: [np.nan, 92],
-    &#39;insulin_start&#39;: [4.0, 3.8],
-    &#39;insulin_end&#39;: [4.5, np.nan]
-})
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">data_mixed</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;subject&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;S1&#39;</span><span class="p">,</span> <span class="s1">&#39;S2&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;baseline_glucose&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">90</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">],</span>
+    <span class="s1">&#39;followup_glucose&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">95</span><span class="p">,</span> <span class="mi">88</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_final&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="mi">92</span><span class="p">],</span>
+    <span class="s1">&#39;insulin_start&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">],</span>
+    <span class="s1">&#39;insulin_end&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">4.5</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">]</span>
+<span class="p">})</span>
 
-# Explicitly map columns to features
-column_mapping = {
-    &quot;glucose&quot;: [&quot;baseline_glucose&quot;, &quot;followup_glucose&quot;, &quot;glucose_final&quot; ],
-    &quot;insulin&quot;: [&quot;insulin_start&quot;, &quot;insulin_end&quot;]
-}
+<span class="c1"># Explicitly map columns to features</span>
+<span class="n">column_mapping</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;glucose&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;baseline_glucose&quot;</span><span class="p">,</span> <span class="s2">&quot;followup_glucose&quot;</span><span class="p">,</span> <span class="s2">&quot;glucose_final&quot;</span> <span class="p">],</span>
+    <span class="s2">&quot;insulin&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;insulin_start&quot;</span><span class="p">,</span> <span class="s2">&quot;insulin_end&quot;</span><span class="p">]</span>
+<span class="p">}</span>
 
-print(data_mixed)
+<span class="nb">print</span><span class="p">(</span><span class="n">data_mixed</span><span class="p">)</span>
 
-prop_matrix = create_missingness_prop_matrix(
-    data = data_mixed,
-    index_col=&quot;subject&quot;,
-    column_mapping=column_mapping
-)
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">data_mixed</span><span class="p">,</span>
+    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;subject&quot;</span><span class="p">,</span>
+    <span class="n">column_mapping</span><span class="o">=</span><span class="n">column_mapping</span>
+<span class="p">)</span>
 
-print(f&quot;Output: \n{prop_matrix}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output: </span><span class="se">\n</span><span class="si">{</span><span class="n">prop_matrix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -279,38 +290,38 @@ S2  0.333333      0.5
 <h1>Integration with sample clustering<a class="headerlink" href="#integration-with-sample-clustering" title="Link to this heading"></a></h1>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.utils.clustering import cluster_on_missing_prop
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span>
 
-data_wide = pd.DataFrame({
-    &#39;sample_id&#39;:  [&#39;mouse1&#39;, &#39;mouse2&#39;, &#39;mouse3&#39;, &#39;mouse4&#39;, &#39;mouse5&#39;],
-    &#39;glucose_t0&#39;: [100,      95,       np.nan,   102,      98     ],
-    &#39;glucose_t1&#39;: [110,      np.nan,   105,      108,      np.nan ],
-    &#39;glucose_t2&#39;: [115,      100,      107,   118,   112    ],
-    &#39;insulin_t0&#39;: [5.2,      4.8,      np.nan,      np.nan,   5.1    ],
-    &#39;insulin_t1&#39;: [np.nan,   np.nan,   5.5,      5.3,      5.4    ],
-    &#39;insulin_t2&#39;: [6.0,      5.1,      np.nan,   np.nan,      np.nan ],
-})
+<span class="n">data_wide</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;sample_id&#39;</span><span class="p">:</span>  <span class="p">[</span><span class="s1">&#39;mouse1&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse2&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse3&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse4&#39;</span><span class="p">,</span> <span class="s1">&#39;mouse5&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;glucose_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span>      <span class="mi">95</span><span class="p">,</span>       <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mi">102</span><span class="p">,</span>      <span class="mi">98</span>     <span class="p">],</span>
+    <span class="s1">&#39;glucose_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">110</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mi">105</span><span class="p">,</span>      <span class="mi">108</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="p">],</span>
+    <span class="s1">&#39;glucose_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">115</span><span class="p">,</span>      <span class="mi">100</span><span class="p">,</span>      <span class="mi">107</span><span class="p">,</span>   <span class="mi">118</span><span class="p">,</span>   <span class="mi">112</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t0&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">5.2</span><span class="p">,</span>      <span class="mf">4.8</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mf">5.1</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="mf">5.5</span><span class="p">,</span>      <span class="mf">5.3</span><span class="p">,</span>      <span class="mf">5.4</span>    <span class="p">],</span>
+    <span class="s1">&#39;insulin_t2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mf">6.0</span><span class="p">,</span>      <span class="mf">5.1</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>   <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>      <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="p">],</span>
+<span class="p">})</span>
 
-print(data_wide)
+<span class="nb">print</span><span class="p">(</span><span class="n">data_wide</span><span class="p">)</span>
 
-# Create missingness proportion matrix
-prop_matrix = create_missingness_prop_matrix(
-    data_wide, 
-    index_col=&quot;sample_id&quot;
-)
+<span class="c1"># Create missingness proportion matrix</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data_wide</span><span class="p">,</span> 
+    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span>
+<span class="p">)</span>
 
-print(prop_matrix)
+<span class="nb">print</span><span class="p">(</span><span class="n">prop_matrix</span><span class="p">)</span>
 
-# Cluster samples based on similar missingness patterns across features
-clusters, silhouette = cluster_on_missing_prop(
-    prop_matrix,
-    n_clusters=2,
-    metric=&quot;cosine&quot;,
-    scale_features=True
-)
+<span class="c1"># Cluster samples based on similar missingness patterns across features</span>
+<span class="n">clusters</span><span class="p">,</span> <span class="n">silhouette</span> <span class="o">=</span> <span class="n">cluster_on_missing_prop</span><span class="p">(</span>
+    <span class="n">prop_matrix</span><span class="p">,</span>
+    <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;cosine&quot;</span><span class="p">,</span>
+    <span class="n">scale_features</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
 
-print(&quot;Clusters:&quot;, clusters)
-print(&quot;Silhouette score:&quot;, silhouette)
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clusters:&quot;</span><span class="p">,</span> <span class="n">clusters</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Silhouette score:&quot;</span><span class="p">,</span> <span class="n">silhouette</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -339,24 +350,24 @@ Silhouette score: 0.17776416479646978
 <p>The proportion matrix can be used directly in the complete CISS-VAE pipeline via the <code class="docutils literal notranslate"><span class="pre">missingness_proportion_matrix</span></code> parameter:</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.training.run_cissvae import run_cissvae
-from ciss_vae.utils.helpers import plot_vae_architecture
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
 
-prop_matrix = create_missingness_prop_matrix(
-    data_wide,
-    index_col=&quot;sample_id&quot;
-)
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data_wide</span><span class="p">,</span>
+    <span class="n">index_col</span><span class="o">=</span><span class="s2">&quot;sample_id&quot;</span>
+<span class="p">)</span>
 
-imputed_data, model = run_cissvae(
-    data=data_wide.drop(&#39;sample_id&#39;, axis=1),
-    missingness_proportion_matrix=prop_matrix,  # Use custom matrix
-    n_clusters=2,
-    scale_features=True,  # Scale the proportion matrix features
-    verbose=False,
-    epochs = 50
-)
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">data_wide</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;sample_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">missingness_proportion_matrix</span><span class="o">=</span><span class="n">prop_matrix</span><span class="p">,</span>  <span class="c1"># Use custom matrix</span>
+    <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">scale_features</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Scale the proportion matrix features</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">50</span>
+<span class="p">)</span>
 
-plot_vae_architecture(model)
+<span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -379,52 +390,52 @@ Cluster dataset:
 <h1>Full workflow<a class="headerlink" href="#full-workflow" title="Link to this heading"></a></h1>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
-import numpy as np
-from ciss_vae.utils.matrix import create_missingness_prop_matrix
-from ciss_vae.utils.clustering import cluster_on_missing_prop
-from ciss_vae.training.run_cissvae import run_cissvae
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.matrix</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_missingness_prop_matrix</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.clustering</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_on_missing_prop</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
 
-# 1. Create longitudinal data with complex missingness patterns
-np.random.seed(42)
-data = pd.DataFrame({
-    &#39;patient_id&#39;: [f&#39;P{i:03d}&#39; for i in range(1, 101)],
-    # Glucose measurements - some patients miss early timepoints
-    &#39;glucose_baseline&#39;: np.random.normal(95, 10, 100),
-    &#39;glucose_month1&#39;: np.where(np.random.random(100) &lt; 0.3, np.nan, np.random.normal(92, 12, 100)),
-    &#39;glucose_month3&#39;: np.where(np.random.random(100) &lt; 0.2, np.nan, np.random.normal(90, 11, 100)),
-    &#39;glucose_month6&#39;: np.where(np.random.random(100) &lt; 0.1, np.nan, np.random.normal(88, 10, 100)),
-    # HbA1c - different missingness pattern
-    &#39;hba1c_baseline&#39;: np.where(np.random.random(100) &lt; 0.1, np.nan, np.random.normal(6.5, 0.8, 100)),
-    &#39;hba1c_month1&#39;: np.where(np.random.random(100) &lt; 0.4, np.nan, np.random.normal(6.3, 0.9, 100)),
-    &#39;hba1c_month3&#39;: np.where(np.random.random(100) &lt; 0.3, np.nan, np.random.normal(6.1, 0.8, 100)),
-    &#39;hba1c_month6&#39;: np.where(np.random.random(100) &lt; 0.2, np.nan, np.random.normal(5.9, 0.7, 100)),
-})
+<span class="c1"># 1. Create longitudinal data with complex missingness patterns</span>
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s1">&#39;patient_id&#39;</span><span class="p">:</span> <span class="p">[</span><span class="sa">f</span><span class="s1">&#39;P</span><span class="si">{</span><span class="n">i</span><span class="si">:</span><span class="s1">03d</span><span class="si">}</span><span class="s1">&#39;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">101</span><span class="p">)],</span>
+    <span class="c1"># Glucose measurements - some patients miss early timepoints</span>
+    <span class="s1">&#39;glucose_baseline&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">95</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span>
+    <span class="s1">&#39;glucose_month1&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">92</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="s1">&#39;glucose_month3&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span> <span class="mi">11</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="s1">&#39;glucose_month6&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mi">88</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="c1"># HbA1c - different missingness pattern</span>
+    <span class="s1">&#39;hba1c_baseline&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">6.5</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="s1">&#39;hba1c_month1&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.4</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">6.3</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="s1">&#39;hba1c_month3&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">6.1</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+    <span class="s1">&#39;hba1c_month6&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">5.9</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">,</span> <span class="mi">100</span><span class="p">)),</span>
+<span class="p">})</span>
 
-# 2. Create missingness proportion matrix
-prop_matrix = create_missingness_prop_matrix(
-    data,
-    index_col = &quot;patient_id&quot;,
-    repeat_feature_names = [&quot;glucose&quot;, &quot;hba1c&quot;],
-    nonint_timepoint=True
-)
+<span class="c1"># 2. Create missingness proportion matrix</span>
+<span class="n">prop_matrix</span> <span class="o">=</span> <span class="n">create_missingness_prop_matrix</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">,</span>
+    <span class="n">index_col</span> <span class="o">=</span> <span class="s2">&quot;patient_id&quot;</span><span class="p">,</span>
+    <span class="n">repeat_feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;glucose&quot;</span><span class="p">,</span> <span class="s2">&quot;hba1c&quot;</span><span class="p">],</span>
+    <span class="n">nonint_timepoint</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
 
-print(f&quot;Missingness Proportion Matrix: \n{prop_matrix.head()}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missingness Proportion Matrix: </span><span class="se">\n</span><span class="si">{</span><span class="n">prop_matrix</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-# 3. Run complete CISS-VAE pipeline
-main_data = data.drop(&#39;patient_id&#39;, axis=1)
+<span class="c1"># 3. Run complete CISS-VAE pipeline</span>
+<span class="n">main_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="s1">&#39;patient_id&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-imputed_data, model, history = run_cissvae(
-    data=main_data,
-    missingness_proportion_matrix=prop_matrix,
-    n_clusters=2,
-    scale_features=True,
-    epochs=100,
-    verbose=False,
-    return_history=True
-)
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">main_data</span><span class="p">,</span>
+    <span class="n">missingness_proportion_matrix</span><span class="o">=</span><span class="n">prop_matrix</span><span class="p">,</span>
+    <span class="n">n_clusters</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">scale_features</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">return_history</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
 
-print(f&quot;\nOriginal Data: \n{main_data.head()} \n\nImputed Data:\n{imputed_data.head()}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Original Data: </span><span class="se">\n</span><span class="si">{</span><span class="n">main_data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="si">}</span><span class="s2"> </span><span class="se">\n\n</span><span class="s2">Imputed Data:</span><span class="se">\n</span><span class="si">{</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -477,8 +488,8 @@ Imputed Data:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="vignette.html" class="btn btn-neutral float-left" title="How to use CISS-VAE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="dni_vignette.html" class="btn btn-neutral float-right" title="Avoiding imputation undesired data entries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="binary_vignette.html" class="btn btn-neutral float-left" title="Handling binary data columns" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="dni_vignette.html" class="btn btn-neutral float-right" title="Avoiding undesired imputation of certain missing data" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

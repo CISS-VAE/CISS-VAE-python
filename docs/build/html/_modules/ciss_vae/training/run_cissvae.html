@@ -56,11 +56,12 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../api.html">API Reference</a></li>
 </ul>
 
@@ -107,6 +108,7 @@
     <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
     <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
     <span class="n">imputable_matrix</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="c1">## dataset params</span>
     <span class="n">clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
     <span class="n">n_clusters</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>     
@@ -391,7 +393,8 @@
                             <span class="n">val_proportion</span> <span class="o">=</span> <span class="n">val_proportion</span><span class="p">,</span>
                             <span class="n">replacement_value</span> <span class="o">=</span> <span class="n">replacement_value</span><span class="p">,</span> 
                             <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">columns_ignore</span><span class="p">,</span>
-                            <span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable_matrix</span><span class="p">)</span>
+                            <span class="n">imputable</span> <span class="o">=</span> <span class="n">imputable_matrix</span><span class="p">,</span>
+                            <span class="n">binary_feature_mask</span><span class="o">=</span><span class="n">binary_feature_mask</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">print_dataset</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cluster dataset:</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
@@ -407,7 +410,8 @@
         <span class="n">latent_shared</span> <span class="o">=</span> <span class="n">latent_shared</span><span class="p">,</span>
         <span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span><span class="p">,</span>
         <span class="n">num_clusters</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">n_clusters</span><span class="p">,</span>
-        <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span><span class="p">,</span>
+        <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span> 

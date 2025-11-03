@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Avoiding imputation undesired data entries &mdash; CISS-VAE 1.0.18 documentation</title>
+  <title>Avoiding undesired imputation of certain missing data &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
@@ -59,14 +59,15 @@
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Avoiding imputation undesired data entries</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Avoiding undesired imputation of certain missing data</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#example-using-included-dataset">Example using included dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#using-run-cissvae-with-dni-matrix">Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with DNI matrix</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#we-can-also-use-the-imputable-maatrix-with-the-autotune-function">We can also use the imputable maatrix with the autotune function.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#we-can-also-use-the-imputable-matrix-with-the-autotune-function">We can also use the imputable matrix with the autotune function.</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
@@ -86,7 +87,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Avoiding imputation undesired data entries</li>
+      <li class="breadcrumb-item active">Avoiding undesired imputation of certain missing data</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/dni_vignette.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -96,32 +97,41 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="avoiding-imputation-undesired-data-entries">
-<h1>Avoiding imputation undesired data entries<a class="headerlink" href="#avoiding-imputation-undesired-data-entries" title="Link to this heading"></a></h1>
-<p>To avoid imputing certain missing datapoints, construct a <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code>(DNI matrix) of the same size and shape as the original dataset. For this matrix, use 1 to represent values in the original dataset that are missing and viable for imputation or non-missing. Use 0 to represent values in the original dataset that are missing but not viable for imputation (for example, measurements at timepoints occuring after death). To use the <code class="docutils literal notranslate"><span class="pre">cols_ignore</span></code> argument in <code class="docutils literal notranslate"><span class="pre">run_cissvae</span></code> or <code class="docutils literal notranslate"><span class="pre">ClusterDataset()</span></code>, make sure that the <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code> has the same column names/indices as the original dataset.</p>
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</div>
+</div>
+<section id="avoiding-undesired-imputation-of-certain-missing-data">
+<h1>Avoiding undesired imputation of certain missing data<a class="headerlink" href="#avoiding-undesired-imputation-of-certain-missing-data" title="Link to this heading"></a></h1>
+<p>To avoid imputing certain missing datapoints, construct a <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code>(DNI matrix) of the same size and shape as the original dataset. For this matrix, use 1 to represent values in the original dataset that are either <strong>missing and viable</strong> for imputation or <strong>non-missing</strong>. Use 0 to represent values in the original dataset that are missing but <strong>not viable</strong> for imputation (for example, measurements at timepoints occuring after death). To use the <code class="docutils literal notranslate"><span class="pre">cols_ignore</span></code> argument in <code class="docutils literal notranslate"><span class="pre">run_cissvae</span></code> or <code class="docutils literal notranslate"><span class="pre">ClusterDataset()</span></code>, make sure that the <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code> has the same column names/indices as the original dataset.</p>
 <section id="example-using-included-dataset">
 <h2>Example using included dataset<a class="headerlink" href="#example-using-included-dataset" title="Link to this heading"></a></h2>
 <p>First load the dataset and load or create the DNI matrix. Here we can see that [1, Y12], [2, Y22], and [1, Y52] are marked as non-imputable.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
-from ciss_vae.data import load_example_dataset, load_dni
-import ciss_vae
-print(ciss_vae.__file__)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span><span class="p">,</span> <span class="n">load_dni</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">ciss_vae</span>
 
-df_missing, _, clusters = load_example_dataset()
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
 
-dni = load_dni()
+<span class="n">dni</span> <span class="o">=</span> <span class="n">load_dni</span><span class="p">()</span>
 
-dni.columns = df_missing.columns
+<span class="n">dni</span><span class="o">.</span><span class="n">columns</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span>
 
-print(f&quot;Df missing:\n{df_missing.head(3).drop(df_missing.columns[:5].to_list(), axis=1)}, \n\nDo not impute:\n{dni.head(3).drop(df_missing.columns[:5].to_list(), axis=1)}&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Df missing:</span><span class="se">\n</span><span class="si">{</span><span class="n">df_missing</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span><span class="w"> </span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">, </span><span class="se">\n\n</span><span class="s2">Imputable Matrix:</span><span class="se">\n</span><span class="si">{</span><span class="n">dni</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span><span class="w"> </span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/nfs/vaithid1/CISS-VAE/CISS-VAE/src/ciss_vae/__init__.py
-Df missing:
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Df missing:
         Y11  Y12        Y13        Y14        Y15        Y21  Y22        Y23  \
 0 -4.049537  NaN        NaN -14.369151 -17.564448        NaN  NaN -35.772630   
 1  0.546168  NaN -12.189518  -7.722474        NaN  -7.470250  NaN -25.924360   
@@ -139,7 +149,7 @@ Df missing:
 
 [3 rows x 25 columns], 
 
-Do not impute:
+Imputable Matrix:
    Y11  Y12  Y13  Y14  Y15  Y21  Y22  Y23  Y24  Y25  ...  Y41  Y42  Y43  Y44  \
 0    1    1    1    1    1    1    1    1    1    1  ...    1    1    1    1   
 1    1    0    1    1    1    1    1    1    1    1  ...    1    1    1    1   
@@ -161,35 +171,35 @@ Do not impute:
 <p>The <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> function can accept the DNI matrix as an input. Make sure that the column names of the DNI matrix match those of the original dataset.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>from ciss_vae.training.run_cissvae import run_cissvae
-from ciss_vae.utils.helpers import plot_vae_architecture
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
 
-imputed_data, vae, ds, history = run_cissvae(data = df_missing,
-## Dataset params
-    columns_ignore = df_missing.columns[:5], ## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.
-    imputable_matrix=dni,
-    clusters = clusters,
-    print_dataset = False,
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">df_missing</span><span class="p">,</span>
+<span class="c1">## Dataset params</span>
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.</span>
+    <span class="n">imputable_matrix</span><span class="o">=</span><span class="n">dni</span><span class="p">,</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
+    <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     
-## VAE model params
-    hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
-    latent_dim = 15, ## Dimensions of latent embedding
-    layer_order_enc = [&quot;unshared&quot;, &quot;unshared&quot;, &quot;unshared&quot;], ## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)
-    layer_order_dec=[&quot;shared&quot;, &quot;shared&quot;,  &quot;shared&quot;],  ## order of shared vs unshared layers for decode
-    latent_shared=False, 
-    output_shared=False, 
-    batch_size = 4000, ## batch size for data loader
-    return_model = True, ## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`
+<span class="c1">## VAE model params</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="c1">## Dimensions of hidden layers, in order. One number per layer. </span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="c1">## Dimensions of latent embedding</span>
+    <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span> <span class="c1">## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span>  <span class="c1">## order of shared vs unshared layers for decode</span>
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span> <span class="c1">## batch size for data loader</span>
+    <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`</span>
 
-## Initial Training params
-    epochs = 5, ## default 
+<span class="c1">## Initial Training params</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="c1">## default </span>
 
-## Other params
-    return_history = True, ## if true, will return training MSE history as pandas dataframe
-    return_dataset=True
-)
+<span class="c1">## Other params</span>
+    <span class="n">return_history</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, will return training MSE history as pandas dataframe</span>
+    <span class="n">return_dataset</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
 
-print(f&quot;The successfully imputed dataset:\n{imputed_data.head}\n\n&quot;)
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The successfully imputed dataset:</span><span class="se">\n</span><span class="si">{</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">head</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -209,42 +219,42 @@ print(f&quot;The successfully imputed dataset:\n{imputed_data.head}\n\n&quot;)
 7999  15.152122  5.258686           1.0           0.0           0.0   
 
             Y11        Y12         Y13         Y14         Y15  ...       Y41  \
-0     -4.049537 -25.333433  -18.179119  -14.369148  -17.564449  ... -0.904960   
-1      0.546168        NaN  -12.189518   -7.722473   -8.393543  ...  2.624586   
-2     -6.705932 -25.998434  -20.358906  -15.126495  -17.251377  ... -0.955551   
-3    -10.608213 -21.735437  -13.312706  -14.207619  -21.339748  ... -2.825192   
-4      0.357588 -16.487692  -11.312771   -5.675655         NaN  ...  3.617390   
+0     -4.049537 -23.776985  -17.498016  -14.369148  -17.564449  ... -0.904960   
+1      0.546168        NaN  -12.189518   -7.722473  -11.081120  ...  2.624586   
+2     -2.596828 -18.962170  -20.358906  -15.126495  -17.251385  ... -0.597668   
+3    -10.608214 -24.600620  -16.858891  -14.207619  -21.339748  ... -2.825192   
+4      0.357588 -16.487694  -11.312771    4.231678         NaN  ...  3.617390   
 ...         ...        ...         ...         ...         ...  ...       ...   
-7995   0.004673  68.338669  127.004562  166.543167  189.465057  ...  4.190835   
+7995   0.004673  68.338676  127.004562  166.543167  189.465057  ...  4.190835   
 7996   9.732808  58.953075  102.710716  135.753891  152.616577  ...  5.976947   
-7997  13.310965  52.694130   84.626495  107.389328  124.735504  ...  6.921663   
+7997  13.310964  52.694122   84.626495  107.389328  124.735504  ...  6.921663   
 7998   0.670269  57.290031  109.489731  143.899231  164.870361  ...  3.977530   
 7999  -5.307739  58.862980  117.229599  152.684494  178.404663  ...  4.620643   
 
             Y42        Y43        Y44        Y45       Y51        Y52  \
-0     -9.854912  -7.413225  -3.694853  -5.680294  2.587588  -6.005280   
-1     -6.270187  -5.776196  -1.379498  -2.329605  6.080512        NaN   
-2    -10.401142  -7.215719  -3.350798  -6.895340  2.531148  -6.401376   
-3           NaN  -8.293898  -2.398298  -2.642437  0.138556  -5.609408   
-4     -4.619453  -3.856876  -0.338383  -1.495659  3.421927  -3.341182   
+0     -7.386673  -6.179434  -3.694853  -5.680294  2.587588  -7.472216   
+1     -8.668818  -5.776196  -1.379498  -2.329605  6.080512        NaN   
+2     -4.789593  -7.215717  -3.350798  -6.895340  2.531148  -3.592981   
+3           NaN  -8.293898  -2.398297  -4.248531  0.138556  -5.875858   
+4     -4.619453  -3.856878   2.113935  -1.495659  2.086174  -3.341181   
 ...         ...        ...        ...        ...       ...        ...   
 7995  37.229931  66.995651  84.691528  96.805740  6.542590  34.403015   
-7996  28.959558  53.110542  67.145432  75.380974  6.311522  26.652737   
-7997  25.361666  42.306374  53.189552  59.775707  6.992176  23.954103   
-7998  30.719467  57.480675  72.764549  82.690750  5.347935  27.920717   
-7999  32.284439  60.907463  79.353737  89.973381  2.795478  30.544744   
+7996  28.959558  53.110538  67.145432  75.380974  6.311522  26.652737   
+7997  25.361666  42.306374  53.189552  59.775707  6.992177  23.954103   
+7998  30.719467  57.480671  72.764549  82.690750  5.347935  27.920717   
+7999  32.284439  60.907459  79.353737  89.973381  2.795478  30.544744   
 
             Y53        Y54        Y55  
 0     -4.681194  -2.248405  -2.679079  
-1     -2.290061  -0.887398   0.562531  
-2     -5.427431  -1.330164  -2.324381  
-3     -5.729858  -1.639587  -4.445707  
-4     -1.915190   1.323397   0.103451  
+1     -2.290062  -0.887398   0.562532  
+2     -5.427431  -1.330162  -2.324381  
+3     -5.729860  -1.639587  -4.445707  
+4     -1.915190   2.497093   0.103451  
 ...         ...        ...        ...  
 7995  57.426338  74.096107  83.017654  
 7996  47.063118  58.854687  65.740067  
 7997  37.583347  48.980991  52.618183  
-7998  49.049713  63.465157  73.865051  
+7998  49.049713  63.465149  73.865051  
 7999  51.202316  67.612328  76.804909  
 
 [8000 rows x 30 columns]&gt;
@@ -254,17 +264,7 @@ print(f&quot;The successfully imputed dataset:\n{imputed_data.head}\n\n&quot;)
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>ds
-</pre></div>
-</div>
-</div>
-<div class="cell_output docutils container">
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>ClusterDataset(n_samples=8000, n_features=30, n_clusters=4)
-  • Original missing: 61800 / 200000 (30.90%)
-  • Validation held-out: 13854 (10.02% of non-missing)
-  • .data shape:     (8000, 30)
-  • .masks shape:    (8000, 30)
-  • .val_data shape: (8000, 30)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span>
 </pre></div>
 </div>
 </div>
@@ -272,26 +272,26 @@ print(f&quot;The successfully imputed dataset:\n{imputed_data.head}\n\n&quot;)
 <p>Below, we can see that [1, Y12], [2, Y22], and [1, Y52] are still NaN, even though other missing entries have been imputed.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>print(f&quot;Imputed dataset:\n{imputed_data.drop(df_missing.columns[:5].to_list(), axis=1).head(3)}&quot;)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Imputed dataset:</span><span class="se">\n</span><span class="si">{</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">to_list</span><span class="p">(),</span><span class="w"> </span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Imputed dataset:
         Y11        Y12        Y13        Y14        Y15        Y21        Y22  \
-0 -4.049537 -25.333433 -18.179119 -14.369148 -17.564449 -17.193937 -38.320435   
-1  0.546168        NaN -12.189518  -7.722473  -8.393543  -7.470250 -27.492477   
-2 -6.705932 -25.998434 -20.358906 -15.126495 -17.251377 -18.448421        NaN   
+0 -4.049537 -23.776985 -17.498016 -14.369148 -17.564449 -11.475680 -29.109577   
+1  0.546168        NaN -12.189518  -7.722473 -11.081120  -7.470250 -33.593620   
+2 -2.596828 -18.962170 -20.358906 -15.126495 -17.251385 -18.448421        NaN   
 
-         Y23        Y24        Y25  ...       Y41        Y42       Y43  \
-0 -35.772636 -28.098907 -30.242596  ... -0.904960  -9.854912 -7.413225   
-1 -25.924362 -17.231424 -18.695286  ...  2.624586  -6.270187 -5.776196   
-2 -34.400864 -27.250603 -28.839809  ... -0.955551 -10.401142 -7.215719   
+         Y23        Y24        Y25  ...       Y41       Y42       Y43  \
+0 -35.772629 -28.098907 -30.242588  ... -0.904960 -7.386673 -6.179434   
+1 -25.924362 -17.231422 -18.695286  ...  2.624586 -8.668818 -5.776196   
+2 -34.400864 -27.250603 -28.839817  ... -0.597668 -4.789593 -7.215717   
 
         Y44       Y45       Y51       Y52       Y53       Y54       Y55  
-0 -3.694853 -5.680294  2.587588 -6.005280 -4.681194 -2.248405 -2.679079  
-1 -1.379498 -2.329605  6.080512       NaN -2.290061 -0.887398  0.562531  
-2 -3.350798 -6.895340  2.531148 -6.401376 -5.427431 -1.330164 -2.324381  
+0 -3.694853 -5.680294  2.587588 -7.472216 -4.681194 -2.248405 -2.679079  
+1 -1.379498 -2.329605  6.080512       NaN -2.290062 -0.887398  0.562532  
+2 -3.350798 -6.895340  2.531148 -3.592981 -5.427431 -1.330162 -2.324381  
 
 [3 rows x 25 columns]
 </pre></div>
@@ -301,151 +301,211 @@ print(f&quot;The successfully imputed dataset:\n{imputed_data.head}\n\n&quot;)
 <p>As always, the vae architecture can be printed.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>plot_vae_architecture(model = vae,
-                        title = None, ## Set title of plot
-                        ## Colors below are default
-                        color_shared = &quot;skyblue&quot;, 
-                        color_unshared =&quot;lightcoral&quot;,
-                        color_latent = &quot;gold&quot;, # xx fix
-                        color_input = &quot;lightgreen&quot;,
-                        color_output = &quot;lightgreen&quot;,
-                        figsize=(16, 8),
-                        return_fig = False)
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
+                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## Set title of plot</span>
+                        <span class="c1">## Colors below are default</span>
+                        <span class="n">color_shared</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span><span class="p">,</span> 
+                        <span class="n">color_unshared</span> <span class="o">=</span><span class="s2">&quot;lightcoral&quot;</span><span class="p">,</span>
+                        <span class="n">color_latent</span> <span class="o">=</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="c1"># xx fix</span>
+                        <span class="n">color_input</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">color_output</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+                        <span class="n">return_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" src="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" />
+<img alt="_images/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" src="_images/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" />
 </div>
 </div>
 </section>
-<section id="we-can-also-use-the-imputable-maatrix-with-the-autotune-function">
-<h2>We can also use the imputable maatrix with the autotune function.<a class="headerlink" href="#we-can-also-use-the-imputable-maatrix-with-the-autotune-function" title="Link to this heading"></a></h2>
+<section id="we-can-also-use-the-imputable-matrix-with-the-autotune-function">
+<h2>We can also use the imputable matrix with the autotune function.<a class="headerlink" href="#we-can-also-use-the-imputable-matrix-with-the-autotune-function" title="Link to this heading"></a></h2>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>import pandas as pd
-from ciss_vae.data import load_example_dataset, load_dni
-import ciss_vae
-from ciss_vae.classes.cluster_dataset import ClusterDataset
-from ciss_vae.training.autotune import SearchSpace, autotune
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_example_dataset</span><span class="p">,</span> <span class="n">load_dni</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.autotune</span><span class="w"> </span><span class="kn">import</span> <span class="n">SearchSpace</span><span class="p">,</span> <span class="n">autotune</span>
 
-print(ciss_vae.__file__)
+<span class="n">df_missing</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">clusters</span> <span class="o">=</span> <span class="n">load_example_dataset</span><span class="p">()</span>
 
-df_missing, _, clusters = load_example_dataset()
+<span class="n">dni</span> <span class="o">=</span> <span class="n">load_dni</span><span class="p">()</span>
 
-dni = load_dni()
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">df_missing</span><span class="p">,</span>
+    <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
+    <span class="n">imputable</span> <span class="o">=</span> <span class="n">dni</span><span class="p">,</span>
 
-dataset = ClusterDataset(
-    data = df_missing,
-    cluster_labels = clusters,
-    imputable = dni,
+<span class="p">)</span>
 
-)
-
-dataset
+<span class="n">dataset</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/nfs/vaithid1/CISS-VAE/CISS-VAE/src/ciss_vae/__init__.py
-</pre></div>
-</div>
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>ClusterDataset(n_samples=8000, n_features=30, n_clusters=4)
   • Original missing: 61800 / 240000 (25.75%)
-  • Validation held-out: 17854 (10.02% of non-missing)
+  • Validation held-out: 17783 (9.98% of non-missing)
   • .data shape:     (8000, 30)
   • .masks shape:    (8000, 30)
   • .val_data shape: (8000, 30)
+  • Non-imputable entries: 6180
 </pre></div>
 </div>
 </div>
 </div>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
-<div class="highlight-plaintext notranslate"><div class="highlight"><pre><span></span>searchspace = SearchSpace(
-                 num_hidden_layers=(1, 4), ## Set number of hidden layers
-                 hidden_dims=[64, 512], ## Allowable dimensions of hidden layers
-                 latent_dim=[10, 100],
-                 latent_shared=[True, False],
-                 output_shared=[True,False],
-                 lr=(1e-4, 1e-3),
-                 decay_factor=(0.9, 0.999),
-                 beta=0.01,
-                 num_epochs=100,
-                 batch_size=64,
-                 num_shared_encode=[0, 1, 3],
-                 num_shared_decode=[0, 1, 3],
-                 encoder_shared_placement = [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;], ## where should the shared layers be placed in the encoder
-                 decoder_shared_placement = [&quot;at_end&quot;, &quot;at_start&quot;, &quot;alternating&quot;, &quot;random&quot;], ## where should the shared layers be placed in the decoder
-                 refit_patience=2,
-                 refit_loops=10,
-                 epochs_per_loop = 100,
-                 reset_lr_refit = [True, False])
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">searchspace</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">(</span>
+                 <span class="n">num_hidden_layers</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="c1">## Set number of hidden layers</span>
+                 <span class="n">hidden_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">512</span><span class="p">],</span> <span class="c1">## Allowable dimensions of hidden layers</span>
+                 <span class="n">latent_dim</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span>
+                 <span class="n">latent_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span>
+                 <span class="n">output_shared</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span><span class="kc">False</span><span class="p">],</span>
+                 <span class="n">lr</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">),</span>
+                 <span class="n">decay_factor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">),</span>
+                 <span class="n">beta</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
+                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+                 <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+                 <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                 <span class="n">encoder_shared_placement</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span> <span class="c1">## where should the shared layers be placed in the encoder</span>
+                 <span class="n">decoder_shared_placement</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span> <span class="c1">## where should the shared layers be placed in the decoder</span>
+                 <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                 <span class="n">refit_loops</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+                 <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
 
-results = autotune(
-    search_space = searchspace,
-    train_dataset = dataset,                   # ClusterDataset object
-    save_model_path=None,
-    save_search_space_path=None,
-    n_trials=20,
-    study_name=&quot;vae_autotune_v3&quot;,                 # Default study name
-    device_preference=&quot;cuda&quot;,
-    show_progress=True,                       # Show progress bar for training
-    optuna_dashboard_db=&quot;sqlite:///test_dni_python.sqlite3&quot;,                  # If using optuna dashboard set db location here
-    load_if_exists=True,                       # If using optuna dashboard, if study by &#39;study_name&#39; already exists, will load that study
-    seed = 42,     
-)
+<span class="n">results</span> <span class="o">=</span> <span class="n">autotune</span><span class="p">(</span>
+    <span class="n">search_space</span> <span class="o">=</span> <span class="n">searchspace</span><span class="p">,</span>
+    <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
+    <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune_v3&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
+    <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
+    <span class="n">show_progress</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///test_dni_python.sqlite3&quot;</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here</span>
+    <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># If using optuna dashboard, if study by &#39;study_name&#39; already exists, will load that study</span>
+    <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>     
+<span class="p">)</span>
 </pre></div>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-09-25 14:57:40,660] A new study created in RDB with name: vae_autotune_v3
-</pre></div>
-</div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
-<span class=" -Color -Color-Bold -Color-Bold-Blue">Starting Optuna optimization with 20 trials...</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 09:42:06,397] Using an existing study with name &#39;vae_autotune_v3&#39; instead of creating a new one.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Bold -Color-Bold-Blue">Starting Optuna optimization with 20 trials...</span>
 
-<span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">1</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
-Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">2</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">1.21e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
-Initial training <span class=" -Color -Color-C237">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">  0%</span> <span class=" -Color -Color-Cyan">-:--:--</span>
+<span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">11</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">2</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">7.37e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:01</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:15
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">11</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">11.7220</span>
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/nfs/vaithid1/CISS-VAE/CISS-VAE/src/ciss_vae/training/autotune.py:518: ExperimentalWarning: set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
-  study.set_metric_names([&quot;Validation MSE&quot;])
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 09:52:37,734] Trial 10 finished with value: {&#39;Validation MSE&#39;: 11.722023963928223} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0007368269953613821, &#39;decay_factor&#39;: 0.9976424115134604, &#39;num_shared_encode&#39;: 1, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:48</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
-Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:12
-?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">1</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.6975</span>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">12</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3.84e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:48</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:13
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">12</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.7502</span>
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-09-25 15:05:52,038] Trial 0 finished with value: {&#39;Validation MSE&#39;: 6.697518825531006} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00012101656685485331, &#39;decay_factor&#39;: 0.9094310949685148, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 0 with value: 6.697518825531006.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:00:54,249] Trial 11 finished with value: {&#39;Validation MSE&#39;: 6.750159740447998} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0003838990178243227, &#39;decay_factor&#39;: 0.9023879107050495, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">2</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
-Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">5.31e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
-Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:07</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:03
-Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:18
-?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">2</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.6964</span>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">13</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">1.07e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:12</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:03
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:17
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">13</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">9.6979</span>
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-09-25 15:17:54,468] Trial 1 finished with value: {&#39;Validation MSE&#39;: 6.696430683135986} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 64, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0005309640362314614, &#39;decay_factor&#39;: 0.9386587580379689, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 1 with value: 6.696430683135986.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:12:46,843] Trial 12 finished with value: {&#39;Validation MSE&#39;: 9.697922706604004} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00010683483835594792, &#39;decay_factor&#39;: 0.9673533953659983, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">3</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
-Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">1.20e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
-Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:02:13</span>% <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:04
-Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:32
-?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.0030</span>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">14</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3.64e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:44</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:10
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">14</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.0121</span>
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-09-25 15:40:31,460] Trial 2 finished with value: {&#39;Validation MSE&#39;: 6.003026485443115} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 512, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0001199515274663907, &#39;decay_factor&#39;: 0.9695420241217254, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 2 with value: 6.003026485443115.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:20:11,432] Trial 13 finished with value: {&#39;Validation MSE&#39;: 6.0121235847473145} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.000364104850379929, &#39;decay_factor&#39;: 0.9617881160695826, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">4</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
-Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">6.34e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
-Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:39</span>% <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:04
-Refit loops ━━━━━━━━━━━━━━━━━━━━━━╸<span class=" -Color -Color-C237">━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta"> 56%</span> <span class=" -Color -Color-Cyan">0:07:04</span>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">15</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">9.75e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:42</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:10
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">15</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">5.8443</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:27:21,649] Trial 14 finished with value: {&#39;Validation MSE&#39;: 5.844327449798584} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 64, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0009745846275930254, &#39;decay_factor&#39;: 0.920612783908829, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">16</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">9.91e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:58</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:02
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:15
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">16</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.8771</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:37:33,192] Trial 15 finished with value: {&#39;Validation MSE&#39;: 6.877050876617432} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0009905928140806937, &#39;decay_factor&#39;: 0.9190575467120736, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">17</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4.70e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:58</span>% <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:04
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸<span class=" -Color -Color-C237">━━━━━━━━</span> <span class=" -Color -Color-Magenta"> 80%</span> <span class=" -Color -Color-Cyan">0:03:45</span>
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">17</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.7710</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:54:23,243] Trial 16 finished with value: {&#39;Validation MSE&#39;: 6.7710280418396} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 64, &#39;hidden_dim_3&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0004704838423442338, &#39;decay_factor&#39;: 0.9214003449673, &#39;num_shared_encode&#39;: 1, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">18</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">10</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">9.35e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:00:27</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:01
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸ <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:07
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">18</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.8644</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 10:59:14,588] Trial 17 finished with value: {&#39;Validation MSE&#39;: 6.864406108856201} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0009345770549313784, &#39;decay_factor&#39;: 0.9231857991137856, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">19</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">4</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">2.70e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:26</span>% <span class=" -Color -Color-Cyan">0:00:01</span>[36m0:00:03
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸<span class=" -Color -Color-C237">━━━━━━━━</span> <span class=" -Color -Color-Magenta"> 80%</span> <span class=" -Color -Color-Cyan">0:02:21</span>
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">19</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">5.6710</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 11:10:38,408] Trial 18 finished with value: {&#39;Validation MSE&#39;: 5.671001434326172} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 64, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0002697325488386033, &#39;decay_factor&#39;: 0.9492031650109303, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">3</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">2.60e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:51</span>% <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:04
+Refit loops ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╸<span class=" -Color -Color-C237">━━━━</span> <span class=" -Color -Color-Magenta"> 90%</span> <span class=" -Color -Color-Cyan">0:01:32</span>
+?25h✓ Trial <span class=" -Color -Color-Bold -Color-Bold-Cyan">20</span> complete - MSE: <span class=" -Color -Color-Bold -Color-Bold-Cyan">6.7174</span>
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-03 11:27:13,805] Trial 19 finished with value: {&#39;Validation MSE&#39;: 6.71740198135376} and parameters: {&#39;num_hidden_layers&#39;: 3, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;hidden_dim_2&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0002602808376712775, &#39;decay_factor&#39;: 0.958914232536166, &#39;num_shared_encode&#39;: 1, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 4 with value: 4.958242416381836.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">Trial </span><span class=" -Color -Color-Bold -Color-Bold-Green">21</span><span class=" -Color -Color-Green">/</span><span class=" -Color -Color-Bold -Color-Bold-Green">20</span>
+Parameters: <span class=" -Color -Color-Yellow">layers</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">2</span>, <span class=" -Color -Color-Yellow">latent_dim</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">100</span>, <span class=" -Color -Color-Yellow">lr</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">1.74e-04</span>, <span class=" -Color -Color-Yellow">batch_size</span>=<span class=" -Color -Color-Bold -Color-Bold-Cyan">64</span>
+Initial training <span class=" -Color -Color-Red">━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta">100%</span> <span class=" -Color -Color-Yellow">0:01:51</span>% <span class=" -Color -Color-Cyan">0:00:02</span>[36m0:00:04
+Refit loops ━━━━━━━━<span class=" -Color -Color-C237">╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span> <span class=" -Color -Color-Magenta"> 21%</span> <span class=" -Color -Color-Cyan">0:12:59</span>:10
 </pre></div>
 </div>
 </div>

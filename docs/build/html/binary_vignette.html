@@ -1,0 +1,529 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Handling binary data columns &mdash; CISS-VAE 1.0.18 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="_static/styles.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=14ed45bf"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="_static/copybutton.js?v=00122899"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Using create_missingness_prop_matrix: A Complete Guide" href="missingness_prop_vignette.html" />
+    <link rel="prev" title="How to use CISS-VAE" href="vignette.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            CISS-VAE
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">CISS-VAE Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Handling binary data columns</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example-dataset">Example dataset</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preparing-binary-vector">Preparing Binary Vector</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-run-cissvae-with-binary-matrix">Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with binary matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#using-binary-feature-mask-with-autotune">Using Binary Feature Mask with Autotune</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
+<li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">CISS-VAE</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Handling binary data columns</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/binary_vignette.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</div>
+</div>
+<section id="handling-binary-data-columns">
+<h1>Handling binary data columns<a class="headerlink" href="#handling-binary-data-columns" title="Link to this heading"></a></h1>
+<p>The CISS-VAE model can handle binary and categorical variables in addition to continuous ones. Categorical variables must be represented with binary dummy variables (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.get_dummies.html">pandas <code class="docutils literal notranslate"><span class="pre">get_dummies</span></code></a> can do this).</p>
+<p>When imputing binary data, the model applies a sigmoid activation function at the end of the forward pass to convert to a probability (this means that the end imputed result is the probability that the imputed value should be 1. The user will need to change these values after running).</p>
+<p>Because some datasets have both binary and continuous variables, you can include a binary variable mask (boolean vector) to tell the model which variables are binary so it acts accordingly.</p>
+<section id="example-dataset">
+<h2>Example dataset<a class="headerlink" href="#example-dataset" title="Link to this heading"></a></h2>
+<p>The example dataset below has both binary and continuous variables in it:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">n_rows</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">prop_mask</span> <span class="o">=</span> <span class="mf">0.3</span>
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">&quot;feat1&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_rows</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat2&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat3&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat4&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat5&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1">## now add some binary features</span>
+    <span class="s2">&quot;bf1&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;bf2&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;bf3&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;bf4&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.33</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;bf5&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.66</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+<span class="p">})</span>
+
+<span class="n">X_raw</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>  <span class="c1"># skip feat1</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">X</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># indices of non-NA entries</span>
+    <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">prop_mask</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mask_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_mask</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask_idx</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;X matrix:</span><span class="se">\n</span><span class="si">{</span><span class="n">X</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="c1">## choosing random clusters for now </span>
+<span class="n">clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>X matrix:
+    feat1  feat2  feat3  feat4  feat5  bf1  bf2  bf3  bf4  bf5
+0      52    2.0    6.0    4.0    2.0  NaN  NaN  NaN  NaN  0.0
+1      93    1.0    7.0    NaN    2.0  NaN  1.0  1.0  1.0  1.0
+2      15    4.0    NaN    4.0    2.0  0.0  0.0  1.0  0.0  NaN
+3      72    4.0    3.0    NaN    1.0  NaN  1.0  NaN  1.0  NaN
+4      61    NaN    1.0    NaN    1.0  0.0  NaN  NaN  NaN  0.0
+..    ...    ...    ...    ...    ...  ...  ...  ...  ...  ...
+95     85    NaN    NaN    6.0    2.0  0.0  0.0  1.0  NaN  1.0
+96     80    1.0    NaN    7.0    2.0  0.0  NaN  1.0  NaN  1.0
+97     82    2.0    4.0    NaN    1.0  0.0  NaN  1.0  NaN  NaN
+98     53    4.0    3.0    7.0    7.0  NaN  0.0  0.0  0.0  1.0
+99     24    4.0    1.0    3.0    NaN  0.0  1.0  1.0  1.0  0.0
+
+[100 rows x 10 columns]
+</pre></div>
+</div>
+</div>
+</div>
+<section id="preparing-binary-vector">
+<h3>Preparing Binary Vector<a class="headerlink" href="#preparing-binary-vector" title="Link to this heading"></a></h3>
+<p>The binary vector <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code> is of length p for an n x p data matrix and is <code class="docutils literal notranslate"><span class="pre">True</span></code> for binary columns and <code class="docutils literal notranslate"><span class="pre">False</span></code> for continuous columns.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">binary_vector</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="using-run-cissvae-with-binary-matrix">
+<h2>Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with binary matrix<a class="headerlink" href="#using-run-cissvae-with-binary-matrix" title="Link to this heading"></a></h2>
+<p>Pass the binary vector to the <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> function using the <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code> argument. Note: even if columns are ignored via <code class="docutils literal notranslate"><span class="pre">columns_ignore</span></code>, those columns must be accounted for in the <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">ciss_vae</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.run_cissvae</span><span class="w"> </span><span class="kn">import</span> <span class="n">run_cissvae</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.utils.helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_vae_architecture</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ciss_vae</span><span class="o">.</span><span class="vm">__file__</span><span class="p">)</span>
+
+<span class="n">imputed_data</span><span class="p">,</span> <span class="n">vae</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">history</span> <span class="o">=</span> <span class="n">run_cissvae</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">X</span><span class="p">,</span>
+<span class="c1">## Dataset params</span>
+    <span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="c1">## columns to ignore when selecting validation dataset (and clustering if you do not provide clusters). For example, demographic columns with no missingness.</span>
+    <span class="n">clusters</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
+    <span class="n">print_dataset</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">binary_vector</span><span class="p">,</span>
+<span class="c1">## VAE model params</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">150</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">60</span><span class="p">],</span> <span class="c1">## Dimensions of hidden layers, in order. One number per layer. </span>
+    <span class="n">latent_dim</span> <span class="o">=</span> <span class="mi">15</span><span class="p">,</span> <span class="c1">## Dimensions of latent embedding</span>
+    <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;unshared&quot;</span><span class="p">],</span> <span class="c1">## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)</span>
+    <span class="n">layer_order_dec</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;shared&quot;</span><span class="p">,</span>  <span class="s2">&quot;shared&quot;</span><span class="p">],</span>  <span class="c1">## order of shared vs unshared layers for decode</span>
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">output_shared</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="mi">4000</span><span class="p">,</span> <span class="c1">## batch size for data loader</span>
+    <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`</span>
+
+<span class="c1">## Initial Training params</span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span> <span class="c1">## default </span>
+
+<span class="c1">## Other params</span>
+    <span class="n">return_history</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, will return training MSE history as pandas dataframe</span>
+    <span class="n">return_dataset</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The successfully imputed dataset:</span><span class="se">\n</span><span class="si">{</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/.venv/lib/python3.11/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
+  from .autonotebook import tqdm as notebook_tqdm
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/src/ciss_vae/__init__.py
+The successfully imputed dataset:
+   feat1  feat2    feat3     feat4  feat5       bf1       bf2       bf3  \
+0   52.0    2.0  6.00000  4.000000    2.0  0.392466  0.524333  0.557564   
+1   93.0    1.0  7.00000  4.751469    2.0  0.210427  1.000000  1.000000   
+2   15.0    4.0  3.63214  4.000000    2.0  0.000000  0.000000  1.000000   
+
+        bf4       bf5  
+0  0.462122  0.000000  
+1  1.000000  1.000000  
+2  0.000000  0.543701  
+</pre></div>
+</div>
+</div>
+</div>
+<p>Now that we have an imputed dataset, we need to convert the probabilities to true binary values.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">bf_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">imputed_data</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;bf&#39;</span><span class="p">)]</span>
+<span class="n">imputed_data</span><span class="p">[</span><span class="n">bf_cols</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">imputed_data</span><span class="p">[</span><span class="n">bf_cols</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The successfully imputed dataset:</span><span class="se">\n</span><span class="si">{</span><span class="n">imputed_data</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The successfully imputed dataset:
+   feat1  feat2    feat3     feat4  feat5  bf1  bf2  bf3  bf4  bf5
+0   52.0    2.0  6.00000  4.000000    2.0    0    1    1    0    0
+1   93.0    1.0  7.00000  4.751469    2.0    0    1    1    1    1
+2   15.0    4.0  3.63214  4.000000    2.0    0    0    1    0    1
+</pre></div>
+</div>
+</div>
+</div>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;History </span><span class="se">\n</span><span class="si">{</span><span class="n">history</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>History 
+    epoch  train_loss     val_mse        lr  train_recon  train_kl  \
+0       0    5.665778  336.915192  0.010000          NaN       NaN   
+1       1    5.529218  409.599915  0.009990          NaN       NaN   
+2       2    5.467004  406.572754  0.009980          NaN       NaN   
+3       3    5.267822  357.014008  0.009970          NaN       NaN   
+4       4    5.052402  323.063568  0.009960          NaN       NaN   
+5       4         NaN  360.807251  0.009950          NaN       NaN   
+6       9         NaN  299.194702  0.009900          NaN       NaN   
+7       0    6.055346         NaN  0.009950          NaN       NaN   
+8       1    8.287996         NaN  0.009940          NaN       NaN   
+9       2    6.645365         NaN  0.009930          NaN       NaN   
+10      3    6.549108         NaN  0.009920          NaN       NaN   
+11      4    6.565840         NaN  0.009910          NaN       NaN   
+12     14         NaN  298.109406  0.009851          NaN       NaN   
+13      0    6.307795         NaN  0.009900          NaN       NaN   
+14      1    6.121426         NaN  0.009891          NaN       NaN   
+15      2    5.965865         NaN  0.009881          NaN       NaN   
+16      3    6.019014         NaN  0.009871          NaN       NaN   
+17      4    5.717219         NaN  0.009861          NaN       NaN   
+18     19         NaN  331.927307  0.009802          NaN       NaN   
+19      0    5.539527         NaN  0.009851          NaN       NaN   
+20      1    8.737970         NaN  0.009841          NaN       NaN   
+21      2    5.290363         NaN  0.009831          NaN       NaN   
+22      3    5.709083         NaN  0.009822          NaN       NaN   
+23      4    6.023082         NaN  0.009812          NaN       NaN   
+24     24         NaN  441.626740  0.009753          NaN       NaN   
+25      0    5.904051         NaN  0.009802          NaN       NaN   
+26      1    5.346017         NaN  0.009792          NaN       NaN   
+27      2    6.786304         NaN  0.009782          NaN       NaN   
+28      3    4.935527         NaN  0.009773          NaN       NaN   
+29      4    5.103082         NaN  0.009763          NaN       NaN   
+
+             phase  loop  
+0              NaN   NaN  
+1              NaN   NaN  
+2              NaN   NaN  
+3              NaN   NaN  
+4              NaN   NaN  
+5            refit   0.0  
+6       refit_loop   1.0  
+7   refit_training   NaN  
+8   refit_training   NaN  
+9   refit_training   NaN  
+10  refit_training   NaN  
+11  refit_training   NaN  
+12      refit_loop   2.0  
+13  refit_training   NaN  
+14  refit_training   NaN  
+15  refit_training   NaN  
+16  refit_training   NaN  
+17  refit_training   NaN  
+18      refit_loop   3.0  
+19  refit_training   NaN  
+20  refit_training   NaN  
+21  refit_training   NaN  
+22  refit_training   NaN  
+23  refit_training   NaN  
+24      refit_loop   4.0  
+25  refit_training   NaN  
+26  refit_training   NaN  
+27  refit_training   NaN  
+28  refit_training   NaN  
+29  refit_training   NaN  
+</pre></div>
+</div>
+</div>
+</div>
+<p>As always, the vae architecture can be printed.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot_vae_architecture</span><span class="p">(</span><span class="n">model</span> <span class="o">=</span> <span class="n">vae</span><span class="p">,</span>
+                        <span class="n">title</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1">## Set title of plot</span>
+                        <span class="c1">## Colors below are default</span>
+                        <span class="n">color_shared</span> <span class="o">=</span> <span class="s2">&quot;skyblue&quot;</span><span class="p">,</span> 
+                        <span class="n">color_unshared</span> <span class="o">=</span><span class="s2">&quot;lightcoral&quot;</span><span class="p">,</span>
+                        <span class="n">color_latent</span> <span class="o">=</span> <span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="c1"># xx fix</span>
+                        <span class="n">color_input</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">color_output</span> <span class="o">=</span> <span class="s2">&quot;lightgreen&quot;</span><span class="p">,</span>
+                        <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+                        <span class="n">return_fig</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<img alt="_images/a14649cec025198d1dec65e7e7f620dd77237db51cdd185bb4df53615d1dca06.png" src="_images/a14649cec025198d1dec65e7e7f620dd77237db51cdd185bb4df53615d1dca06.png" />
+</div>
+</div>
+</section>
+<section id="using-binary-feature-mask-with-autotune">
+<h2>Using Binary Feature Mask with Autotune<a class="headerlink" href="#using-binary-feature-mask-with-autotune" title="Link to this heading"></a></h2>
+<p>To use a <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code> with <code class="docutils literal notranslate"><span class="pre">autotune()</span></code>, pass the use the <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code> parameter when initializing the <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.training.autotune</span><span class="w"> </span><span class="kn">import</span> <span class="n">autotune</span><span class="p">,</span> <span class="n">SearchSpace</span>
+<span class="n">cd</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span> <span class="n">binary_feature_mask</span><span class="o">=</span><span class="n">binary_vector</span>
+<span class="p">)</span>
+
+<span class="n">ss</span> <span class="o">=</span> <span class="n">SearchSpace</span><span class="p">(</span>
+    <span class="n">num_hidden_layers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
+    <span class="n">hidden_dims</span> <span class="o">=</span> <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">32</span><span class="p">],</span>
+    <span class="n">latent_dim</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">latent_shared</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">output_shared</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+    <span class="n">decay_factor</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span>
+    <span class="n">num_epochs</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">num_shared_encode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">num_shared_decode</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">epochs_per_loop</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+    <span class="n">reset_lr_refit</span><span class="o">=</span><span class="kc">False</span>
+
+<span class="p">)</span>
+<span class="n">autotune</span><span class="p">(</span><span class="n">search_space</span> <span class="o">=</span> <span class="n">ss</span><span class="p">,</span> <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">cd</span><span class="p">,</span> <span class="n">optuna_dashboard_db</span> <span class="o">=</span>  <span class="s2">&quot;sqlite:///optuna_study_test_binary.db&quot;</span><span class="p">,</span> <span class="n">debug</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
+Starting Optuna optimization with 20 trials...
+Optimization complete. Best trial: 180 (MSE: 191.942139)
+Training final model with best parameters...
+Final model training complete.
+</pre></div>
+</div>
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(    feat1     feat2     feat3     feat4     feat5           bf1       bf2  \
+ 0    52.0  2.000000  6.000000  4.000000  2.000000  3.309087e-07  0.991342   
+ 1    93.0  1.000000  7.000000  4.972289  2.000000  1.963844e-06  1.000000   
+ 2    15.0  4.000000  3.740431  4.000000  2.000000  0.000000e+00  0.000000   
+ 3    72.0  4.000000  3.000000  4.040179  1.000000  2.999583e-03  1.000000   
+ 4    61.0  1.906273  1.000000  3.646131  1.000000  0.000000e+00  0.267558   
+ ..    ...       ...       ...       ...       ...           ...       ...   
+ 95   85.0  1.348827  4.671712  6.000000  2.000000  0.000000e+00  0.000000   
+ 96   80.0  1.000000  5.046453  7.000000  2.000000  0.000000e+00  0.019095   
+ 97   82.0  2.000000  4.000000  4.443146  1.000000  0.000000e+00  0.000024   
+ 98   53.0  4.000000  3.000000  7.000000  7.000000  2.419609e-05  0.000000   
+ 99   24.0  4.000000  1.000000  3.000000  5.389658  0.000000e+00  1.000000   
+ 
+         bf3       bf4       bf5  
+ 0   0.98678  0.000017  0.000000  
+ 1   1.00000  1.000000  1.000000  
+ 2   1.00000  0.000000  0.973099  
+ 3   0.99851  1.000000  0.999740  
+ 4   0.29278  0.023236  0.000000  
+ ..      ...       ...       ...  
+ 95  1.00000  0.003763  1.000000  
+ 96  1.00000  0.144946  1.000000  
+ 97  1.00000  0.000141  0.994144  
+ 98  0.00000  0.000000  1.000000  
+ 99  1.00000  1.000000  0.000000  
+ 
+ [100 rows x 10 columns],
+ CISSVAE(input_dim=10, latent_dim=10, latent_shared=True, num_clusters=3)
+ Encoder Layers:
+   [0] SHARED   10 → 32
+   [1] UNSHARED 32 → 32
+ 
+ Latent Layer:
+   SHARED    32 → 10
+ 
+ Decoder Layers:
+   [0] SHARED   10 → 32
+   [1] UNSHARED 32 → 32
+ 
+ Final Output Layer: 32 → 10,
+ &lt;optuna.study.study.Study at 0x318e1e010&gt;,
+      trial_number     val_mse  num_hidden_layers  hidden_dim_0  hidden_dim_1  \
+ 0               0         NaN                  2            32          16.0   
+ 1               1         NaN                  2            16           6.0   
+ 2               2         NaN                  2            16           6.0   
+ 3               3         NaN                  1            32           NaN   
+ 4               4         NaN                  2             6           6.0   
+ ..            ...         ...                ...           ...           ...   
+ 215           215  256.507690                  2            32          32.0   
+ 216           216  244.737457                  2            32          32.0   
+ 217           217  324.963074                  1            32           NaN   
+ 218           218  370.429413                  2             6          32.0   
+ 219           219  325.065643                  2            32          32.0   
+ 
+     encoder_shared_placement decoder_shared_placement layer_order_enc_used  \
+ 0                alternating                 at_start                  S,U   
+ 1                     random                   at_end                  U,S   
+ 2                alternating                 at_start                  S,U   
+ 3                     random                   at_end                    S   
+ 4                     at_end                 at_start                  U,S   
+ ..                       ...                      ...                  ...   
+ 215                 at_start                   random                  S,U   
+ 216              alternating              alternating                  S,U   
+ 217              alternating              alternating                    S   
+ 218              alternating              alternating                  S,U   
+ 219              alternating              alternating                  S,U   
+ 
+     layer_order_dec_used  
+ 0                    S,U  
+ 1                    U,S  
+ 2                    S,U  
+ 3                      S  
+ 4                    S,U  
+ ..                   ...  
+ 215                  S,U  
+ 216                  S,U  
+ 217                    S  
+ 218                  S,U  
+ 219                  S,U  
+ 
+ [220 rows x 9 columns])
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="vignette.html" class="btn btn-neutral float-left" title="How to use CISS-VAE" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="missingness_prop_vignette.html" class="btn btn-neutral float-right" title="Using create_missingness_prop_matrix: A Complete Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Yasin Khadem Charvadeh, Danielle Vaithilingam, Kenneth Seier, Katherine S. Panageas, Mithat Gönen, Yuan Chen.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

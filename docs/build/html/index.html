@@ -58,11 +58,12 @@
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#full-workflow">Full workflow</a></li>
-<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding undesired imputation of certain missing data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 </ul>
 
@@ -130,6 +131,12 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
 <li class="toctree-l2"><a class="reference internal" href="vignette.html#loading-a-model">Loading a Model</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="binary_vignette.html#example-dataset">Example dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="binary_vignette.html#using-run-cissvae-with-binary-matrix">Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with binary matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="binary_vignette.html#using-binary-feature-mask-with-autotune">Using Binary Feature Mask with Autotune</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#data-format-support">Data Format Support</a></li>
@@ -142,10 +149,10 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
 <li class="toctree-l2"><a class="reference internal" href="missingness_prop_vignette.html#extra-tips">Extra tips</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding imputation undesired data entries</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="dni_vignette.html">Avoiding undesired imputation of certain missing data</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#example-using-included-dataset">Example using included dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#using-run-cissvae-with-dni-matrix">Using <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> with DNI matrix</a></li>
-<li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#we-can-also-use-the-imputable-maatrix-with-the-autotune-function">We can also use the imputable maatrix with the autotune function.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="dni_vignette.html#we-can-also-use-the-imputable-matrix-with-the-autotune-function">We can also use the imputable matrix with the autotune function.</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a><ul>
