@@ -15,7 +15,7 @@ def _make_mock_model():
     m = MagicMock(spec = CISSVAE)
     # add history df
     m.training_history_ = pd.DataFrame({
-        "val_mse": []
+        "val_error": []
     })
     ## Add lr helpers called in refit loop
     m.set_final_lr = MagicMock()
@@ -204,7 +204,7 @@ class TestAutoTune:
         assert len(result) == 4  # best_imputed_df, best_model, study, results_df
         
         best_imputed_df, best_model, study, results_df = result
-        assert not results_df["val_mse"].isna().any(), "val_mse column contains NaN"
+        assert not results_df["val_loss"].isna().any(), "val_loss column contains NaN"
         assert isinstance(best_imputed_df, pd.DataFrame)
         assert best_model is not None
         assert isinstance(study, optuna.study.Study)

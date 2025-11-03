@@ -242,6 +242,10 @@ def autotune(
     else:
         device = torch.device(device_preference)
     direction="minimize"
+
+    ## Save search space if asked
+    if save_search_space_path is not None:
+        search_space.save(save_search_space_path)
     
     # --------------------------
     # Infer input dim and num clusters
@@ -572,9 +576,9 @@ def autotune(
             )
             
             # Get validation MSE
-            val_mse = compute_val_mse(model, train_loader.dataset, device)
-            if (best_val is None) or (val_mse < best_val):
-                best_val = val_mse
+            val_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            if (best_val is None) or (val_error < best_val):
+                best_val = val_error
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = model.training_history_
         
@@ -585,8 +589,8 @@ def autotune(
             print(f"  Trial {trial.number + 1} complete - Validation MSE: {best_val:.6f}")
         
         # Report intermediate values to Optuna
-        if best_refit_history_df is not None and "val_mse" in best_refit_history_df.columns:
-            for i, v in enumerate(best_refit_history_df["val_mse"]):
+        if best_refit_history_df is not None and "val_error" in best_refit_history_df.columns:
+            for i, v in enumerate(best_refit_history_df["val_error"]):
                 if pd.notna(v):
                     trial.report(float(v), step=i)
         
@@ -858,15 +862,11 @@ def autotune(
         torch.save(best_model.state_dict(), save_model_path)
         print(f"Model saved to {save_model_path}")
     
-    if save_search_space_path:
-        with open(save_search_space_path, "w") as f:
-            json.dump(search_space.__dict__, f, indent=4)
-        print(f"Search space saved to {save_search_space_path}")
     
     # Create results DataFrame
     rows = []
     for t in study.trials:
-        row = {"trial_number": t.number, "val_mse": t.value, **t.params}
+        row = {"trial_number": t.number, "val_error": t.value, **t.params}
         row["layer_order_enc_used"] = (
             t.params.get("layer_order_enc")
             or t.user_attrs.get("best_layer_order_enc")
