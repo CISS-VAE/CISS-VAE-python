@@ -155,8 +155,8 @@ def train_vae_initial(
     # Build a DataFrame and attach to the model
     history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "val_mse", "lr"])
     model.training_history_ = history_df
-    if model.debug:
-        val_df = get_imputed_df(model, train_loader, device)
-        val_df.to_csv("val_df_preloop.csv")
+    # if model.debug:
+    #     val_df = get_imputed_df(model, train_loader, device)
+    #     val_df.to_csv("val_df_preloop.csv")
 
     return (model, history_df) if return_history else model
