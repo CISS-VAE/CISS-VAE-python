@@ -18,6 +18,7 @@ from ciss_vae.utils.helpers import compute_val_mse
 from itertools import combinations, product
 import random
 import sys
+from pathlib import Path
 # NEW: Rich imports for track() function
 from rich.progress import track
 from rich.console import Console
@@ -106,8 +107,55 @@ class SearchSpace:
         self.refit_loops = refit_loops
         self.epochs_per_loop = epochs_per_loop
         self.reset_lr_refit = reset_lr_refit
+    
+    def _as_jsonable(self):
+        """Return a dict of fields with tuples converted to lists (JSON-safe)."""
+        def convert(x):
+            if isinstance(x, tuple):
+                return [convert(v) for v in x]
+            if isinstance(x, list):
+                return [convert(v) for v in x]
+            if isinstance(x, dict):
+                return {k: convert(v) for k, v in x.items()}
+            return x
+        return {k: convert(v) for k, v in self.__dict__.items()}
+
     def save(self, file_path):
-        """Saves search space for later use. """
+        """Save this search space to a JSON file."""
+        p = Path(file_path)
+        with p.open("w", encoding="utf-8") as f:
+            json.dump(self._as_jsonable(), f, indent=2)
+
+    @classmethod
+    def load(cls, file_path):
+        """Load a search space from a JSON file and return a new instance."""
+        p = Path(file_path)
+        with p.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        # Note: JSON has lists, not tuples. The constructor accepts lists just fine.
+        return cls(**data)
+
+    def __str__(self):
+        """Readable summary showing which parameters are tunable vs fixed."""
+        lines = ["SearchSpace("]
+        for k, v in self.__dict__.items():
+            tunable = isinstance(v, (list, tuple))
+            flag = "TUNABLE" if tunable else "FIXED"
+            lines.append(f"  {k}: {v!r}  [{flag}]")
+        lines.append(")")
+        return "\n".join(lines)
+
+    def __repr__(self):
+        """Compact representation useful for debugging."""
+        tunables = [k for k, v in self.__dict__.items() if isinstance(v, (list, tuple))]
+        fixed = [k for k in self.__dict__ if k not in tunables]
+        return (
+            f"<SearchSpace tunable={tunables} fixed={fixed}>"
+            .replace("tunable", str(tunables))
+            .replace("fixed", str(fixed))
+        )
+
+    
 
 
 def autotune(
