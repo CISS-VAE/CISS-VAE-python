@@ -106,6 +106,8 @@ class SearchSpace:
         self.refit_loops = refit_loops
         self.epochs_per_loop = epochs_per_loop
         self.reset_lr_refit = reset_lr_refit
+    def save(self, file_path):
+        """Saves search space for later use. """
 
 
 def autotune(

@@ -110,6 +110,7 @@ class CISSVAE(nn.Module):
         mask = None
         if binary_feature_mask is not None:
             # Accept torch.Tensor or sequence of bools; validate length
+            ## Debug statement - Binary feature mask
             if(self.debug):
                 print(f"Binary Feature Mask: {binary_feature_mask}\n\n")
             mask = torch.as_tensor(binary_feature_mask, dtype=torch.bool)
@@ -404,7 +405,8 @@ class CISSVAE(nn.Module):
         :rtype: str
         """
         lines = [f"CISSVAE(input_dim={self.input_dim}, latent_dim={self.latent_dim}, "
-                 f"latent_shared={self.latent_shared}, num_clusters={self.num_clusters})"]
+                 f"latent_shared={self.latent_shared}, output_shared={self.output_shared},"
+                 f"num_clusters={self.num_clusters})"]
         lines.append("Encoder Layers:")
         in_dim = self.input_dim
         for i, (out_dim, lt) in enumerate(zip(self.hidden_dims, self.layer_order_enc)):
@@ -422,7 +424,12 @@ class CISSVAE(nn.Module):
         for i, (out_dim, lt) in enumerate(zip(hidden_rev, self.layer_order_dec)):
             lines.append(f"  [{i}] {lt.upper():<8} {in_dim} → {out_dim}")
             in_dim = out_dim
-        lines.append(f"\nFinal Output Layer: {in_dim} → {self.input_dim}")
+        lines.append("\nFinal Output Layer:")
+        if self.output_shared:
+            lines.append(f"   SHARED  {in_dim} → {self.input_dim}")
+        else: 
+            for c in range(self.num_clusters):
+                lines.append(f"  UNSHARED (cluster {c}) {in_dim} → {self.input_dim}")
         return "\n".join(lines)
 
     def __str__(self):

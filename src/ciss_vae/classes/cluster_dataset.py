@@ -79,6 +79,7 @@ class ClusterDataset(Dataset):
         Number of unique clusters discovered from ``cluster_labels``.
     shape : tuple[int, int]
         Shape of ``self.data`` (``n_samples``, ``n_features``).
+    binary_feature_mask : np.array(bool)
 
     Raises
     ------
@@ -123,6 +124,7 @@ class ClusterDataset(Dataset):
         :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset
         :type val_seed: int
         :param binary_feature_mask: 1D bool vector of length 'input_dim' -> true if column is binary.
+        :type binary_feature_mask: list[bool]
         """
 
         ## set seed for selecting valdata
