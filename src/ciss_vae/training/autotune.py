@@ -415,9 +415,9 @@ def autotune(
     def objective(trial):
         # NEW: Use Rich console for trial progress
         if show_progress:
-            console.print(f"\n[green]Trial {trial.number + 1}/{n_trials}")
+            console.print(f"\n[green]Trial {trial.number}/{n_trials}")
         elif verbose:
-            print(f"\nStarting Trial {trial.number + 1}/{n_trials}")
+            print(f"\nStarting Trial {trial.number}/{n_trials}")
 
         # ----------------
         # Check train_dataset for na causers
@@ -429,24 +429,6 @@ def autotune(
             new_cl = cl.cpu().apply_(lambda v: remap[int(v)]).to(train_dataset.cluster_labels.device)
         train_dataset.cluster_labels = new_cl
 
-        # # 1) Guarantee finite training inputs (run_cissvae uses replacement_value for this)
-        # if torch.isnan(train_dataset.data).any() or torch.isinf(train_dataset.data).any():
-        #     print("[WARN] train_dataset.data has non-finite values; filling with 0.0 (autotune).")
-        #     train_dataset.data = torch.nan_to_num(train_dataset.data, nan=0.0, posinf=0.0, neginf=0.0)
-
-        # # 2) Assert the validation target you compare against is also finite on used entries
-        # if hasattr(train_dataset, "val_mask"):
-        #     used = train_dataset.val_mask.bool()
-        #     x_val = train_dataset.raw_data if hasattr(train_dataset, "raw_data") else train_dataset.data
-        #     if torch.isnan(x_val[used]).any() or torch.isinf(x_val[used]).any():
-        #         print("[WARN] validation targets include non-finite values; zero-filling.")
-        #         x_fill = torch.nan_to_num(x_val, nan=0.0, posinf=0.0, neginf=0.0)
-        #         if hasattr(train_dataset, "raw_data"):
-        #             train_dataset.raw_data = x_fill
-        #         else:
-        #             train_dataset.data = x_fill
-
-        
         # --------------------------
         # Parse Parameters
         # --------------------------
@@ -581,12 +563,14 @@ def autotune(
                 best_val = val_error
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = model.training_history_
+                trial.set_user_attr("best_val_mse", val_mse)
+                trial.set_user_attr("best_val_bce", val_bce)
         
         # Show completion with Rich
         if show_progress:
-            console.print(f"✓ Trial {trial.number + 1} complete - MSE: {best_val:.4f}")
+            console.print(f"✓ Trial {trial.number + 1} complete - Total Imputation Error: {best_val:.4f}")
         elif verbose:
-            print(f"  Trial {trial.number + 1} complete - Validation MSE: {best_val:.6f}")
+            print(f"  Trial {trial.number + 1} complete - Total Imputation Error: {best_val:.6f}")
         
         # Report intermediate values to Optuna
         if best_refit_history_df is not None and "val_error" in best_refit_history_df.columns:
@@ -611,7 +595,7 @@ def autotune(
         load_if_exists=load_if_exists
     )
     
-    study.set_metric_names(["Validation MSE"]) 
+    study.set_metric_names(["Total Imputation Error"]) 
     
     # -----------------------
     # Run optimization
@@ -627,9 +611,9 @@ def autotune(
     # Use Rich console for completion
     if show_progress:
         console.print(f"\n[bold green]✓ Optimization complete!")
-        console.print(f"Best trial: {study.best_trial.number} (MSE: {study.best_value:.6f})")
+        console.print(f"Best trial: {study.best_trial.number} (Total Imputation Error: {study.best_value:.6f})")
     else:
-        print(f"Optimization complete. Best trial: {study.best_trial.number} (MSE: {study.best_value:.6f})")
+        print(f"Optimization complete. Best trial: {study.best_trial.number} (Total Imputation Error: {study.best_value:.6f})")
     
     # -----------------------
     # Final model training
@@ -866,7 +850,7 @@ def autotune(
     # Create results DataFrame
     rows = []
     for t in study.trials:
-        row = {"trial_number": t.number, "val_error": t.value, **t.params}
+        row = {"trial_number": t.number, "imputation_error": t.value, **t.params}
         row["layer_order_enc_used"] = (
             t.params.get("layer_order_enc")
             or t.user_attrs.get("best_layer_order_enc")
