@@ -348,6 +348,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_preference</span><span class="p">)</span>
     <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;minimize&quot;</span>
+
+    <span class="c1">## Save search space if asked</span>
+    <span class="k">if</span> <span class="n">save_search_space_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">search_space</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">save_search_space_path</span><span class="p">)</span>
     
     <span class="c1"># --------------------------</span>
     <span class="c1"># Infer input dim and num clusters</span>
@@ -517,9 +521,9 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
         <span class="c1"># NEW: Use Rich console for trial progress</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
-            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Starting Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Starting Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="c1"># ----------------</span>
         <span class="c1"># Check train_dataset for na causers</span>
@@ -531,24 +535,6 @@
             <span class="n">new_cl</span> <span class="o">=</span> <span class="n">cl</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">apply_</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">remap</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">train_dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="n">train_dataset</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">new_cl</span>
 
-        <span class="c1"># # 1) Guarantee finite training inputs (run_cissvae uses replacement_value for this)</span>
-        <span class="c1"># if torch.isnan(train_dataset.data).any() or torch.isinf(train_dataset.data).any():</span>
-        <span class="c1">#     print(&quot;[WARN] train_dataset.data has non-finite values; filling with 0.0 (autotune).&quot;)</span>
-        <span class="c1">#     train_dataset.data = torch.nan_to_num(train_dataset.data, nan=0.0, posinf=0.0, neginf=0.0)</span>
-
-        <span class="c1"># # 2) Assert the validation target you compare against is also finite on used entries</span>
-        <span class="c1"># if hasattr(train_dataset, &quot;val_mask&quot;):</span>
-        <span class="c1">#     used = train_dataset.val_mask.bool()</span>
-        <span class="c1">#     x_val = train_dataset.raw_data if hasattr(train_dataset, &quot;raw_data&quot;) else train_dataset.data</span>
-        <span class="c1">#     if torch.isnan(x_val[used]).any() or torch.isinf(x_val[used]).any():</span>
-        <span class="c1">#         print(&quot;[WARN] validation targets include non-finite values; zero-filling.&quot;)</span>
-        <span class="c1">#         x_fill = torch.nan_to_num(x_val, nan=0.0, posinf=0.0, neginf=0.0)</span>
-        <span class="c1">#         if hasattr(train_dataset, &quot;raw_data&quot;):</span>
-        <span class="c1">#             train_dataset.raw_data = x_fill</span>
-        <span class="c1">#         else:</span>
-        <span class="c1">#             train_dataset.data = x_fill</span>
-
-        
         <span class="c1"># --------------------------</span>
         <span class="c1"># Parse Parameters</span>
         <span class="c1"># --------------------------</span>
@@ -678,21 +664,23 @@
             <span class="p">)</span>
             
             <span class="c1"># Get validation MSE</span>
-            <span class="n">val_mse</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">best_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">val_mse</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">):</span>
-                <span class="n">best_val</span> <span class="o">=</span> <span class="n">val_mse</span>
+            <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">best_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">imputation_error</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">):</span>
+                <span class="n">best_val</span> <span class="o">=</span> <span class="n">imputation_error</span>
                 <span class="n">best_patterns</span> <span class="o">=</span> <span class="p">(</span><span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span><span class="p">)</span>
                 <span class="n">best_refit_history_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">training_history_</span>
+                <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_val_mse&quot;</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">)</span>
+                <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_val_bce&quot;</span><span class="p">,</span> <span class="n">val_bce</span><span class="p">)</span>
         
         <span class="c1"># Show completion with Rich</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
-            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - MSE: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✓ Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - Total Imputation Error: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">verbose</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - Validation MSE: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> complete - Total Imputation Error: </span><span class="si">{</span><span class="n">best_val</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         
         <span class="c1"># Report intermediate values to Optuna</span>
-        <span class="k">if</span> <span class="n">best_refit_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;val_mse&quot;</span> <span class="ow">in</span> <span class="n">best_refit_history_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_refit_history_df</span><span class="p">[</span><span class="s2">&quot;val_mse&quot;</span><span class="p">]):</span>
+        <span class="k">if</span> <span class="n">best_refit_history_df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;imputation_error&quot;</span> <span class="ow">in</span> <span class="n">best_refit_history_df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">best_refit_history_df</span><span class="p">[</span><span class="s2">&quot;imputation_error&quot;</span><span class="p">]):</span>
                 <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">notna</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
                     <span class="n">trial</span><span class="o">.</span><span class="n">report</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">),</span> <span class="n">step</span><span class="o">=</span><span class="n">i</span><span class="p">)</span>
         
@@ -713,7 +701,7 @@
         <span class="n">load_if_exists</span><span class="o">=</span><span class="n">load_if_exists</span>
     <span class="p">)</span>
     
-    <span class="n">study</span><span class="o">.</span><span class="n">set_metric_names</span><span class="p">([</span><span class="s2">&quot;Validation MSE&quot;</span><span class="p">])</span> 
+    <span class="n">study</span><span class="o">.</span><span class="n">set_metric_names</span><span class="p">([</span><span class="s2">&quot;Total Imputation Error&quot;</span><span class="p">])</span> 
     
     <span class="c1"># -----------------------</span>
     <span class="c1"># Run optimization</span>
@@ -729,9 +717,9 @@
     <span class="c1"># Use Rich console for completion</span>
     <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
         <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold green]✓ Optimization complete!&quot;</span><span class="p">)</span>
-        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (MSE: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (Total Imputation Error: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization complete. Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (MSE: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimization complete. Best trial: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2"> (Total Imputation Error: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
     
     <span class="c1"># -----------------------</span>
     <span class="c1"># Final model training</span>
@@ -964,15 +952,11 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">save_model_path</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model saved to </span><span class="si">{</span><span class="n">save_model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     
-    <span class="k">if</span> <span class="n">save_search_space_path</span><span class="p">:</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">save_search_space_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">search_space</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search space saved to </span><span class="si">{</span><span class="n">save_search_space_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     
     <span class="c1"># Create results DataFrame</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">study</span><span class="o">.</span><span class="n">trials</span><span class="p">:</span>
-        <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;trial_number&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">number</span><span class="p">,</span> <span class="s2">&quot;val_mse&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="p">}</span>
+        <span class="n">row</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;trial_number&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">number</span><span class="p">,</span> <span class="s2">&quot;imputation_error&quot;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="o">**</span><span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="p">}</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">&quot;layer_order_enc_used&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">t</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;layer_order_enc&quot;</span><span class="p">)</span>
             <span class="ow">or</span> <span class="n">t</span><span class="o">.</span><span class="n">user_attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;best_layer_order_enc&quot;</span><span class="p">)</span>

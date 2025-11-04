@@ -503,8 +503,8 @@
 <span class="sd">    :type dataset: ClusterDataset</span>
 <span class="sd">    :param device: Device for computations, defaults to &quot;cpu&quot;</span>
 <span class="sd">    :type device: str, optional</span>
-<span class="sd">    :return: Mean squared error on validation entries</span>
-<span class="sd">    :rtype: float</span>
+<span class="sd">    :return: Total Imputation Error, Validation MSE and Validation BCE on validation dataset</span>
+<span class="sd">    :rtype: tuple(float)</span>
 <span class="sd">    :raises ValueError: If no validation entries are found in the dataset</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
@@ -637,7 +637,11 @@
         <span class="c1"># ------------------------</span>
         <span class="c1"># 4) Return combined metric</span>
         <span class="c1"># ------------------------</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">mse</span> <span class="o">+</span> <span class="n">bce</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">imputation_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">mse</span> <span class="o">+</span> <span class="n">bce</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">val_mse</span> <span class="o">=</span> <span class="n">mse</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">val_bce</span> <span class="o">=</span> <span class="n">bce</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+    
+        <span class="k">return</span> <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span>
 
     <span class="c1"># model.eval()</span>
 

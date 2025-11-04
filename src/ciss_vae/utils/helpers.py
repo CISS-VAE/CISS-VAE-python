@@ -405,8 +405,8 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: 
     :type dataset: ClusterDataset
     :param device: Device for computations, defaults to "cpu"
     :type device: str, optional
-    :return: Mean squared error on validation entries
-    :rtype: float
+    :return: Total Imputation Error, Validation MSE and Validation BCE on validation dataset
+    :rtype: tuple(float)
     :raises ValueError: If no validation entries are found in the dataset
     """
     model.eval()
