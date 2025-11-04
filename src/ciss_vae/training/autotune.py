@@ -558,9 +558,9 @@ def autotune(
             )
             
             # Get validation MSE
-            val_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
-            if (best_val is None) or (val_error < best_val):
-                best_val = val_error
+            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            if (best_val is None) or (imputation_error < best_val):
+                best_val = imputation_error
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = model.training_history_
                 trial.set_user_attr("best_val_mse", val_mse)
@@ -573,8 +573,8 @@ def autotune(
             print(f"  Trial {trial.number + 1} complete - Total Imputation Error: {best_val:.6f}")
         
         # Report intermediate values to Optuna
-        if best_refit_history_df is not None and "val_error" in best_refit_history_df.columns:
-            for i, v in enumerate(best_refit_history_df["val_error"]):
+        if best_refit_history_df is not None and "imputation_error" in best_refit_history_df.columns:
+            for i, v in enumerate(best_refit_history_df["imputation_error"]):
                 if pd.notna(v):
                     trial.report(float(v), step=i)
         

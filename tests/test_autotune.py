@@ -15,7 +15,7 @@ def _make_mock_model():
     m = MagicMock(spec = CISSVAE)
     # add history df
     m.training_history_ = pd.DataFrame({
-        "val_error": []
+        "imputation_error": []
     })
     ## Add lr helpers called in refit loop
     m.set_final_lr = MagicMock()
@@ -188,7 +188,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.5
+        mock_compute_val_mse.return_value = 0.5, 0.45, 0.05
         
         result = run_autotune(
             search_space=all_fixed_search_space,
@@ -204,7 +204,7 @@ class TestAutoTune:
         assert len(result) == 4  # best_imputed_df, best_model, study, results_df
         
         best_imputed_df, best_model, study, results_df = result
-        assert not results_df["val_loss"].isna().any(), "val_loss column contains NaN"
+        assert not results_df["imputation_error"].isna().any(), "imputation_error column contains NaN"
         assert isinstance(best_imputed_df, pd.DataFrame)
         assert best_model is not None
         assert isinstance(study, optuna.study.Study)
@@ -220,7 +220,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.3
+        mock_compute_val_mse.return_value = 0.3, 0.25, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -246,7 +246,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.4
+        mock_compute_val_mse.return_value = 0.4, 0.35, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -272,7 +272,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.2
+        mock_compute_val_mse.return_value = 0.2, 0.15, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -298,7 +298,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.35
+        mock_compute_val_mse.return_value = 0.35, 0.30, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -321,7 +321,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
-        mock_compute_val_mse.return_value = 0.25
+        mock_compute_val_mse.return_value = 0.25, 0.2, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -357,7 +357,7 @@ class TestAutoTune:
 
         mock_initial.return_value = (mock_model, mock_history_df)
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
-        mock_compute_val_mse.return_value = 0.15
+        mock_compute_val_mse.return_value = 0.15, 0.1, 0.05
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -397,7 +397,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.45
+        mock_compute_val_mse.return_value = 0.45, 0.4, 0.05
         
         result = run_autotune(
             search_space=search_space,
@@ -431,7 +431,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.3
+        mock_compute_val_mse.return_value = 0.3, 0.25, 0.05
         
         result = run_autotune(
             search_space=search_space,
@@ -455,7 +455,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.333
+        mock_compute_val_mse.return_value = 0.333, 0.3, 0.033
         
         # Run with same seed twice
         result1 = run_autotune(

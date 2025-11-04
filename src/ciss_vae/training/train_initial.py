@@ -67,7 +67,7 @@ def train_vae_initial(
         "train_loss": [],   # average per-sample loss across the dataset
         "train_mse": [],
         "train_bce": [],
-        "val_error": [],
+        "imputation_error": [],
         "val_mse": [],      # validation MSE computed on validation-held positions
         "val_bce":[],
         "lr": [],           # learning rate at epoch end
@@ -121,7 +121,7 @@ def train_vae_initial(
         # Validation MSE on val_data entries
         # -----------------------------------
         try:
-            val_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
         except ValueError as e:
             if verbose:
                 print(f"[WARNING] Epoch {epoch+1}: {e}")
@@ -135,7 +135,7 @@ def train_vae_initial(
         history["train_loss"].append(avg_train_loss)
         history["train_mse"].append(train_mse)
         history["train_bce"].append(train_bce)
-        history["val_error"].append(val_error)
+        history["imputation_error"].append(imputation_error)
         history["val_mse"].append(val_mse)
         history["val_bce"].append(val_bce)
         history["lr"].append(current_lr)
@@ -161,7 +161,7 @@ def train_vae_initial(
     model.set_final_lr(optimizer.param_groups[0]["lr"])
 
     # Build a DataFrame and attach to the model
-    history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "train_mse", "train_bce", "val_error", "val_mse", "val_bce", "lr"])
+    history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "train_mse", "train_bce", "imputation_error", "val_mse", "val_bce", "lr"])
     model.training_history_ = history_df
 
 
