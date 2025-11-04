@@ -75,7 +75,7 @@ def train_vae_refit(model,
             recon_x, mu, logvar = model(x_batch, cluster_batch)
             
             # MODIFIED: Pass imputable_mask to loss function
-            loss, _, _ = loss_function_nomask(
+            loss, train_mse, train_bce = loss_function_nomask(
                 cluster_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta, return_components=True,
                 imputable_mask=imputable_batch,  # ADDED
@@ -98,9 +98,11 @@ def train_vae_refit(model,
         record = {
             "epoch": epoch,
             "train_loss": avg_loss,
-            "train_recon": np.nan,
-            "train_kl": np.nan,
-            "val_mse": np.nan,
+            "train_mse": train_mse,
+            "train_bce":train_bce,
+            "imputation_error": np.nan,
+            "val_mse":np.nan,
+            "val_bce":np.nan,
             "lr": optimizer.param_groups[0]["lr"],
             "phase": "refit_training",
             "loop": np.nan
@@ -172,8 +174,6 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         refit_history_dataframe Columns:
           - epoch (int)          : cumulative epoch counter (continues from initial)
           - train_loss (float)   : NaN (not tracked during refit here)
-          - train_recon (float)  : NaN
-          - train_kl (float)     : NaN
           - val_mse (float)      : validation MSE after each refit loop
           - lr (float)           : learning rate after each refit loop
           - phase (str)          : {"refit_init", "refit_loop"}
@@ -191,7 +191,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     dataset  = get_imputed(model, train_loader, device=device)
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     best_dataset = copy.deepcopy(dataset)
-    best_val_mse = float("inf")
+    best_imputation_error = float("inf")
     best_model = copy.deepcopy(model)
     patience_counter = 0
     val_mse_history = []
@@ -208,19 +208,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     
     refit_lr = model.get_final_lr()
 
-    # # --- History container (schema matches train_vae_initial + extras) ---
-    # history_rows = []
-    # def _append_history_row(epoch_int: int, val_mse: float, lr_val: float, phase: str, loop_idx: int):
-    #     history_rows.append({
-    #         "epoch": int(epoch_int),
-    #         "train_loss": np.nan,
-    #         "train_recon": np.nan,
-    #         "train_kl": np.nan,
-    #         "val_mse": float(val_mse),
-    #         "lr": float(lr_val),
-    #         "phase": phase,
-    #         "loop": int(loop_idx),
-    #     })
+
 
     # Determine where to continue the epoch counter
     # If user trained with train_vae_initial and attached .training_history_, keep continuity.
@@ -235,7 +223,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     # --------------------------
     # Compute initial MSE (before loop)
     # --------------------------
-    val_mse = compute_val_mse(model, dataset, device)
+    imputation_error, val_mse, val_bce = compute_val_mse(model, dataset, device)
 
         # -------------------------------
         # Logging to history
@@ -243,9 +231,11 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     record = {
             "epoch": start_epoch,
             "train_loss": np.nan,
-            "train_recon": np.nan,
-            "train_kl": np.nan,
+            "train_mse": np.nan,
+            "train_bce":np.nan,
+            "imputation_error": imputation_error,
             "val_mse": val_mse,
+            "val_bce":val_bce,
             "lr": refit_lr,
             "phase": "refit",
             "loop": 0
@@ -286,11 +276,11 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         # --------------------------
         # Compute validation MSE
         # If val MSE for this loop is better than current best, 
-        # replace best_val_mse and best_model + reset patience_counter,
+        # replace best_imputation_error and best_model + reset patience_counter,
         # and get new imputed dataset + data_loader
         # If not better, increment patience_counter and if patience_counter >= patience, break loop. 
         # --------------------------
-        val_mse = compute_val_mse(model, data_loader.dataset, device)
+        imputation_error, val_mse, val_bce = compute_val_mse(model, data_loader.dataset, device)
         # Advance epoch counter by the epochs we just trained
         epoch_after_loop = start_epoch + (loop + 1) * epochs_per_loop
         refit_lr = float(model.get_final_lr())
@@ -301,12 +291,14 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         record = {
             "epoch": epoch_after_loop,
             "train_loss": np.nan,
-            "train_recon": np.nan,
-            "train_kl": np.nan,
+            "train_mse": np.nan,
+            "train_bce":np.nan,
+            "imputation_error": imputation_error,
             "val_mse": val_mse,
+            "val_bce":val_bce,
             "lr": refit_lr,
-            "phase": "refit_loop",
-            "loop": loop + 1
+            "phase": "refit",
+            "loop": 0
         }
 
         loop_history = pd.concat([loop_history,
@@ -316,10 +308,10 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         loop_history = pd.concat([loop_history, refit_history])
 
         if verbose:
-            print(f"Loop {loop + 1} Validation MSE: {val_mse:.6f}")
+            print(f"Loop {loop + 1} Validation Loss: {imputation_error:.6f}")
 
-        if val_mse < best_val_mse:
-            best_val_mse = val_mse
+        if imputation_error < best_imputation_error:
+            best_imputation_error = imputation_error
             best_model = copy.deepcopy(model)
             patience_counter = 0
             best_dataset = get_imputed(model, data_loader, device=device)
@@ -346,14 +338,14 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
     # final_imputed = get_imputed(best_model, train_loader, device)
 
     # ## try using the best dataset
-    final_val_mse = compute_val_mse(best_model, dataset, device)
+    final_imputation_error, final_val_mse, final_val_bce = compute_val_mse(best_model, dataset, device)
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
     #final_imputed = get_imputed(best_model, data_loader, device)
 
     imputed_df = get_imputed_df(best_model, data_loader, device)
 
     if verbose: 
-        print(f"Best Val MSE {best_val_mse}. Imputed Dataset MSE {final_val_mse}")
+        print(f"Best Imputation Error {best_imputation_error}. Imputed Dataset Error {final_imputation_error}")
 
 
     # # --- Assemble the refit history DataFrame ---

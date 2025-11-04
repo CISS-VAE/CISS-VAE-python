@@ -539,7 +539,11 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: 
         # ------------------------
         # 4) Return combined metric
         # ------------------------
-        return (mse + bce).item()
+        imputation_error = (mse + bce).item()
+        val_mse = mse.item()
+        val_bce = bce.item()
+    
+        return imputation_error, val_mse, val_bce
 
     # model.eval()
 

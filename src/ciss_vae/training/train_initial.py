@@ -65,7 +65,11 @@ def train_vae_initial(
     history = {
         "epoch": [],
         "train_loss": [],   # average per-sample loss across the dataset
+        "train_mse": [],
+        "train_bce": [],
+        "imputation_error": [],
         "val_mse": [],      # validation MSE computed on validation-held positions
+        "val_bce":[],
         "lr": [],           # learning rate at epoch end
     }
 
@@ -91,7 +95,7 @@ def train_vae_initial(
 
             recon_x, mu, logvar = model(x_batch, cluster_batch)
 
-            loss, recon_loss, kl_loss = loss_function(
+            loss, train_mse, train_bce  = loss_function(
                 cluster_batch, mask_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
                 beta=beta,
                 return_components=True,
@@ -117,7 +121,7 @@ def train_vae_initial(
         # Validation MSE on val_data entries
         # -----------------------------------
         try:
-            val_mse = compute_val_mse(model, train_loader.dataset, device)
+            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
         except ValueError as e:
             if verbose:
                 print(f"[WARNING] Epoch {epoch+1}: {e}")
@@ -129,7 +133,11 @@ def train_vae_initial(
 
         history["epoch"].append(epoch)
         history["train_loss"].append(avg_train_loss)
+        history["train_mse"].append(train_mse)
+        history["train_bce"].append(train_bce)
+        history["imputation_error"].append(imputation_error)
         history["val_mse"].append(val_mse)
+        history["val_bce"].append(val_bce)
         history["lr"].append(current_lr)
 
         if verbose:
@@ -153,10 +161,8 @@ def train_vae_initial(
     model.set_final_lr(optimizer.param_groups[0]["lr"])
 
     # Build a DataFrame and attach to the model
-    history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "val_mse", "lr"])
+    history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "train_mse", "train_bce", "imputation_error", "val_mse", "val_bce", "lr"])
     model.training_history_ = history_df
-    # if model.debug:
-    #     val_df = get_imputed_df(model, train_loader, device)
-    #     val_df.to_csv("val_df_preloop.csv")
+
 
     return (model, history_df) if return_history else model

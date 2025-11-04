@@ -1,6 +1,7 @@
 import torch
 import torch.nn.functional as F
 import warnings ## let's see if/when my reconX goes nan
+import numpy as np
 
 def loss_function(cluster, mask, recon_x, x, binary_feature_mask, mu, 
 logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu", debug = False):
@@ -48,6 +49,7 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
             ## reconstruction  -- sort recon_x to the right thing.  
         mse_loss = F.mse_loss(recon_x*mask, x*mask, reduction='sum')
         sum_loss = mse_loss
+        bce_loss = np.nan
     else:
         binary_feature_mask =  torch.as_tensor(binary_feature_mask, dtype=torch.bool, device=device)
         cont_feat = ~binary_feature_mask
@@ -68,7 +70,7 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
 
 
     if return_components:
-        return total_loss, sum_loss, kl_loss
+        return total_loss, mse_loss, bce_loss
     return total_loss
 
 
@@ -119,6 +121,7 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
         if binary_feature_mask is None:
             mse_loss = F.mse_loss(recon_x * imputable_mask, x * imputable_mask, reduction='sum')
             sum_loss = mse_loss
+            bce_loss = np.nan
         else:
             binary_feature_mask =  torch.as_tensor(binary_feature_mask, dtype=torch.bool, device=device)
             cont_feat = ~binary_feature_mask
@@ -132,6 +135,7 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
         if binary_feature_mask is None:
             mse_loss = F.mse_loss(recon_x, x, reduction='sum')
             sum_loss = mse_loss
+            bce_loss = np.nan
         else:
             binary_feature_mask =  torch.as_tensor(binary_feature_mask, dtype=torch.bool, device=device)
             cont_feat = ~binary_feature_mask
@@ -150,5 +154,5 @@ logvar, beta=0.001, return_components=False, imputable_mask=None, device = "cpu"
     # print(f"\ntotal_loss (nomask) {total_loss} = mse_loss {mse_loss} + beta {beta} * kl_loss {kl_loss}")
 
     if return_components:
-        return total_loss, mse_loss, kl_loss
+        return total_loss, mse_loss, bce_loss
     return total_loss
