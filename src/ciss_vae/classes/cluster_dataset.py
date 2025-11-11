@@ -29,7 +29,6 @@ class ClusterDataset(Dataset):
     r"""
     Dataset that handles cluster-wise masking and normalization for VAE training.
 
-    This dataset:
       1. Optionally holds out a validation subset **per cluster** from *observed*
          (non-NaN) entries according to ``val_proportion``.
       2. Combines original missingness with validation-held-out entries.
@@ -61,25 +60,25 @@ class ClusterDataset(Dataset):
 
     Attributes
     ----------
-    raw_data : torch.FloatTensor
+    self.raw_data : torch.FloatTensor
         Original data converted to float tensor (NaNs preserved).
-    data : torch.FloatTensor
+    self.data : torch.FloatTensor
         Normalized data with NaNs replaced by ``replacement_value``.
-    masks : torch.BoolTensor
+    self.masks : torch.BoolTensor
         Boolean mask where ``True`` marks observed (non-NaN) entries **before** replacement.
-    val_data : torch.FloatTensor
+    self.val_data : torch.FloatTensor
         Tensor containing **only** validation-held-out values (others are NaN).
-    cluster_labels : torch.LongTensor
+    self.cluster_labels : torch.LongTensor
         Cluster ID for each row, shape ``(n_samples,)``.
-    indices : torch.LongTensor
+    self.indices : torch.LongTensor
         Original row indices (from DataFrame index or ``arange`` for arrays/tensors).
-    feature_names : list[str]
+    self.feature_names : list[str]
         Column names (from DataFrame) or synthetic names (``V1``, ``V2``, ...).
-    n_clusters : int
+    self.n_clusters : int
         Number of unique clusters discovered from ``cluster_labels``.
-    shape : tuple[int, int]
+    self.shape : tuple[int, int]
         Shape of ``self.data`` (``n_samples``, ``n_features``).
-    binary_feature_mask : np.array(bool)
+    self.binary_feature_mask : np.array(bool)
 
     Raises
     ------
@@ -99,15 +98,12 @@ class ClusterDataset(Dataset):
     def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None, val_seed = 42, binary_feature_mask = None):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
-        Steps:
-        1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
-        2. Resolve per-cluster validation proportions from ``val_proportion``.
-        3. For each cluster and feature, randomly mark the requested fraction of
-           **observed** entries as validation targets.
-        4. Create ``val_data`` (validation targets only) and training ``data`` where
-           validation entries are set to NaN.
-        5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply
-           normalization; then replace remaining NaNs with ``replacement_value``.
+        Steps:  
+        1. Convert inputs to tensors; preserve indices/column names if a DataFrame.  
+        2. Resolve per-cluster validation proportions from ``val_proportion``.  
+        3. For each cluster and feature, randomly mark the requested fraction of **observed** entries as validation targets.  
+        4. Create ``val_data`` (validation targets only) and training ``data`` where validation entries are set to NaN.  
+        5. Compute per-feature mean/std over non-NaN entries in ``data`` and apply normalization; then replace remaining NaNs with ``replacement_value``.
         
         :param data: Input matrix, shape ``(n_samples, n_features)``. May contain NaNs
         :type data: pandas.DataFrame or numpy.ndarray or torch.Tensor

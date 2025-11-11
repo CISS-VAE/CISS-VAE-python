@@ -50,8 +50,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -189,6 +187,8 @@
 <span class="sd">    :type nonint_timepoint: bool, optional</span>
 <span class="sd">    :param column_mapping: Explicit mapping { base_feature: [col1, col2, ...] } to aggregate. Takes precedence.</span>
 <span class="sd">    :type column_mapping: dict[str, list[str]] or None, optional</span>
+<span class="sd">    :param loose: If true, will match any text starting with the base feature names in `repeat_feature_names`.</span>
+<span class="sd">    :type loose: bool</span>
 
 <span class="sd">    :returns: MissingnessMatrix with:</span>
 <span class="sd">              - ``data``: (n_samples, n_features) matrix of missingness proportions</span>

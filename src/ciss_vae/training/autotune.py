@@ -26,10 +26,10 @@ from rich.console import Console
 class SearchSpace:
     """Defines tunable and fixed hyperparameter ranges for the Optuna search.
     
-    Parameters are specified as:
-    - **scalar**: fixed value (e.g., ``latent_dim=16``)
-    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)
-    - **tuple**: range ``(min, max)`` for ``suggest_int``/``suggest_float``
+    Parameters are specified as:  
+    - **scalar**: fixed value (e.g., ``latent_dim=16``)  
+    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)  
+    - **tuple**: range ``(min, max)`` for ``suggest_int`` or ``suggest_float``  
     
     :param num_hidden_layers: Number of encoder/decoder hidden layers, defaults to (1, 4)
     :type num_hidden_layers: int or list[int] or tuple[int, int], optional
@@ -121,14 +121,20 @@ class SearchSpace:
         return {k: convert(v) for k, v in self.__dict__.items()}
 
     def save(self, file_path):
-        """Save this search space to a JSON file."""
+        """Save this search space to a JSON file.
+        :param file_path: Path to save file.
+        :type file_path: string
+        """
         p = Path(file_path)
         with p.open("w", encoding="utf-8") as f:
             json.dump(self._as_jsonable(), f, indent=2)
 
     @classmethod
     def load(cls, file_path):
-        """Load a search space from a JSON file and return a new instance."""
+        """Load a search space from a JSON file and return a new instance.
+        :param file_path: Path to saved SearchSpace.
+        :type file_path: string
+        """
         p = Path(file_path)
         with p.open("r", encoding="utf-8") as f:
             data = json.load(f)
@@ -220,8 +226,10 @@ def autotune(
     :type return_history: bool, optional
     :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1
     :type n_jobs: int, optional
+    :param debug: Defaults to False. Set True for informative debugging statements.
+    :type debug: bool, optional
     
-    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])
+    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe, optional[best_model_history_df])
     :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]
     
     :raises ValueError: If search space parameters are malformed or incompatible

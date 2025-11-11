@@ -50,8 +50,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -120,10 +118,10 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">SearchSpace</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Defines tunable and fixed hyperparameter ranges for the Optuna search.</span>
 <span class="sd">    </span>
-<span class="sd">    Parameters are specified as:</span>
-<span class="sd">    - **scalar**: fixed value (e.g., ``latent_dim=16``)</span>
-<span class="sd">    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)</span>
-<span class="sd">    - **tuple**: range ``(min, max)`` for ``suggest_int``/``suggest_float``</span>
+<span class="sd">    Parameters are specified as:  </span>
+<span class="sd">    - **scalar**: fixed value (e.g., ``latent_dim=16``)  </span>
+<span class="sd">    - **list**: categorical choice (e.g., ``hidden_dims=[64, 128, 256]``)  </span>
+<span class="sd">    - **tuple**: range ``(min, max)`` for ``suggest_int`` or ``suggest_float``  </span>
 <span class="sd">    </span>
 <span class="sd">    :param num_hidden_layers: Number of encoder/decoder hidden layers, defaults to (1, 4)</span>
 <span class="sd">    :type num_hidden_layers: int or list[int] or tuple[int, int], optional</span>
@@ -220,7 +218,10 @@
 <div class="viewcode-block" id="SearchSpace.save">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace.save">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save this search space to a JSON file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save this search space to a JSON file.</span>
+<span class="sd">        :param file_path: Path to save file.</span>
+<span class="sd">        :type file_path: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_as_jsonable</span><span class="p">(),</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
@@ -230,7 +231,10 @@
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.training.autotune.SearchSpace.html#ciss_vae.training.autotune.SearchSpace.load">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a search space from a JSON file and return a new instance.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a search space from a JSON file and return a new instance.</span>
+<span class="sd">        :param file_path: Path to saved SearchSpace.</span>
+<span class="sd">        :type file_path: string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">p</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
@@ -326,8 +330,10 @@
 <span class="sd">    :type return_history: bool, optional</span>
 <span class="sd">    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1</span>
 <span class="sd">    :type n_jobs: int, optional</span>
+<span class="sd">    :param debug: Defaults to False. Set True for informative debugging statements.</span>
+<span class="sd">    :type debug: bool, optional</span>
 <span class="sd">    </span>
-<span class="sd">    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])</span>
+<span class="sd">    :return: Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe, optional[best_model_history_df])</span>
 <span class="sd">    :rtype: tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, CISSVAE, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]</span>
 <span class="sd">    </span>
 <span class="sd">    :raises ValueError: If search space parameters are malformed or incompatible</span>

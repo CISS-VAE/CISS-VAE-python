@@ -50,8 +50,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -107,19 +105,18 @@
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CISSVAE</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Cluster‑aware Variational Autoencoder (VAE).</span>
+<span class="sd">     Clustering-Informed Shared-Structure Variational Autoencoder (CISSVAE).</span>
 
 <span class="sd">    Supports flexible mixtures of **shared** and **unshared** layers across</span>
-<span class="sd">    clusters in both encoder and decoder. Unshared layers are duplicated per</span>
-<span class="sd">    cluster; shared layers are single modules applied to all samples.</span>
+<span class="sd">    clusters in both encoder and decoder. Unshared layers are applied by cluster, shared layers are applied to all samples.</span>
 
 <span class="sd">    :param input_dim: Number of input features (columns).</span>
 <span class="sd">    :type input_dim: int</span>
 <span class="sd">    :param hidden_dims: Width of each hidden layer (encoder goes forward, decoder uses the reverse).</span>
 <span class="sd">    :type hidden_dims: list[int]</span>
-<span class="sd">    :param layer_order_enc: Per‑encoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;`` (case‑insensitive, ``&quot;s&quot;``/``&quot;u&quot;`` allowed).</span>
+<span class="sd">    :param layer_order_enc: Per‑encoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;``.</span>
 <span class="sd">    :type layer_order_enc: list[str]</span>
-<span class="sd">    :param layer_order_dec: Per‑decoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;`` (case‑insensitive, ``&quot;s&quot;``/``&quot;u&quot;`` allowed).</span>
+<span class="sd">    :param layer_order_dec: Per‑decoder‑layer directive: ``&quot;shared&quot;`` or ``&quot;unshared&quot;``.</span>
 <span class="sd">    :type layer_order_dec: list[str]</span>
 <span class="sd">    :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.</span>
 <span class="sd">    :type latent_shared: bool</span>
@@ -158,11 +155,9 @@
                  <span class="n">latent_dim</span><span class="p">,</span>
                  <span class="n">output_shared</span><span class="p">,</span>
                  <span class="n">num_clusters</span><span class="p">,</span>
-                 <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                  <span class="c1"># new optional inputs to define binary features at init time -&gt; udpdate 14OCT2025</span>
                  <span class="n">binary_feature_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">binary_feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Variational Autoencoder supporting flexible shared/unshared layers across clusters.</span>
 
@@ -182,6 +177,8 @@
 <span class="sd">        :type output_shared: bool</span>
 <span class="sd">        :param num_clusters: Number of clusters.</span>
 <span class="sd">        :type num_clusters: int</span>
+<span class="sd">        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</span>
+<span class="sd">        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]</span>
 <span class="sd">        :param debug: If ``True``, print shape and routing information.</span>
 <span class="sd">        :type debug: bool</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -212,13 +209,6 @@
             <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="n">input_dim</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;binary_feature_mask must be a 1D boolean vector of length input_dim.&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="p">(</span><span class="n">feature_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">binary_feature_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="n">feat2idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)}</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">binary_feature_names</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">bname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">feat2idx</span><span class="p">:</span>
-                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary feature name &#39;</span><span class="si">{</span><span class="n">bname</span><span class="si">}</span><span class="s2">&#39; not found in feature_names.&quot;</span><span class="p">)</span>
-                <span class="n">mask</span><span class="p">[</span><span class="n">feat2idx</span><span class="p">[</span><span class="n">bname</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Default: if nothing provided, treat no columns as binary until user sets it.</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
@@ -682,7 +672,7 @@
                             <span class="n">feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                             <span class="n">binary_feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Update which columns are treated as binary at the output.</span>
+<span class="sd">        Update which columns are treated as binary at the output. This function should not be necessary for user to touch.</span>
 
 <span class="sd">        You can pass either:</span>
 <span class="sd">          - mask: 1D bool vector length `input_dim`, or</span>
@@ -691,6 +681,13 @@
 <span class="sd">        This is safe to call after loading a model or dataset schema.</span>
 
 <span class="sd">        Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</span>
+
+<span class="sd">        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</span>
+<span class="sd">        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]</span>
+<span class="sd">        :param feature_names: List of all feature names - used with &#39;binary_feature_names&#39;.</span>
+<span class="sd">        :type feature_names: Optional[Sequence[str]]</span>
+<span class="sd">        :param binary_feature_names: List of all binary features (features must also be included in &#39;feature_names&#39;).</span>
+<span class="sd">        :type binary_feature_names: Optional[Iterable[str]]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>

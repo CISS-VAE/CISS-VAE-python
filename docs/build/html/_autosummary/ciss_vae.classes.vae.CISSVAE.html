@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -109,19 +107,20 @@
 <h1>ciss_vae.classes.vae.CISSVAE<a class="headerlink" href="#ciss-vae-classes-vae-cissvae" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE">
-<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CISSVAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE" title="Link to this definition"></a></dt>
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CISSVAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
-<p>Cluster‑aware Variational Autoencoder (VAE).</p>
+<blockquote>
+<div><p>Clustering-Informed Shared-Structure Variational Autoencoder (CISSVAE).</p>
+</div></blockquote>
 <p>Supports flexible mixtures of <strong>shared</strong> and <strong>unshared</strong> layers across
-clusters in both encoder and decoder. Unshared layers are duplicated per
-cluster; shared layers are single modules applied to all samples.</p>
+clusters in both encoder and decoder. Unshared layers are applied by cluster, shared layers are applied to all samples.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dim</strong> (<em>int</em>) – Number of input features (columns).</p></li>
 <li><p><strong>hidden_dims</strong> (<em>list</em><em>[</em><em>int</em><em>]</em>) – Width of each hidden layer (encoder goes forward, decoder uses the reverse).</p></li>
-<li><p><strong>layer_order_enc</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑encoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code> (case‑insensitive, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;u&quot;</span></code> allowed).</p></li>
-<li><p><strong>layer_order_dec</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑decoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code> (case‑insensitive, <code class="docutils literal notranslate"><span class="pre">&quot;s&quot;</span></code>/<code class="docutils literal notranslate"><span class="pre">&quot;u&quot;</span></code> allowed).</p></li>
+<li><p><strong>layer_order_enc</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑encoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code>.</p></li>
+<li><p><strong>layer_order_dec</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – Per‑decoder‑layer directive: <code class="docutils literal notranslate"><span class="pre">&quot;shared&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;unshared&quot;</span></code>.</p></li>
 <li><p><strong>latent_shared</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the latent heads (<code class="docutils literal notranslate"><span class="pre">mu</span></code>, <code class="docutils literal notranslate"><span class="pre">logvar</span></code>) are shared across clusters; otherwise one head per cluster.</p></li>
 <li><p><strong>latent_dim</strong> (<em>int</em>) – Dimensionality of the latent space.</p></li>
 <li><p><strong>output_shared</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the final output layer is shared; otherwise one output layer per cluster.</p></li>
@@ -151,7 +150,7 @@ cluster; shared layers are single modules applied to all samples.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.__init__" title="Link to this definition"></a></dt>
 <dd><p>Variational Autoencoder supporting flexible shared/unshared layers across clusters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -164,6 +163,7 @@ cluster; shared layers are single modules applied to all samples.</p>
 <li><p><strong>latent_dim</strong> (<em>int</em>) – Dimensionality of the latent space.</p></li>
 <li><p><strong>output_shared</strong> (<em>bool</em>) – Whether output layer is shared across clusters.</p></li>
 <li><p><strong>num_clusters</strong> (<em>int</em>) – Number of clusters.</p></li>
+<li><p><strong>binary_feature_mask</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>Sequence</em><em>[</em><em>bool</em><em>]</em><em>]</em><em>]</em>) – Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</p></li>
 <li><p><strong>debug</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, print shape and routing information.</p></li>
 </ul>
 </dd>
@@ -388,12 +388,7 @@ Must include:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.set_binary_features">
 <span class="sig-name descname"><span class="pre">set_binary_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.set_binary_features" title="Link to this definition"></a></dt>
-<dd><p>Update which columns are treated as binary at the output.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
-</dd>
-</dl>
+<dd><p>Update which columns are treated as binary at the output. This function should not be necessary for user to touch.</p>
 <dl class="simple">
 <dt>You can pass either:</dt><dd><ul class="simple">
 <li><p>mask: 1D bool vector length <cite>input_dim</cite>, or</p></li>
@@ -403,6 +398,18 @@ Must include:</p>
 </dl>
 <p>This is safe to call after loading a model or dataset schema.</p>
 <p>Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>binary_feature_mask</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>Sequence</em><em>[</em><em>bool</em><em>]</em><em>]</em><em>]</em>) – Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</p></li>
+<li><p><strong>feature_names</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – List of all feature names - used with ‘binary_feature_names’.</p></li>
+<li><p><strong>binary_feature_names</strong> (<em>Optional</em><em>[</em><em>Iterable</em><em>[</em><em>str</em><em>]</em><em>]</em>) – List of all binary features (features must also be included in ‘feature_names’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>

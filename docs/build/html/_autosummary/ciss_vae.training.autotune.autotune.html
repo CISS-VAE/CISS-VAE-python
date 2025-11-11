@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -135,10 +133,11 @@ optimal hyperparameters and returned along with the imputed dataset.</p>
 <li><p><strong>max_exhaustive_orders</strong> (<em>int</em><em>, </em><em>optional</em>) – Maximum number of layer order permutations to test when evaluate_all_orders is True, defaults to 100</p></li>
 <li><p><strong>return_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return MSE training history dataframe of the best model, defaults to False</p></li>
 <li><p><strong>n_jobs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of jobs to run for autotuning (passed to optuna). Defaults to 1</p></li>
+<li><p><strong>debug</strong> (<em>bool</em><em>, </em><em>optional</em>) – Defaults to False. Set True for informative debugging statements.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe[, best_model_history_df])</p>
+<dd class="field-even"><p>Tuple containing (best_imputed_dataframe, best_model, optuna_study_object, results_dataframe, optional[best_model_history_df])</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tuple[pandas.DataFrame, <a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE">CISSVAE</a>, optuna.study.Study, pandas.DataFrame] or tuple[pandas.DataFrame, <a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE">CISSVAE</a>, optuna.study.Study, pandas.DataFrame, pandas.DataFrame]</p>

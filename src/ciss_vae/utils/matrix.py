@@ -95,6 +95,8 @@ def create_missingness_prop_matrix(
     :type nonint_timepoint: bool, optional
     :param column_mapping: Explicit mapping { base_feature: [col1, col2, ...] } to aggregate. Takes precedence.
     :type column_mapping: dict[str, list[str]] or None, optional
+    :param loose: If true, will match any text starting with the base feature names in `repeat_feature_names`.
+    :type loose: bool
 
     :returns: MissingnessMatrix with:
               - ``data``: (n_samples, n_features) matrix of missingness proportions

@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -97,18 +95,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
-<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-
-</pre></div>
-</div>
-</div>
-</div>
-<section id="avoiding-undesired-imputation-of-certain-missing-data">
+  <section id="avoiding-undesired-imputation-of-certain-missing-data">
 <h1>Avoiding undesired imputation of certain missing data<a class="headerlink" href="#avoiding-undesired-imputation-of-certain-missing-data" title="Link to this heading"></a></h1>
 <p>To avoid imputing certain missing datapoints, construct a <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code>(DNI matrix) of the same size and shape as the original dataset. For this matrix, use 1 to represent values in the original dataset that are either <strong>missing and viable</strong> for imputation or <strong>non-missing</strong>. Use 0 to represent values in the original dataset that are missing but <strong>not viable</strong> for imputation (for example, measurements at timepoints occuring after death). To use the <code class="docutils literal notranslate"><span class="pre">cols_ignore</span></code> argument in <code class="docutils literal notranslate"><span class="pre">run_cissvae</span></code> or <code class="docutils literal notranslate"><span class="pre">ClusterDataset()</span></code>, make sure that the <code class="docutils literal notranslate"><span class="pre">imputable_matrix</span></code> has the same column names/indices as the original dataset.</p>
 <section id="example-using-included-dataset">
@@ -265,6 +252,21 @@ Imputable Matrix:
 <div class="cell docutils container">
 <div class="cell_input docutils container">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output traceback highlight-ipythontb notranslate"><div class="highlight"><pre><span></span><span class="gt">---------------------------------------------------------------------------</span>
+
+<span class="ne">NameError</span><span class="g g-Whitespace">                                 </span>Traceback (most recent call last)
+
+<span class="n">Cell</span> <span class="n">In</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">line</span> <span class="mi">1</span>
+
+<span class="ne">----&gt; </span><span class="mi">1</span> <span class="n">ds</span>
+
+
+
+<span class="ne">NameError</span>: name &#39;ds&#39; is not defined
 </pre></div>
 </div>
 </div>

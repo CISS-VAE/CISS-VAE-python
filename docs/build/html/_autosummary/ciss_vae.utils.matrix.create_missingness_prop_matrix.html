@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -131,6 +129,7 @@ Columns matched by regex pattern:
 <li><p><strong>timepoint_prefix</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional prefix that appears before the timepoint integer, e.g., <code class="docutils literal notranslate"><span class="pre">t</span></code> to match <code class="docutils literal notranslate"><span class="pre">feat_t1</span></code>.</p></li>
 <li><p><strong>nonint_timepoint</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, any text after ‘_’ will count as timepoint (eg Baseline).</p></li>
 <li><p><strong>column_mapping</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>[</em><em>str</em><em>]</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Explicit mapping { base_feature: [col1, col2, …] } to aggregate. Takes precedence.</p></li>
+<li><p><strong>loose</strong> (<em>bool</em>) – If true, will match any text starting with the base feature names in <cite>repeat_feature_names</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

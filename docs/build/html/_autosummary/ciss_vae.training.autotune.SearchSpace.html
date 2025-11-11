@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -116,7 +114,7 @@
 <p>Parameters are specified as:
 - <strong>scalar</strong>: fixed value (e.g., <code class="docutils literal notranslate"><span class="pre">latent_dim=16</span></code>)
 - <strong>list</strong>: categorical choice (e.g., <code class="docutils literal notranslate"><span class="pre">hidden_dims=[64,</span> <span class="pre">128,</span> <span class="pre">256]</span></code>)
-- <strong>tuple</strong>: range <code class="docutils literal notranslate"><span class="pre">(min,</span> <span class="pre">max)</span></code> for <code class="docutils literal notranslate"><span class="pre">suggest_int</span></code>/<code class="docutils literal notranslate"><span class="pre">suggest_float</span></code></p>
+- <strong>tuple</strong>: range <code class="docutils literal notranslate"><span class="pre">(min,</span> <span class="pre">max)</span></code> for <code class="docutils literal notranslate"><span class="pre">suggest_int</span></code> or <code class="docutils literal notranslate"><span class="pre">suggest_float</span></code></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -163,13 +161,19 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.save">
 <span class="sig-name descname"><span class="pre">save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace.save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.save" title="Link to this definition"></a></dt>
-<dd><p>Save this search space to a JSON file.</p>
+<dd><p>Save this search space to a JSON file.
+:type file_path: string
+:param file_path: Path to save file.
+:type file_path: string</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.training.autotune.SearchSpace.load">
 <em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/training/autotune.html#SearchSpace.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.training.autotune.SearchSpace.load" title="Link to this definition"></a></dt>
-<dd><p>Load a search space from a JSON file and return a new instance.</p>
+<dd><p>Load a search space from a JSON file and return a new instance.
+:type file_path: string
+:param file_path: Path to saved SearchSpace.
+:type file_path: string</p>
 </dd></dl>
 
 </dd></dl>

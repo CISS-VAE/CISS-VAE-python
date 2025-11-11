@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -109,17 +107,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
-<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<section id="using-create-missingness-prop-matrix-a-complete-guide">
+  <section id="using-create-missingness-prop-matrix-a-complete-guide">
 <h1>Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide<a class="headerlink" href="#using-create-missingness-prop-matrix-a-complete-guide" title="Link to this heading"></a></h1>
 <p>The <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix()</span></code> function creates a matrix showing the proportion of missing values for each sample–feature combination across multiple timepoints. This matrix can then be used for <strong>sample clustering</strong> with <code class="docutils literal notranslate"><span class="pre">cluster_on_missing_prop()</span></code> or as input to the complete CISS-VAE pipeline via <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code>.</p>
 <section id="overview">

@@ -13,19 +13,18 @@ from typing import Iterable, Optional, Sequence, Union
 
 class CISSVAE(nn.Module):
     r"""
-    Cluster‑aware Variational Autoencoder (VAE).
+     Clustering-Informed Shared-Structure Variational Autoencoder (CISSVAE).
 
     Supports flexible mixtures of **shared** and **unshared** layers across
-    clusters in both encoder and decoder. Unshared layers are duplicated per
-    cluster; shared layers are single modules applied to all samples.
+    clusters in both encoder and decoder. Unshared layers are applied by cluster, shared layers are applied to all samples.
 
     :param input_dim: Number of input features (columns).
     :type input_dim: int
     :param hidden_dims: Width of each hidden layer (encoder goes forward, decoder uses the reverse).
     :type hidden_dims: list[int]
-    :param layer_order_enc: Per‑encoder‑layer directive: ``"shared"`` or ``"unshared"`` (case‑insensitive, ``"s"``/``"u"`` allowed).
+    :param layer_order_enc: Per‑encoder‑layer directive: ``"shared"`` or ``"unshared"``.
     :type layer_order_enc: list[str]
-    :param layer_order_dec: Per‑decoder‑layer directive: ``"shared"`` or ``"unshared"`` (case‑insensitive, ``"s"``/``"u"`` allowed).
+    :param layer_order_dec: Per‑decoder‑layer directive: ``"shared"`` or ``"unshared"``.
     :type layer_order_dec: list[str]
     :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.
     :type latent_shared: bool
@@ -62,11 +61,9 @@ class CISSVAE(nn.Module):
                  latent_dim,
                  output_shared,
                  num_clusters,
-                 debug=False,
                  # new optional inputs to define binary features at init time -> udpdate 14OCT2025
                  binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
-                 feature_names: Optional[Sequence[str]] = None,
-                 binary_feature_names: Optional[Iterable[str]] = None):
+                 debug=False,):
         """
         Variational Autoencoder supporting flexible shared/unshared layers across clusters.
 
@@ -86,6 +83,8 @@ class CISSVAE(nn.Module):
         :type output_shared: bool
         :param num_clusters: Number of clusters.
         :type num_clusters: int
+        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns
+        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]
         :param debug: If ``True``, print shape and routing information.
         :type debug: bool
         """
@@ -116,13 +115,6 @@ class CISSVAE(nn.Module):
             mask = torch.as_tensor(binary_feature_mask, dtype=torch.bool)
             if mask.ndim != 1 or mask.numel() != input_dim:
                 raise ValueError("binary_feature_mask must be a 1D boolean vector of length input_dim.")
-        elif (feature_names is not None) and (binary_feature_names is not None):
-            feat2idx = {name: i for i, name in enumerate(feature_names)}
-            mask = torch.zeros(input_dim, dtype=torch.bool)
-            for bname in binary_feature_names:
-                if bname not in feat2idx:
-                    raise ValueError(f"Binary feature name '{bname}' not found in feature_names.")
-                mask[feat2idx[bname]] = True
         else:
             # Default: if nothing provided, treat no columns as binary until user sets it.
             mask = torch.zeros(input_dim, dtype=torch.bool)
@@ -561,7 +553,7 @@ class CISSVAE(nn.Module):
                             feature_names: Optional[Sequence[str]] = None,
                             binary_feature_names: Optional[Iterable[str]] = None) -> None:
         """
-        Update which columns are treated as binary at the output.
+        Update which columns are treated as binary at the output. This function should not be necessary for user to touch.
 
         You can pass either:
           - mask: 1D bool vector length `input_dim`, or
@@ -570,6 +562,13 @@ class CISSVAE(nn.Module):
         This is safe to call after loading a model or dataset schema.
 
         Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)
+
+        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns
+        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]
+        :param feature_names: List of all feature names - used with 'binary_feature_names'.
+        :type feature_names: Optional[Sequence[str]]
+        :param binary_feature_names: List of all binary features (features must also be included in 'feature_names').
+        :type binary_feature_names: Optional[Iterable[str]]
         """
         if mask is not None:
             mask = torch.as_tensor(mask, dtype=torch.bool, device=self.binary_mask.device)

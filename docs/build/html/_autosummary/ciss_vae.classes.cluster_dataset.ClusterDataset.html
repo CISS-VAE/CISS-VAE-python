@@ -53,8 +53,6 @@
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../vignette.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
@@ -112,16 +110,15 @@
 <em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ClusterDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/cluster_dataset.html#ClusterDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></p>
 <p>Dataset that handles cluster-wise masking and normalization for VAE training.</p>
-<dl class="simple">
-<dt>This dataset:</dt><dd><ol class="arabic simple">
+<blockquote>
+<div><ol class="arabic simple">
 <li><p>Optionally holds out a validation subset <strong>per cluster</strong> from <em>observed</em>
 (non-NaN) entries according to <code class="docutils literal notranslate"><span class="pre">val_proportion</span></code>.</p></li>
 <li><p>Combines original missingness with validation-held-out entries.</p></li>
 <li><p>Normalizes observed values column-wise (mean/std), keeps masks for NaNs,
 and replaces NaNs (incl. held-out) with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p></li>
 </ol>
-</dd>
-</dl>
+</div></blockquote>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -147,8 +144,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.raw_data">
-<span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.raw_data" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.raw_data">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">raw_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.raw_data" title="Link to this definition"></a></dt>
 <dd><p>Original data converted to float tensor (NaNs preserved).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -158,8 +155,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.data">
-<span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.data" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.data">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.data" title="Link to this definition"></a></dt>
 <dd><p>Normalized data with NaNs replaced by <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -169,8 +166,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.masks">
-<span class="sig-name descname"><span class="pre">masks</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.masks" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.masks">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">masks</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.masks" title="Link to this definition"></a></dt>
 <dd><p>Boolean mask where <code class="docutils literal notranslate"><span class="pre">True</span></code> marks observed (non-NaN) entries <strong>before</strong> replacement.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -180,8 +177,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.val_data">
-<span class="sig-name descname"><span class="pre">val_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.val_data" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.val_data">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">val_data</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.val_data" title="Link to this definition"></a></dt>
 <dd><p>Tensor containing <strong>only</strong> validation-held-out values (others are NaN).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -191,8 +188,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.cluster_labels">
-<span class="sig-name descname"><span class="pre">cluster_labels</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.cluster_labels" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.cluster_labels">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">cluster_labels</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.cluster_labels" title="Link to this definition"></a></dt>
 <dd><p>Cluster ID for each row, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,)</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -202,8 +199,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.indices">
-<span class="sig-name descname"><span class="pre">indices</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.indices" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.indices">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">indices</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.indices" title="Link to this definition"></a></dt>
 <dd><p>Original row indices (from DataFrame index or <code class="docutils literal notranslate"><span class="pre">arange</span></code> for arrays/tensors).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -213,8 +210,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.feature_names">
-<span class="sig-name descname"><span class="pre">feature_names</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.feature_names" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.feature_names">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">feature_names</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.feature_names" title="Link to this definition"></a></dt>
 <dd><p>Column names (from DataFrame) or synthetic names (<code class="docutils literal notranslate"><span class="pre">V1</span></code>, <code class="docutils literal notranslate"><span class="pre">V2</span></code>, …).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -224,8 +221,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.n_clusters">
-<span class="sig-name descname"><span class="pre">n_clusters</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.n_clusters" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.n_clusters">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">n_clusters</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.n_clusters" title="Link to this definition"></a></dt>
 <dd><p>Number of unique clusters discovered from <code class="docutils literal notranslate"><span class="pre">cluster_labels</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -235,8 +232,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.shape">
-<span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.shape" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.shape">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">shape</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.shape" title="Link to this definition"></a></dt>
 <dd><p>Shape of <code class="docutils literal notranslate"><span class="pre">self.data</span></code> (<code class="docutils literal notranslate"><span class="pre">n_samples</span></code>, <code class="docutils literal notranslate"><span class="pre">n_features</span></code>).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -246,8 +243,8 @@ Should be same shape as <code class="docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.binary_feature_mask">
-<span class="sig-name descname"><span class="pre">binary_feature_mask</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.binary_feature_mask" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="ciss_vae.classes.cluster_dataset.ClusterDataset.self.binary_feature_mask">
+<span class="sig-prename descclassname"><span class="pre">self.</span></span><span class="sig-name descname"><span class="pre">binary_feature_mask</span></span><a class="headerlink" href="#ciss_vae.classes.cluster_dataset.ClusterDataset.self.binary_feature_mask" title="Link to this definition"></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>np.array(bool)</p>
@@ -278,16 +275,9 @@ after validation masking; zero stds are set to 1 to avoid division by zero.</p><
 <p>Steps:
 1. Convert inputs to tensors; preserve indices/column names if a DataFrame.
 2. Resolve per-cluster validation proportions from <code class="docutils literal notranslate"><span class="pre">val_proportion</span></code>.
-3. For each cluster and feature, randomly mark the requested fraction of</p>
-<blockquote>
-<div><p><strong>observed</strong> entries as validation targets.</p>
-</div></blockquote>
-<ol class="arabic simple" start="4">
-<li><p>Create <code class="docutils literal notranslate"><span class="pre">val_data</span></code> (validation targets only) and training <code class="docutils literal notranslate"><span class="pre">data</span></code> where
-validation entries are set to NaN.</p></li>
-<li><p>Compute per-feature mean/std over non-NaN entries in <code class="docutils literal notranslate"><span class="pre">data</span></code> and apply
-normalization; then replace remaining NaNs with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p></li>
-</ol>
+3. For each cluster and feature, randomly mark the requested fraction of <strong>observed</strong> entries as validation targets.
+4. Create <code class="docutils literal notranslate"><span class="pre">val_data</span></code> (validation targets only) and training <code class="docutils literal notranslate"><span class="pre">data</span></code> where validation entries are set to NaN.
+5. Compute per-feature mean/std over non-NaN entries in <code class="docutils literal notranslate"><span class="pre">data</span></code> and apply normalization; then replace remaining NaNs with <code class="docutils literal notranslate"><span class="pre">replacement_value</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
