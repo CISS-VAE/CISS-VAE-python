@@ -49,13 +49,14 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CISS-VAE Quickstart</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quickstart">Quickstart</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html">How to use CISS-VAE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
-<li class="toctree-l1"><a class="reference internal" href="vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
@@ -94,9 +95,8 @@
 <h1>CISS-VAE Quickstart<a class="headerlink" href="#ciss-vae-quickstart" title="Link to this heading"></a></h1>
 <p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
 <p><img alt="Example CISS-VAE for Imputation Workflow" src="_images/CISSVAEModelDiagram.png" /></p>
-</section>
 <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
 <p>The CISS-VAE package is currently available for python, with an R
 package to be released soon. It can be installed from either
 <a class="reference external" href="https://github.com/CISS-VAE/CISS-VAE-python">github</a> or PyPI.</p>
@@ -123,7 +123,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 </div></blockquote>
 </div></section>
 <section id="quickstart">
-<h1>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h1>
+<h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading"></a></h2>
 <p>If your data has binary or categorical variables, please see the <a class="reference external" href="https://ciss-vae.readthedocs.io/en/latest/binary_vignette.html">binary data vignette</a>.
 To load the sample dataset:</p>
 <div class="cell docutils container">
@@ -197,6 +197,7 @@ To load the sample dataset:</p>
 <img alt="_images/a8d2d7a296c7c50458cab6c9258ef047646e89b656476634d22ad224b4013bc4.png" src="_images/a8d2d7a296c7c50458cab6c9258ef047646e89b656476634d22ad224b4013bc4.png" />
 </div>
 </div>
+</section>
 </section>
 
 

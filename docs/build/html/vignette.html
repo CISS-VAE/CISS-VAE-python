@@ -50,8 +50,6 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">How to use CISS-VAE</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
@@ -65,9 +63,7 @@
 <li class="toctree-l1"><a class="reference internal" href="#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#dataset-preparation">Dataset Preparation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#clustering-on-missingness-pattern">Clustering on missingness pattern</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#create-a-searchspace-object">Create a SearchSpace object:</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#saving-and-loading-searchspace-objects">Saving and Loading SearchSpace Objects</a></li>
 </ul>
@@ -355,9 +351,8 @@ clustering.</p></li>
 </ul>
 <p><strong>To cluster on proportion of missingness, see <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">tutorial</a> for more details.</strong></p>
 </section>
-</section>
 <section id="creating-a-clusterdataset-object">
-<h1>Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object<a class="headerlink" href="#creating-a-clusterdataset-object" title="Link to this heading"></a></h1>
+<h2>Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object<a class="headerlink" href="#creating-a-clusterdataset-object" title="Link to this heading"></a></h2>
 <p>After obtaining cluster labels, construct a <a class="reference internal" href="_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ciss_vae.classes.cluster_dataset.ClusterDataset</span></code></a>. This is the object that is fed into the autotune function.</p>
 <div class="cell docutils container">
 <div class="cell_input docutils container">
@@ -373,6 +368,7 @@ clustering.</p></li>
 </div>
 </div>
 </div>
+</section>
 <section id="create-a-searchspace-object">
 <h2>Create a SearchSpace object:<a class="headerlink" href="#create-a-searchspace-object" title="Link to this heading"></a></h2>
 <p>In the SearchSpace object, define the search space for each
