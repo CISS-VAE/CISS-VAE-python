@@ -52,10 +52,13 @@
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">CISS-VAE Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#installation">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html#quickstart">Quickstart</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">How to use CISS-VAE</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#overview">Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">How to use CISS-VAE</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="#running-the-ciss-vae-model">Running the CISS-VAE Model</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#assigning-cluster-labels">Assigning cluster labels</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#avoiding-imputation-of-certain-entries">Avoiding imputation of certain entries</a></li>
 </ul>
 </li>
@@ -111,34 +114,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <div class="cell docutils container">
-<div class="cell_input docutils container">
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">%%</span><span class="n">capture</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span><span class="o">,</span><span class="w"> </span><span class="nn">sys</span>
-<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
-<span class="n">sys</span><span class="o">.</span><span class="n">stderr</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;/dev/null&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-</div>
-<section id="how-to-use-ciss-vae">
+  <section id="how-to-use-ciss-vae">
 <h1>How to use CISS-VAE<a class="headerlink" href="#how-to-use-ciss-vae" title="Link to this heading"></a></h1>
-</section>
 <section id="overview">
-<h1>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h1>
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <p>The <strong>Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)</strong> is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR, scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.</p>
-<details><summary>Click Here for More Information</summary>
-<p>A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components.</p>
-<p>Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.</p>
-</details>
-<p>There are two ways to run the CISS-VAE process. If you know what model
-parameters you want to use, you can use the <a class="reference internal" href="_autosummary/ciss_vae.training.run_cissvae.run_cissvae.html#ciss_vae.training.run_cissvae.run_cissvae" title="ciss_vae.training.run_cissvae.run_cissvae"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.run_cissvae.run_cissvae()</span></code></a> function to
+<p><img alt="Example CISS-VAE for Imputation Workflow" src="_images/CISSVAEModelDiagram.png" /></p>
+<details style="background: #deeff7ff; border: #2A373D; color: black; border-radius: 10px"><summary><span style="color: #2A373D"><b>Click Here for More Information</b></span></summary>
+ <div style="padding: 10px 10px 10px 10px">
+A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components. <br>  <br>
+<p>Additionally, CISS-VAE incorporates an <strong>iterative learning procedure</strong>, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.
+</div></p>
+</details>  
+<br>
+There are two ways to run the CISS-VAE process. If you know what model
+parameters you want to use, you can use the {py:func}`ciss_vae.training.run_cissvae.run_cissvae` function to
 run the model once for the given set of parameters. If you want to tune
-the model instead, you can use <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a>.</p>
-<p>The R package associated with this model can be found at [rCISS-VAE] (https://ciss-vae.github.io/rCISS-VAE/).</p>
+the model instead, you can use {py:func}`ciss_vae.training.autotune.autotune`.
+<p>The R package associated with this model can be found at <a href="https://ciss-vae.github.io/rCISS-VAE/">rCISS-VAE</a>.</p>
 </section>
 <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h2>
 <p>The CISS-VAE package is currently available for python, with an R
 package to be released soon. It can be installed from either
 <a class="reference external" href="https://github.com/CISS-VAE/CISS-VAE-python">github</a> or PyPI.</p>
@@ -165,6 +161,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 </div></blockquote>
 </div>
 </section>
+</section>
 <section id="running-the-ciss-vae-model">
 <h1>Running the CISS-VAE Model<a class="headerlink" href="#running-the-ciss-vae-model" title="Link to this heading"></a></h1>
 <p>You can use your own dataset or load the example dataset included with this package. If your data has binary or categorical variables, please see the <a class="reference external" href="https://ciss-vae.readthedocs.io/en/latest/binary_vignette.html">binary data vignette</a>.</p>
@@ -187,8 +184,9 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
 </pre></div>
 </div>
 <p>Missing values should be represented using np.nan or None.</p>
-<p><strong>Assigning cluster labels</strong><br />
-There are three options for assigning cluster labels to the data:</p>
+<section id="assigning-cluster-labels">
+<h2>Assigning cluster labels<a class="headerlink" href="#assigning-cluster-labels" title="Link to this heading"></a></h2>
+<p>There are three options for assigning cluster labels to the data:</p>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>1. Manually assign cluster labels and provide them to the function via the `clusters` argument. 
 
       
@@ -202,8 +200,8 @@ There are three options for assigning cluster labels to the data:</p>
     - To use Leiden Clustering clustering, leave `n_clusters = None`.   
 </pre></div>
 </div>
-<details><summary><i>Click for more details on missingness proportion matrix</i></summary>
-    <p>For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p>
+<details style="background: #deeff7ff; border: #2A373D; color: black; border-radius: 10px"><summary><span style="color: #2A373D"><b>Click Here for More Information on the Missingness Proportion Matrix</b></span></summary>
+ <div style="padding: 10px 10px 10px 10px"><p>For the missingness proportion matrix, (either a `pandas.DataFrame` or `numpy.ndarray`) the rows should correspond to samples, the columns correspond to features, and the values are proportion of missingness of each feature for each sample. For features with multiple timepoints (like biomarker data collected at multiple visits), you may choose to have one column per feature and let the value be the overall proportion of missingness for that feature across all timepoints. See the <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">clustering on missingness proportion tutorial</a> for more details.</p></div>
     </details>    
 <p>To run the CISSVAE model with default parameters:</p>
 <div class="cell docutils container">
@@ -291,16 +289,17 @@ There are three options for assigning cluster labels to the data:</p>
   • .val_data shape: (8000, 30)
 </pre></div>
 </div>
-<img alt="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" src="_images/6a2ee139389a7895bdaa37b24579ae01db6b630648e491a486cbe5f54181ffd8.png" />
+<img alt="_images/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" src="_images/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" />
 </div>
 </div>
 <p>Use the <code class="docutils literal notranslate"><span class="pre">return_clusters</span></code> parameter to get the cluster labels.
-Use the <code class="docutils literal notranslate"><span class="pre">return_history</span></code> parameter to get a dataframe with the training MSE history.</p>
+Use the <code class="docutils literal notranslate"><span class="pre">return_history</span></code> parameter to get a dataframe with the validation imputation loss history.</p>
+</section>
 <section id="avoiding-imputation-of-certain-entries">
 <h2>Avoiding imputation of certain entries<a class="headerlink" href="#avoiding-imputation-of-certain-entries" title="Link to this heading"></a></h2>
-<p>In some cases, not all missing entries in a dataset are viable for imputation. For example, biomarker values after time of death would not necessarily be reasonable to impute and therefore should be ignored during the impute-refit training loop. To set certain data entries as un-imputable, create a do_not_impute matrix of the same size as the dataset, with 0 for entries that are non-missing or viable for imputation and 1 for entries that are missing and non-viable for imputation.</p>
-<p>This matrix (or pandas.Dataframe) can then be passed to the <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> function. Make sure that the do_not_impute matrix has the same column labels as the original data set to use the <code class="docutils literal notranslate"><span class="pre">cols_ignore</span></code> option to ignore certain columns during imputation.</p>
-<p>For more information, see the <a class="reference external" href="https://ciss-vae.readthedocs.io/en/latest/dni_vignette.html">dni vignette</a></p>
+<p>In some cases, not all missing entries in a dataset are viable for imputation. For example, biomarker values after time of death would not necessarily be reasonable to impute and therefore should be ignored during the impute-refit training loop. To set certain data entries as un-imputable, create an ‘imputable’ matrix of the same size as the dataset, with 1 for entries that are non-missing or viable for imputation and 0 for entries that are missing and non-viable for imputation.</p>
+<p>This matrix (or pandas.Dataframe) can then be passed to the <code class="docutils literal notranslate"><span class="pre">run_cissvae()</span></code> function. Make sure that the ‘imputable’ matrix has the same column labels as the original data set to use the <code class="docutils literal notranslate"><span class="pre">cols_ignore</span></code> option to ignore certain columns during imputation.</p>
+<p>For more information, see the <a class="reference external" href="https://ciss-vae.readthedocs.io/en/latest/dni_vignette.html">imputable matrix vignette</a>.</p>
 </section>
 </section>
 <section id="hyperparameter-tuning-with-optuna">
@@ -354,7 +353,7 @@ pattern. Ex: identifiers</p></li>
 <li><p>n_clusters: set this to use K-Means instead of nonparametric
 clustering.</p></li>
 </ul>
-<p><strong>To cluster on proportion of missingness, see (tutorial)[https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html] for more details.</strong></p>
+<p><strong>To cluster on proportion of missingness, see <a href="https://ciss-vae.readthedocs.io/en/latest/missingness_prop_vignette.html">tutorial</a> for more details.</strong></p>
 </section>
 </section>
 <section id="creating-a-clusterdataset-object">
@@ -364,12 +363,11 @@ clustering.</p></li>
 <div class="cell_input docutils container">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
 
-
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">,</span>
 <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span>
-<span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## 10% non-missing data is default. You can also input a list if you want different val_proportions for each cluster</span>
+<span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="c1">## 10% non-missing data is default. </span>
 <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="c1">## value to replace all missing data with before running model. Could be set to 0 or random</span>
-<span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="c1">## Tells ClusterDataset not to hold out entries demographic columns for validation</span>
+<span class="n">columns_ignore</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">columns</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span> <span class="c1">## Tells ClusterDataset not to hold out entries of these columns for validation</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -494,16 +492,20 @@ either tunable or non-tunable.</p>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-10-09 15:52:05,032] A new study created in memory with name: vae_autotune
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-10 11:39:19,649] A new study created in memory with name: vae_autotune
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
 Starting Optuna optimization with 20 trials...
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/home/nfs/vaithid1/CISS-VAE/CISS-VAE/src/ciss_vae/training/autotune.py:549: ExperimentalWarning: set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
-  study.set_metric_names([&quot;Validation MSE&quot;])
-[I 2025-10-09 16:12:32,538] Trial 0 finished with value: {&#39;Validation MSE&#39;: 5.61246919631958} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.00039843586858746887, &#39;decay_factor&#39;: 0.9684395881174177, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 0 with value: 5.61246919631958.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/src/ciss_vae/training/autotune.py:598: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+  study.set_metric_names([&quot;Total Imputation Error&quot;])
+[I 2025-11-10 12:15:21,367] Trial 0 finished with value: {&#39;Total Imputation Error&#39;: 87.15758514404297} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00036897025309268346, &#39;decay_factor&#39;: 0.9134620169142295, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 0 with value: 87.15758514404297.
+[I 2025-11-10 13:22:28,612] Trial 1 finished with value: {&#39;Total Imputation Error&#39;: 69.23899841308594} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 512, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00011110395853184703, &#39;decay_factor&#39;: 0.9352917535064903, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 1 with value: 69.23899841308594.
+[I 2025-11-10 13:31:02,462] Trial 2 finished with value: {&#39;Total Imputation Error&#39;: 133.9871368408203} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0003349564182234021, &#39;decay_factor&#39;: 0.9529162383235371, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 1 with value: 69.23899841308594.
+[I 2025-11-10 15:32:30,760] Trial 3 finished with value: {&#39;Total Imputation Error&#39;: 19.561391830444336} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 512, &#39;hidden_dim_3&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0008887500003389021, &#39;decay_factor&#39;: 0.9586114897425149, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 3 with value: 19.561391830444336.
+[I 2025-11-10 16:23:39,773] Trial 4 finished with value: {&#39;Total Imputation Error&#39;: 2.569357395172119} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0005650755995185884, &#39;decay_factor&#39;: 0.9825239189078409, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 4 with value: 2.569357395172119.
 </pre></div>
 </div>
 </div>
@@ -514,10 +516,10 @@ Starting Optuna optimization with 20 trials...
 <p>You can use <a class="reference external" href="https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html">optuna
 dashboard</a>
 to visualize the importance of your tuning parameters. If you use VSCode
-or <a class="reference external" href="https://positron.posit.co/download.html">Positron</a> there is an
+or <a class="reference external" href="https://positron.posit.co/download.html">Positron</a>, there is an
 extension for viewing optuna dashboards in your development environment.</p>
 <p><img alt="Screenshot of Optuna Dashboard" src="_images/optuna_dash_v1.png" /></p>
-<p>The optuna database file can be opened via commandline as well. (tutorial)[https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html#command-line-interface]</p>
+<p>The optuna database file can be opened via commandline as well. <a class="reference external" href="https://optuna-dashboard.readthedocs.io/en/stable/getting-started.html#command-line-interface">tutorial</a></p>
 <p>To use optuna dashboard, set your database url in the autotune function. You
 can have multiple autotune ‘studies’ in the same database.</p>
 <div class="cell docutils container">
@@ -531,7 +533,7 @@ can have multiple autotune ‘studies’ in the same database.</p>
     <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
     <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
-    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///db.sqlite3&quot;</span><span class="p">,</span>                  <span class="c1"># If using optuna dashboard set db location here, otherwise set to None</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///db.sqlite3&quot;</span><span class="p">,</span>   <span class="c1"># If using optuna dashboard set db location here, otherwise set to None</span>
     <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
 <span class="p">)</span>

@@ -20,7 +20,7 @@ The autotune function has compatibility with Optuna Dashboard for viewing hyperp
 The R package associated with this model can be found at `rCISS-VAE <https://ciss-vae.github.io/rCISS-VAE/>`_. 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    quickstart.ipynb

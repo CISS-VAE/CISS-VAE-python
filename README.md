@@ -4,6 +4,16 @@
 
 CISS-VAE is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.
 
+![**Example CISS-VAE for Imputation Workflow**](CISSVAEModelDiagram.png)
+<br>
+<details style="background: #deeff7ff; border: #2A373D; color: black; border-radius: 10px"><summary><span style="color: #2A373D"><b>Click Here for More Information</b></span></summary>
+ <div style="padding: 10px 10px 10px 10px">
+A key feature of CISS-VAE is the use of unsupervised clustering to capture distinct patterns of missingness. Alongside cluster-specific representations, the method leverages shared encoder and decoder layers. This allows for knowledge transfer across clusters and enhances parameter stability, which is especially important when some clusters have small sample sizes. In situations where the data do not naturally partition into meaningful clusters, the model defaults to a pooled representation, preventing unnecessary complications from cluster-specific components. <br>  <br>
+ 
+Additionally, CISS-VAE incorporates an iterative learning procedure, with a validation-based convergence criterion recommended to avoid overfitting. This procedure significantly improves imputation accuracy compared to traditional Variational Autoencoder training approaches in the presence of missing values. Overall, CISS-VAE adapts across a range of missing data mechanisms, leveraging clustering only when it offers clear benefits, and delivering robust, accurate imputations under varying conditions of missingness.
+    </div>
+</details>  
+
 ## Installation
 
 The CISS-VAE package is currently available for python, with an R
@@ -80,7 +90,7 @@ imputed_data, vae = run_cissvae(data = data,
 ## VAE model params
     hidden_dims = [150, 120, 60], ## Dimensions of hidden layers, in order. One number per layer. 
     latent_dim = 15, ## Dimensions of latent embedding
-    layer_order_enc = ["unshared", "unshared", "unshared"], ## order of shared vs unshared layers for encode (can use u or s instead of unshared, shared)
+    layer_order_enc = ["unshared", "unshared", "unshared"], ## order of shared vs unshared layers for encode 
     layer_order_dec=["shared", "shared",  "shared"],  ## order of shared vs unshared layers for decode
     latent_shared=False, 
     output_shared=False, 

@@ -215,3 +215,4 @@ CISS-VAE-python/VOID_vignettes
 test_results.txt
 test_cvg.txt
 docs/source/optuna_study_test_binary.db
+cissvae_src.zip
