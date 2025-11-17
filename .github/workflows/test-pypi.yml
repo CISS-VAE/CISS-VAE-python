@@ -9,6 +9,7 @@ permissions:
 
 jobs:
   release-build:
+    if: ${{ github.event.release.prerelease }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +26,7 @@ jobs:
 
   install-check:
     needs: release-build
+    if: ${{ github.event.release.prerelease }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -44,9 +46,11 @@ jobs:
           source venv/bin/activate
           python -m pip install --upgrade pip
           pip install dist/*.whl
-          python -c "import ciss_vae"  # should succeed
+          python -c "import ciss_vae"
+
   testpypi-publish:
     needs: install-check
+    if: ${{ github.event.release.prerelease }}
     runs-on: ubuntu-latest
     permissions:
       id-token: write
