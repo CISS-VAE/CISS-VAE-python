@@ -21,7 +21,7 @@ package to be released soon ([see rCISSVAE github page for updates](https://gith
 [github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
 
 ``` bash
-# From PyPI (package not on pypi just yet)
+# From PyPI 
 pip install ciss-vae
 
 ```
