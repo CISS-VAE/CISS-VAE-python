@@ -18,7 +18,7 @@ Additionally, CISS-VAE incorporates an iterative learning procedure, with a vali
 
 The CISS-VAE package is currently available for python, with an R
 package to be released soon ([see rCISSVAE github page for updates](https://github.com/CISS-VAE/rCISS-VAE)). It can be installed from either
-[github](https://github.com/CISS-VAE/CISS-VAE-python) or PyPI.
+[github](https://github.com/CISS-VAE/CISS-VAE-python) or [PyPI](https://pypi.org/project/CISS-VAE/).
 
 ``` bash
 # From PyPI
