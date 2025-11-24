@@ -11,10 +11,10 @@ requires-python = ">=3.10"
 license = "MIT"
 
 authors = [
-{ name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" },
 { name = "Yasin Khadem Charvadeh", email = "khademy@mskcc.org" },
 { name = "Kenneth Seier" },
 { name = "Katherine S. Panageas" },
+{ name = "Danielle Vaithilingam", email = "vaithid1@mskcc.org" },
 { name = "Mithat Gönen" },
 { name = "Yuan Chen", email = "cheny19@mskcc.org" }
  
@@ -28,12 +28,11 @@ dependencies = [
   "typing",
   "matplotlib",
   "scikit-learn",
+  "leidenalg", 
+  "python-igraph"
 ]
 
-[project.optional-dependencies]
-clustering = [
-    "hdbscan", "leidenalg", "python-igraph"
-]
+
 dev = ["mypy", "pytest>=7.0.0",
     "pytest-cov>=4.0.0", 
     "pytest-mock>=3.10.0",
