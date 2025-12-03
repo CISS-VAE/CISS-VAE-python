@@ -16,7 +16,7 @@ authors = [
 { name = "Katherine S. Panageas" },
 { name = "Danielle Vaithilingam"},
 { name = "Mithat Gönen" },
-{ name = "Yuan Chen", email = "cheny19@mskcc.org" }
+{ name = "Yuan Chen"}
  
 ]
 dependencies = [
