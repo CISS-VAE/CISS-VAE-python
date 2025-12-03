@@ -1,4 +1,4 @@
-name: Build & Publish Docs 
+name: Build & Publish Docs
 
 on:
   release:
@@ -9,22 +9,18 @@ permissions:
 
 jobs:
   docs:
-    # Only run for official (non-prerelease) releases!! 
     if: ${{ github.event.release.prerelease == false }}
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout code
       - name: Check out repository
         uses: actions/checkout@v4
 
-      # 2. Set up Python for Sphinx build
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      # 3. Install documentation dependencies
       - name: Install documentation dependencies
         run: |
           python -m pip install --upgrade pip
@@ -32,27 +28,19 @@ jobs:
             pip install -r docs/requirements.txt
           fi
 
-
-      # 4. Build Sphinx HTML docs
-      #      - Sphinx config: docs/source/conf.py
-      #      - Output directory: docs/build/html
       - name: Build Sphinx HTML
         run: |
           sphinx-build -b html docs/source docs/build/html
 
-      # 5. Upload the built HTML as a GitHub Actions artifact (optional but very useful)
       - name: Upload HTML docs artifact
         uses: actions/upload-artifact@v4
         with:
           name: html-docs
           path: docs/build/html
 
-      # 6. Trigger Read the Docs build for this release
-      #    Make sure your RTD project is integrated with this GitHub repo.
       - name: Trigger Read the Docs build
-        uses: readthedocs/actions@v1
+        uses: dfm/rtds-action@v1
         with:
-          # Replace this with your actual RTD project slug
-          project-slug: ciss-vae
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          webhook_url: ${{ secrets.RTDS_WEBHOOK_URL }}
+          webhook_token: ${{ secrets.RTDS_WEBHOOK_TOKEN }}
+          commit_ref: ${{ github.ref }}

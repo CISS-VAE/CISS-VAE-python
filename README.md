@@ -2,7 +2,7 @@
 
 ## Python implementation of the Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE)
 
-CISS-VAE is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions.
+CISS-VAE is a flexible deep learning model for missing data imputation that accommodates all three types of missing data mechanisms: Missing Completely At Random (MCAR), Missing At Random (MAR), and Missing Not At Random (MNAR). While it is particularly well-suited to MNAR scenarios where missingness patterns carry informative signals, CISS-VAE also functions effectively under MAR assumptions. Please see our <a href="https://doi.org/10.1002/sim.70335"> publication </a> for more details.
 
 ![**Example CISS-VAE for Imputation Workflow**](CISSVAEModelDiagram.png)
 <br>
@@ -32,22 +32,6 @@ OR
 pip install git+https://github.com/CISS-VAE/CISS-VAE-python.git
 ```
 
-<div>
-
-> **Important!**
->
-> For run_cissvae to be able to handle clustering, please install the
-> clustering dependencies scikit-learn and leidenalg with pip.
->
-> ``` bash
-> pip install scikit-learn leidenalg python-igraph
->
-> OR
->
-> pip install ciss-vae[clustering]
-> ```
-
-</div>
 
 ## Quickstart Tutorial
 
@@ -131,4 +115,19 @@ plot_vae_architecture(model = vae,
 ## The CISS-VAE package includes the option to perform automated hyperparameter tuning with OPTUNA
 
 See [tutorial](https://ciss-vae.readthedocs.io/en/latest/vignette.html#hyperparameter-tuning-with-optuna) for more details. 
+
+## Citation
+If you use our package in your research, please consider citing <a href="https://doi.org/10.1002/sim.70335">our recent publication!</a>
+
+>Y. Khadem Charvadeh, K. Seier, K. S. Panageas, D. Vaithilingam, M.Gönen, and Y. Chen, “Clustering-Informed Shared-Structure Variational Autoencoder for Missing Data Imputation in Large-Scale Healthcare Data,” Statistics in Medicine 44, no. 28-30 (2025): e70335, https://doi.org/10.1002/sim.70335.
+
+
+### Authors
+
+>- Yasin Khadem Charvadeh
+>- Kenneth Seier  
+>- Katherine S. Panageas  
+>- Danielle Vaithilingam 
+>- Mithat Gönen  
+>- <b>Yuan Chen <i>(corresponding author)</i></b> — cheny19@mskcc.org  
 
