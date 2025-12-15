@@ -4,11 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "CISS-VAE"
-version = "1.0.2"
+version = "1.0.3"
 description = "Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) for Missing Data Imputation"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
+keywords = ["cissvae", "ciss-vae", "ciss_vae", "imputation", "VAE", "missingness", "missing data"]
 
 authors = [
 { name = "Yasin Khadem Charvadeh"},
@@ -47,6 +48,7 @@ docs = ["sphinx", "sphinx_rtd_theme", "myst-parser"]
 Homepage = "https://ciss-vae.readthedocs.io/en/latest/index.html"
 Documentation = "https://ciss-vae.readthedocs.io/en/latest/vignette.html"
 Source = "https://github.com/CISS-VAE/CISS-VAE-python"
+Publication = "https://doi.org/10.1002/sim.70335"
 
 
 [tool.black]

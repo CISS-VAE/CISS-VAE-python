@@ -50,6 +50,12 @@ def train_vae_refit(model,
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
     refit_history = pd.DataFrame()
 
+    def _to_scalar(x):
+        """Convert torch tensors to Python scalars safely."""
+        if torch.is_tensor(x):
+            return x.detach().cpu().item()
+        return x
+
     ## Added to handle return history
         # Container to collect per-epoch metrics
 
@@ -98,8 +104,8 @@ def train_vae_refit(model,
         record = {
             "epoch": epoch,
             "train_loss": avg_loss,
-            "train_mse": train_mse,
-            "train_bce":train_bce,
+            "train_mse": _to_scalar(train_mse),
+            "train_bce":_to_scalar(train_bce),
             "imputation_error": np.nan,
             "val_mse":np.nan,
             "val_bce":np.nan,

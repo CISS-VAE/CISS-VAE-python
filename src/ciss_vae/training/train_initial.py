@@ -60,6 +60,12 @@ def train_vae_initial(
     if not hasattr(dataset, "val_data"):
         raise ValueError("Dataset must include 'val_data' for validation-based early stopping.")
 
+    def _to_scalar(x):
+        """Convert torch tensors to Python scalars safely."""
+        if torch.is_tensor(x):
+            return x.detach().cpu().item()
+        return x
+
 
     # Container to collect per-epoch metrics
     history = {
@@ -131,13 +137,16 @@ def train_vae_initial(
         # Logging to history
         # -----------------------------------
 
+        
+
         history["epoch"].append(epoch)
         history["train_loss"].append(avg_train_loss)
-        history["train_mse"].append(train_mse)
-        history["train_bce"].append(train_bce)
-        history["imputation_error"].append(imputation_error)
-        history["val_mse"].append(val_mse)
-        history["val_bce"].append(val_bce)
+        history["train_mse"].append(_to_scalar(train_mse))
+        history["train_bce"].append(_to_scalar(train_bce))
+        history["imputation_error"].append(_to_scalar(imputation_error))
+        history["val_mse"].append(_to_scalar(val_mse))
+        history["val_bce"].append(_to_scalar(val_bce))
+
         history["lr"].append(current_lr)
 
         if verbose:
