@@ -500,16 +500,32 @@ class CISSVAE(nn.Module):
             )
             stds[zero_std_idx] = 1.0  # safe replacement
 
-        # Denormalize model output
-        recon_x_denorm = recon_x * stds + means
+        # ------------------------------------------------------------------
+        # Identify binary vs continuous features
+        # ------------------------------------------------------------------
+        if getattr(dataset, "binary_feature_mask", None) is None:
+            bin_1d = torch.zeros(recon_x.shape[1], dtype=torch.bool, device=device)
+        else:
+            bin_1d = torch.as_tensor(
+                dataset.binary_feature_mask, dtype=torch.bool, device=device
+            )
 
-        # Ensure float dtype to support NaNs
-        recon_x_denorm = recon_x_denorm.to(torch.float32)
+        cont_1d = ~bin_1d
 
-        # Blank out non-validation (observed) entries ->. keep only validation reconstructions
-        recon_x_denorm[val_mask] = float('nan')
+        # ------------------------------------------------------------------
+        # Build output safely
+        # ------------------------------------------------------------------
+        recon_out = recon_x.clone().to(torch.float32)
 
-        return(recon_x_denorm)
+        # Denormalize ONLY continuous features
+        if cont_1d.any():
+            ccols = torch.nonzero(cont_1d, as_tuple=False).squeeze(1)
+            recon_out[:, ccols] = recon_x[:, ccols] * stds[ccols] + means[ccols]
+
+            # Blank out non-validation (observed) entries ->. keep only validation reconstructions
+            recon_out[val_mask] = float('nan') 
+
+        return(recon_out)
 
         # -----------------------------
         # NEW -> handles sigmoid
