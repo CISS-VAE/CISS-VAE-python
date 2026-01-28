@@ -851,7 +851,7 @@ def autotune(
     # Save results
     # -----------------------
     if save_model_path:
-        torch.save(best_model.state_dict(), save_model_path)
+        torch.save(best_model, save_model_path)
         print(f"Model saved to {save_model_path}")
     
     
