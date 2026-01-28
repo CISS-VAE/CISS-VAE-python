@@ -368,7 +368,7 @@ class CISSVAE(nn.Module):
                 logits[cluster_mask] = z_out
         return self._apply_output_activations(logits)
 
-    def forward(self, x, cluster_labels):
+    def forward(self, x, cluster_labels, deterministic=False):
         r"""
         Full VAE forward pass: encode → reparameterize → decode.
 
@@ -376,6 +376,8 @@ class CISSVAE(nn.Module):
         :type x: torch.Tensor, shape ``(batch, input_dim)``
         :param cluster_labels: Cluster id per row.
         :type cluster_labels: torch.LongTensor, shape ``(batch,)``
+        :param deterministic: Deterministic Evaluation of Model for Imputation (default False)
+        :type deterministic: bool
 
         :returns: Tuple ``(recon, mu, logvar)``.
         :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
@@ -383,7 +385,12 @@ class CISSVAE(nn.Module):
         # if self.debug:
         #     print(f"[DEBUG] Forward start: {x.shape}")
         mu, logvar = self.encode(x, cluster_labels)
-        z = self.reparameterize(mu, logvar)
+
+        if deterministic:
+            z = mu
+        else: 
+            z = self.reparameterize(mu, logvar)
+
         recon = self.decode(z, cluster_labels)
         # if self.debug:
         #     print(f"[DEBUG] Forward end: {recon.shape}")
@@ -436,7 +443,7 @@ class CISSVAE(nn.Module):
         """Returns the learning rate stored with self.set_final_lr/"""
         return(self.final_lr)
 
-    def get_imputed_valdata(self, dataset, device = "cpu"):
+    def get_imputed_valdata(self, dataset, device = "cpu", deterministic=True):
         """ Get denormalized imputed data from the trained model.
 
         [IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.
@@ -458,6 +465,9 @@ class CISSVAE(nn.Module):
 
     :param device: Device to perform computations on (e.g., ``"cpu"`` or ``"cuda"``). Default is ``"cpu"``.
     :type device: str, optional
+
+    :param deterministic: Deterministic Evaluation of Model for Imputation (default True). 
+    :type deterministic: bool
 
     :returns: Denormalized reconstructed (imputed) validation data of shape ``(n_samples, n_features)``.
     :rtype: torch.Tensor
@@ -484,7 +494,7 @@ class CISSVAE(nn.Module):
         val_mask = torch.isnan(val_data)                      # (N, D)
 
         with torch.no_grad():
-            recon_x, _, _ = self.forward(full_x, full_cluster)        # normalized output
+            recon_x, _, _ = self.forward(full_x, full_cluster, deterministic=deterministic)        # normalized output
 
         # Retrieve per-feature stats
         means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
