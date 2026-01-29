@@ -142,6 +142,8 @@ class ClusterDataset(Dataset):
             self.binary_feature_mask = np.array(binary_feature_mask)
 
         ## set to one cluster as default!!
+            
+
 
         # ----------------------------------------
         # Convert input data to numpy
@@ -256,10 +258,12 @@ class ClusterDataset(Dataset):
             else:
                 raise TypeError("Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.")
         ## cluster labels stored as torch tensor
+        ## Setting unique clusters once in a deterministic way!
+        self.unique_clusters = np.sort(np.unique(cluster_labels_np))
         self.cluster_labels = torch.tensor(cluster_labels_np, dtype=torch.long)
 
         self.n_clusters = len(np.unique(cluster_labels_np))
-        unique_clusters = np.unique(cluster_labels_np)
+        # unique_clusters = np.unique(cluster_labels_np)
 
         # --------------------------
         # Resolve per-cluster validation proportion
@@ -270,12 +274,12 @@ class ClusterDataset(Dataset):
                 p = float(vp)
                 if not (0 <= p <= 1):
                     raise ValueError("`val_proportion` scalar must be in [0, 1].")
-                return {c: p for c in unique_clusters}
+                return {c: p for c in self.unique_clusters}
 
             # pandas Series with labeled index
             if isinstance(vp, pd.Series):
                 mapping = {int(k): float(v) for k, v in vp.items()}
-                missing = [c for c in unique_clusters if c not in mapping]
+                missing = [c for c in self.unique_clusters if c not in mapping]
                 if missing:
                     raise ValueError(f"`val_proportion` Series missing clusters: {missing}")
                 return mapping
@@ -283,7 +287,7 @@ class ClusterDataset(Dataset):
             # Mapping (e.g., dict)
             if isinstance(vp, Mapping):
                 mapping = {int(k): float(v) for k, v in vp.items()}
-                missing = [c for c in unique_clusters if c not in mapping]
+                missing = [c for c in self.unique_clusters if c not in mapping]
                 if missing:
                     raise ValueError(f"`val_proportion` mapping missing clusters: {missing}")
                 return mapping
@@ -291,11 +295,11 @@ class ClusterDataset(Dataset):
             # Sequence aligned to sorted unique clusters
             if isinstance(vp, Sequence):
                 vals = list(vp)
-                if len(vals) != len(unique_clusters):
+                if len(vals) != len(self.unique_clusters):
                     raise ValueError(
-                        f"`val_proportion` sequence length ({len(vals)}) must equal number of clusters ({len(unique_clusters)})."
+                        f"`val_proportion` sequence length ({len(vals)}) must equal number of clusters ({len(self.unique_clusters)})."
                     )
-                return {c: float(v) for c, v in zip(unique_clusters, vals)}
+                return {c: float(v) for c, v in zip(self.unique_clusters, vals)}
 
             raise TypeError(
                 "`val_proportion` must be float in [0,1], a sequence (len = #clusters), "
@@ -312,7 +316,7 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         val_mask_np = np.zeros_like(raw_data_np, dtype=bool)
 
-        for cluster_id in unique_clusters:
+        for cluster_id in self.nique_clusters:
             row_idxs = np.where(cluster_labels_np == cluster_id)[0]
             if row_idxs.size == 0:
                 continue

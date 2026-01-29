@@ -9,6 +9,7 @@ import torch
 import optuna
 import json
 import pandas as pd
+import numpy as np
 from torch.utils.data import DataLoader
 from ciss_vae.classes.vae import CISSVAE
 from ciss_vae.classes.cluster_dataset import ClusterDataset
@@ -224,7 +225,7 @@ def autotune(
     :type max_exhaustive_orders: int, optional
     :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False
     :type return_history: bool, optional
-    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1
+    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1. Note: n_jobs != 1 is not necessarily deterministic. Use at own risk.
     :type n_jobs: int, optional
     :param debug: Defaults to False. Set True for informative debugging statements.
     :type debug: bool, optional
@@ -240,6 +241,12 @@ def autotune(
     
     # NEW: Initialize Rich console
     console = Console()
+
+    ## Set torch deterministic
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True)
+
     
     # --------------------------
     # Infer device
@@ -419,8 +426,18 @@ def autotune(
     
     # --------------------------
     # Create Optuna objective
+    #  - Added set random generators
     # --------------------------
     def objective(trial):
+        ## Set random generators
+        trial_seed = seed * 10_000 + trial.number
+
+        random.seed(trial_seed)
+        np.random.seed(trial_seed)
+        torch.manual_seed(trial_seed)
+        torch.cuda.manual_seed_all(trial_seed)
+
+
         # NEW: Use Rich console for trial progress
         if show_progress:
             console.print(f"\n[green]Trial {trial.number}/{n_trials}")
@@ -523,7 +540,18 @@ def autotune(
             layer_order_enc = _decode_pattern(enc_pat)
             layer_order_dec = _decode_pattern(dec_pat)
             
-            train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+            ## Seeded Data Loader
+
+            g = torch.Generator()
+            g.manual_seed(trial_seed)
+
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=True,
+                generator=g,
+            )
+
             model = CISSVAE(
                 input_dim=input_dim,
                 hidden_dims=hidden_dims,
@@ -595,12 +623,16 @@ def autotune(
     
     # -----------------------
     # Optuna study setup
+    # - added optuna seeding
     # -----------------------
+    sampler = optuna.samplers.TPESampler(seed = seed)
+
     study = optuna.create_study(
         direction=direction,
         study_name=study_name,
         storage=optuna_dashboard_db,
-        load_if_exists=load_if_exists
+        load_if_exists=load_if_exists,
+        sampler = sampler,
     )
     
     study.set_metric_names(["Total Imputation Error"]) 

@@ -220,6 +220,26 @@ def run_cissvae(
     from ciss_vae.classes.cluster_dataset import ClusterDataset
     from ciss_vae.training.train_initial import train_vae_initial
     from ciss_vae.training.train_refit import impute_and_refit_loop
+    import random
+
+    # --------------
+    # Reproducability
+    # --------------
+    if seed is not None:
+        # 1) Python, NumPy, torch
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+
+        # 2) cuDNN / deterministic modes
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+        torch.use_deterministic_algorithms(True)
+
+        # # (Optionally - not sure if this is necesssary) disable autoprecision/TF32 if strict reproducibility desired
+        # torch.backends.cuda.matmul.allow_tf32 = False
+        # torch.backends.cudnn.allow_tf32 = False
 
     # ------------
     # Set params
@@ -304,8 +324,13 @@ def run_cissvae(
 
     if print_dataset:
         print("Cluster dataset:\n", dataset)
+
+    ## Set generator for the data loader
+    g = torch.Generator()
+    g.manual_seed(seed)
     
-    train_loader = DataLoader(dataset, batch_size = batch_size, shuffle = True)
+    ## Update, added seeded generator to the DataLoader
+    train_loader = DataLoader(dataset, batch_size = batch_size, shuffle = True, generator = g,)
 
     vae = CISSVAE(
         input_dim=dataset.shape[1],

@@ -28,10 +28,12 @@ def _leiden_from_snn(
         ) from e
 
     metric = metric.lower()
-    algo = "auto" if metric in {"euclidean"} else "brute"
+
+    ## Forces brute, skip the auto thing
+    # algo = "auto" if metric in {"euclidean"} else "brute"
 
     # kNN connectivity (binary) graph
-    nn = NearestNeighbors(n_neighbors=k, metric=metric, algorithm=algo)
+    nn = NearestNeighbors(n_neighbors=k, metric=metric, algorithm="brute")
     nn.fit(X)
     A = nn.kneighbors_graph(n_neighbors=k, mode="connectivity").tocsr()
     AT = A.T.tocsr()
