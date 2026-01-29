@@ -310,7 +310,7 @@ class CISSVAE(nn.Module):
                     logvar[mask] = self.cluster_fc_logvar[str(c)](x[mask])
         return mu, logvar
 
-    def reparameterize(self, mu, logvar,):
+    def reparameterize(self, mu, logvar, generator=None):
         r"""
         Reparameterization trick: ``z = mu + eps * exp(0.5 * logvar)``.
 
@@ -318,13 +318,18 @@ class CISSVAE(nn.Module):
         :type mu: torch.Tensor, shape ``(batch, latent_dim)``
         :param logvar: Log‑variance of the approximate posterior.
         :type logvar: torch.Tensor, shape ``(batch, latent_dim)``
+        :param generator: Optionl for RNG control (default None)
+        :type torch.Generator
 
         :returns: Sampled latent codes ``z``.
         :rtype: torch.Tensor
         """
         ## Add the generator -> generator owned by training loop
         std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        if generator is None:
+            eps = torch.randn_like(std)
+        else:
+            eps = torch.randn_like(std, generator=generator)
         return mu + eps * std
 
     def decode(self, z, cluster_labels):
@@ -369,7 +374,7 @@ class CISSVAE(nn.Module):
                 logits[cluster_mask] = z_out
         return self._apply_output_activations(logits)
 
-    def forward(self, x, cluster_labels, deterministic=False):
+    def forward(self, x, cluster_labels, deterministic=False, *, generator = None):
         r"""
         Full VAE forward pass: encode → reparameterize → decode.
 
@@ -379,6 +384,8 @@ class CISSVAE(nn.Module):
         :type cluster_labels: torch.LongTensor, shape ``(batch,)``
         :param deterministic: Deterministic Evaluation of Model for Imputation (default False)
         :type deterministic: bool
+        :param generator: Optionl for RNG control (default None)
+        :type torch.Generator
 
         :returns: Tuple ``(recon, mu, logvar)``.
         :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
@@ -390,7 +397,7 @@ class CISSVAE(nn.Module):
         if deterministic:
             z = mu
         else: 
-            z = self.reparameterize(mu, logvar)
+            z = self.reparameterize(mu, logvar, generator = generator)
 
         recon = self.decode(z, cluster_labels)
         # if self.debug:

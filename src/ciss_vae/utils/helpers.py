@@ -339,7 +339,7 @@ def get_imputed(model, data_loader, device="cpu"):
             cluster_batch = cluster_batch.to(device)
 
             # Predict full reconstruction
-            recon_batch, _, _ = model.forward(x_batch, cluster_batch)
+            recon_batch, _, _ = model.forward(x_batch, cluster_batch, deterministic = True)
 
             all_recon.append(recon_batch.cpu())
             all_masks.append(mask_batch.cpu())

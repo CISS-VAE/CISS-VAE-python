@@ -336,7 +336,7 @@ def autotune(
     # ------------------------------------------------
     # Wrapper for train_initial and impute_refit functions that uses track()
     # ------------------------------------------------
-    def train_vae_initial_with_progress(model, train_loader, epochs, initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False):
+    def train_vae_initial_with_progress(model, train_loader, epochs, initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False, seed = seed):
         """Wrapper for train_vae_initial that uses Rich track() for progress"""
         if show_progress:
             # Create a simple progress tracker using track()
@@ -352,7 +352,8 @@ def autotune(
                     beta=beta,
                     device=device,
                     weight_decay = weight_decay,
-                    verbose=False  # Disable verbose to avoid spam
+                    verbose=False,  # Disable verbose to avoid spam
+                    seed = seed,
                 )
         else:
             # Call original function without progress
@@ -365,12 +366,13 @@ def autotune(
                 weight_decay = weight_decay,
                 beta=beta,
                 device=device,
-                verbose=verbose_inner
+                verbose=verbose_inner,
+                seed = seed,
             )
         return model
     
     def impute_and_refit_loop_with_progress(model, train_loader, max_loops, patience, epochs_per_loop, 
-                                          initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False, batch_size=64, ):
+                                          initial_lr, decay_factor, weight_decay, beta, device, verbose_inner=False, batch_size=64, seed = seed):
         """Wrapper for impute_and_refit_loop that uses Rich track() for progress"""
         if show_progress:
             # Estimate total epochs for progress bar
@@ -405,7 +407,8 @@ def autotune(
                 device=device,
                 verbose=verbose_inner,
                 batch_size=batch_size,
-                progress_epoch=progress_callback
+                progress_epoch=progress_callback,
+                seed = seed,
             )
         else:
             # Call original function without progress
@@ -422,6 +425,7 @@ def autotune(
                 device=device,
                 verbose=verbose_inner,
                 batch_size=batch_size,
+                seed = seed,
             )
     
     # --------------------------
@@ -575,7 +579,8 @@ def autotune(
                 weight_decay=weight_decay,
                 beta=beta,
                 device=device,
-                verbose_inner=verbose
+                verbose_inner=verbose,
+                seed = seed,
             )
             
             _, model, _ = impute_and_refit_loop_with_progress(
@@ -591,6 +596,7 @@ def autotune(
                 device=device,
                 verbose_inner=verbose,
                 batch_size=batch_size,
+                seed = seed,
             )
             
             # Get validation MSE
@@ -766,7 +772,8 @@ def autotune(
                     beta=beta,
                     device=device,
                     verbose=False,
-                    return_history=True
+                    return_history=True,
+                    seed = seed
                 )
                 if isinstance(result, tuple):
                     best_model, epoch_history = result
@@ -785,7 +792,8 @@ def autotune(
                     beta=beta,
                     device=device,
                     verbose=False,
-                    return_history=False
+                    return_history=False,
+                    seed = seed
                 )
         
         # Final refit with progress
@@ -817,7 +825,8 @@ def autotune(
             beta=beta,
             device=device,
             verbose=verbose,
-            progress_epoch=final_progress_callback
+            progress_epoch=final_progress_callback,
+            seed = seed
         )
         
         # Combine initial and refit histories if requested
@@ -836,7 +845,8 @@ def autotune(
                 beta=beta,
                 device=device,
                 verbose=verbose,
-                return_history=True
+                return_history=True,
+                seed = seed,
             )
             if isinstance(result, tuple):
                 best_model, initial_history_df = result
@@ -854,7 +864,8 @@ def autotune(
                 beta=beta,
                 device=device,
                 verbose=verbose,
-                return_history=False
+                return_history=False,
+                seed = seed
             )
         
         best_imputed_df, best_model, _ = impute_and_refit_loop(
@@ -868,7 +879,8 @@ def autotune(
             weight_decay = weight_decay,
             beta=beta,
             device=device,
-            verbose=verbose
+            verbose=verbose,
+            seed = seed,
         )
         
         # Combine initial and refit histories if requested

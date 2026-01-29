@@ -18,8 +18,11 @@ def train_vae_refit(model,
     beta=0.1,
     device="cpu", 
     verbose=False, 
+    *,
     progress_callback = None,
-    weight_decay = 0.001):
+    weight_decay = 0.001,
+    seed = 42,
+    ):
     """Train the VAE model on imputed data without masking for one refit iteration.
     
     Performs training on the complete imputed dataset.
@@ -50,6 +53,9 @@ def train_vae_refit(model,
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
     refit_history = pd.DataFrame()
 
+    g_reparam = torch.Generator(device=device)
+    g_reparam.manual_seed(seed)
+
     def _to_scalar(x):
         """Convert torch tensors to Python scalars safely."""
         if torch.is_tensor(x):
@@ -78,7 +84,7 @@ def train_vae_refit(model,
             else:
                 imputable_batch = None
             
-            recon_x, mu, logvar = model(x_batch, cluster_batch)
+            recon_x, mu, logvar = model(x_batch, cluster_batch, generator = g_reparam)
             
             # MODIFIED: Pass imputable_mask to loss function
             loss, train_mse, train_bce = loss_function_nomask(
@@ -145,7 +151,7 @@ def train_vae_refit(model,
 def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
                           epochs_per_loop=5, initial_lr=None, decay_factor=0.999, weight_decay = 0.001,
                           beta=0.1, device="cpu", verbose=False, batch_size=4000,
-                          progress_epoch=None):
+                          progress_epoch=None, seed = 42,):
     """Iterative impute-refit loop with validation MSE early stopping.
     
     Performs alternating cycles of imputation (filling missing values with model predictions)
@@ -198,7 +204,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
         
     ## Make a generator for the refit loop based on val_seed    
     g = torch.Generator()
-    g.manual_seed(dataset.val_seed)
+    g.manual_seed(seed)
 
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, generator = g)
@@ -282,7 +288,8 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
             weight_decay = weight_decay,
             device=device,
             verbose=verbose,
-            progress_callback = progress_epoch
+            progress_callback = progress_epoch,
+            seed = seed
         )
 
         # --------------------------
