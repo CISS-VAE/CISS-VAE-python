@@ -23,7 +23,7 @@ authors = [
 dependencies = [
   "numpy>=1.22",
   "pandas>=2.0",
-  "torch>=2.0",
+  "torch>=2.10",
   "optuna>=4.3",
   "rich",
   "typing",

@@ -329,7 +329,12 @@ class CISSVAE(nn.Module):
         if generator is None:
             eps = torch.randn_like(std)
         else:
-            eps = torch.randn_like(std, generator=generator)
+            eps = torch.randn(
+            std.shape,
+            device=std.device,
+            dtype=std.dtype,
+            generator=generator,
+        )
         return mu + eps * std
 
     def decode(self, z, cluster_labels):
