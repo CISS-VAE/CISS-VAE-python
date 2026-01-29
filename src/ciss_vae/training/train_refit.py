@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 from ciss_vae.utils.loss import loss_function, loss_function_nomask
 from ciss_vae.classes.cluster_dataset import ClusterDataset
-from torch.utils.data import DataLoader
 from ciss_vae.utils.helpers import get_imputed_df, get_imputed, compute_val_mse
 import copy
 

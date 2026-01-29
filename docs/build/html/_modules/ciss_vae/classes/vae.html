@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ciss_vae.classes.vae &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
@@ -47,12 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
@@ -413,7 +410,7 @@
 
 <div class="viewcode-block" id="CISSVAE.reparameterize">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.reparameterize">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reparameterize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">generator</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reparameterization trick: ``z = mu + eps * exp(0.5 * logvar)``.</span>
 
@@ -421,12 +418,23 @@
 <span class="sd">        :type mu: torch.Tensor, shape ``(batch, latent_dim)``</span>
 <span class="sd">        :param logvar: Log‑variance of the approximate posterior.</span>
 <span class="sd">        :type logvar: torch.Tensor, shape ``(batch, latent_dim)``</span>
+<span class="sd">        :param generator: Optionl for RNG control (default None)</span>
+<span class="sd">        :type torch.Generator</span>
 
 <span class="sd">        :returns: Sampled latent codes ``z``.</span>
 <span class="sd">        :rtype: torch.Tensor</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">## Add the generator -&gt; generator owned by training loop</span>
         <span class="n">std</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">logvar</span><span class="p">)</span>
-        <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">generator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">std</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">eps</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span>
+            <span class="n">std</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">device</span><span class="o">=</span><span class="n">std</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">std</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">generator</span><span class="o">=</span><span class="n">generator</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="k">return</span> <span class="n">mu</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">*</span> <span class="n">std</span></div>
 
 
@@ -477,7 +485,7 @@
 
 <div class="viewcode-block" id="CISSVAE.forward">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.forward">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">generator</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Full VAE forward pass: encode → reparameterize → decode.</span>
 
@@ -485,6 +493,10 @@
 <span class="sd">        :type x: torch.Tensor, shape ``(batch, input_dim)``</span>
 <span class="sd">        :param cluster_labels: Cluster id per row.</span>
 <span class="sd">        :type cluster_labels: torch.LongTensor, shape ``(batch,)``</span>
+<span class="sd">        :param deterministic: Deterministic Evaluation of Model for Imputation (default False)</span>
+<span class="sd">        :type deterministic: bool</span>
+<span class="sd">        :param generator: Optionl for RNG control (default None)</span>
+<span class="sd">        :type torch.Generator</span>
 
 <span class="sd">        :returns: Tuple ``(recon, mu, logvar)``.</span>
 <span class="sd">        :rtype: tuple[torch.Tensor, torch.Tensor, torch.Tensor]</span>
@@ -492,7 +504,12 @@
         <span class="c1"># if self.debug:</span>
         <span class="c1">#     print(f&quot;[DEBUG] Forward start: {x.shape}&quot;)</span>
         <span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">)</span>
-        <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">deterministic</span><span class="p">:</span>
+            <span class="n">z</span> <span class="o">=</span> <span class="n">mu</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="n">z</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">reparameterize</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">logvar</span><span class="p">,</span> <span class="n">generator</span> <span class="o">=</span> <span class="n">generator</span><span class="p">)</span>
+
         <span class="n">recon</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">)</span>
         <span class="c1"># if self.debug:</span>
         <span class="c1">#     print(f&quot;[DEBUG] Forward end: {recon.shape}&quot;)</span>
@@ -554,7 +571,7 @@
 
 <div class="viewcode-block" id="CISSVAE.get_imputed_valdata">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_valdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_valdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Get denormalized imputed data from the trained model.</span>
 
 <span class="sd">        [IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</span>
@@ -576,6 +593,9 @@
 
 <span class="sd">    :param device: Device to perform computations on (e.g., ``&quot;cpu&quot;`` or ``&quot;cuda&quot;``). Default is ``&quot;cpu&quot;``.</span>
 <span class="sd">    :type device: str, optional</span>
+
+<span class="sd">    :param deterministic: Deterministic Evaluation of Model for Imputation (default True). </span>
+<span class="sd">    :type deterministic: bool</span>
 
 <span class="sd">    :returns: Denormalized reconstructed (imputed) validation data of shape ``(n_samples, n_features)``.</span>
 <span class="sd">    :rtype: torch.Tensor</span>
@@ -602,7 +622,7 @@
         <span class="n">val_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>                      <span class="c1"># (N, D)</span>
 
         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-            <span class="n">recon_x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">)</span>        <span class="c1"># normalized output</span>
+            <span class="n">recon_x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="n">deterministic</span><span class="p">)</span>        <span class="c1"># normalized output</span>
 
         <span class="c1"># Retrieve per-feature stats</span>
         <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
@@ -618,16 +638,32 @@
             <span class="p">)</span>
             <span class="n">stds</span><span class="p">[</span><span class="n">zero_std_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># safe replacement</span>
 
-        <span class="c1"># Denormalize model output</span>
-        <span class="n">recon_x_denorm</span> <span class="o">=</span> <span class="n">recon_x</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>
+        <span class="c1"># ------------------------------------------------------------------</span>
+        <span class="c1"># Identify binary vs continuous features</span>
+        <span class="c1"># ------------------------------------------------------------------</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;binary_feature_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">recon_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
+            <span class="p">)</span>
 
-        <span class="c1"># Ensure float dtype to support NaNs</span>
-        <span class="n">recon_x_denorm</span> <span class="o">=</span> <span class="n">recon_x_denorm</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">cont_1d</span> <span class="o">=</span> <span class="o">~</span><span class="n">bin_1d</span>
 
-        <span class="c1"># Blank out non-validation (observed) entries -&gt;. keep only validation reconstructions</span>
-        <span class="n">recon_x_denorm</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
+        <span class="c1"># ------------------------------------------------------------------</span>
+        <span class="c1"># Build output safely</span>
+        <span class="c1"># ------------------------------------------------------------------</span>
+        <span class="n">recon_out</span> <span class="o">=</span> <span class="n">recon_x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-        <span class="k">return</span><span class="p">(</span><span class="n">recon_x_denorm</span><span class="p">)</span></div>
+        <span class="c1"># Denormalize ONLY continuous features</span>
+        <span class="k">if</span> <span class="n">cont_1d</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">ccols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">cont_1d</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_x</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span>
+
+            <span class="c1"># Blank out non-validation (observed) entries -&gt;. keep only validation reconstructions</span>
+            <span class="n">recon_out</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span> 
+
+        <span class="k">return</span><span class="p">(</span><span class="n">recon_out</span><span class="p">)</span></div>
 
 
         <span class="c1"># -----------------------------</span>

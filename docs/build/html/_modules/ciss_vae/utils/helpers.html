@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ciss_vae.utils.helpers &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
@@ -47,12 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
@@ -435,7 +432,7 @@
             <span class="n">cluster_batch</span> <span class="o">=</span> <span class="n">cluster_batch</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
             <span class="c1"># Predict full reconstruction</span>
-            <span class="n">recon_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">)</span>
+            <span class="n">recon_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">x_batch</span><span class="p">,</span> <span class="n">cluster_batch</span><span class="p">,</span> <span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>
 
             <span class="n">all_recon</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">recon_batch</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
             <span class="n">all_masks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mask_batch</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
@@ -540,7 +537,7 @@
     <span class="c1"># 1) Forward pass</span>
     <span class="c1"># ------------------------</span>
     <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-        <span class="n">recon</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">C</span><span class="p">)</span>                        <span class="c1"># (N, D)</span>
+        <span class="n">recon</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>                        <span class="c1"># (N, D)</span>
 
         <span class="c1"># Build &quot;predictions in evaluation space&quot;:</span>
         <span class="c1">#   - Continuous: denormalize</span>
@@ -641,79 +638,6 @@
     
         <span class="k">return</span> <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span>
 
-    <span class="c1"># model.eval()</span>
-
-    <span class="c1"># # Get normalized inputs and val data</span>
-    <span class="c1"># full_x = dataset.data.to(device)                       # (N, D), normalized</span>
-    <span class="c1"># full_cluster = dataset.cluster_labels.to(device)       # (N,)</span>
-    <span class="c1"># val_data = dataset.val_data.to(device)                 # (N, D), not normalized</span>
-    <span class="c1"># val_mask = ~torch.isnan(val_data)                      # (N, D)</span>
-
-    <span class="c1"># with torch.no_grad():</span>
-    <span class="c1">#     recon_x, _, _ = model(full_x, full_cluster)        # normalized output</span>
-
-    <span class="c1"># # Retrieve per-feature stats</span>
-    <span class="c1"># means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)</span>
-    <span class="c1"># stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)</span>
-
-    <span class="c1">#     # Check for zero std features</span>
-    <span class="c1"># zero_std_idx = torch.where(stds == 0)[0]</span>
-    <span class="c1"># if zero_std_idx.numel() &gt; 0:</span>
-    <span class="c1">#     bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]</span>
-    <span class="c1">#     print(</span>
-    <span class="c1">#         f&quot;[Warning] {len(bad_feats)} feature(s) have std == 0. &quot;</span>
-    <span class="c1">#         f&quot;Replaced with 1.0. Features: {bad_feats}&quot;</span>
-    <span class="c1">#     )</span>
-    <span class="c1">#     stds[zero_std_idx] = 1.0  # safe replacement</span>
-
-    <span class="c1"># ## ---------------------------</span>
-    <span class="c1"># ## 15 OCT 2025 - Added handling for binary features</span>
-    <span class="c1"># ## ---------------------------</span>
-
-    <span class="c1"># # Denormalize model output</span>
-    <span class="c1"># if dataset.binary_feature_mask is None:</span>
-    <span class="c1">#     recon_x_denorm = recon_x * stds + means</span>
-    <span class="c1">#         ## Masked validation entries should not include the imputable_mask</span>
-    <span class="c1">#     squared_error = (recon_x_denorm - val_data) ** 2</span>
-    <span class="c1">#     masked_error = squared_error[val_mask]</span>
-
-    <span class="c1">#     if getattr(model, &quot;debug&quot;, True):</span>
-    <span class="c1">#         print(&quot;[DEBUG] recon_x_denorm (first 2 rows):&quot;)</span>
-    <span class="c1">#         print(recon_x_denorm[:2])</span>
-
-    <span class="c1">#     if getattr(model, &quot;debug&quot;, True):</span>
-    <span class="c1">#         print(f&quot;[DEBUG] squared_error (first 2 rows): {squared_error[:2]}&quot;)</span>
-    <span class="c1">#         print(f&quot;[DEBUG] val_mask (first 2 rows): {val_mask[:2]}&quot;)</span>
-    <span class="c1">#         print(f&quot;[DEBUG] masked_error stats: count={masked_error.numel()}, mean={masked_error.mean().item():.4f}&quot;)</span>
-
-    <span class="c1">#     if masked_error.numel() == 0:</span>
-    <span class="c1">#         raise ValueError(&quot;No validation entries found. Increase `val_proportion` in ClusterDataset.&quot;)</span>
-    <span class="c1">#     return masked_error.mean().item()</span>
-    <span class="c1"># else:</span>
-    <span class="c1">#     recon_x_cont = recon_x * stds + means</span>
-    <span class="c1">#     recon_x_denorm = recon_x * dataset.binary_feature_mask + recon_x_cont * ~dataset.binary_feature_mask</span>
-    <span class="c1">#     if getattr(model, &quot;debug&quot;, True):</span>
-    <span class="c1">#         print(f&quot;[DEBUG]: Recon_x_cont: \n{recon_x_cont}\n\n Recon_x_denorm \n{recon_x_denorm}\n\n&quot;)</span>
-    <span class="c1">#         ## Err for continuous data</span>
-    <span class="c1">#     squared_error = (recon_x_denorm *  ~dataset.binary_feature_mask - val_data *  ~dataset.binary_feature_mask) ** 2</span>
-    <span class="c1">#     masked_error = squared_error[val_mask *  ~dataset.binary_feature_mask]</span>
-        
-    <span class="c1">#     y_true = val_data * dataset.binary_feature_mask</span>
-    <span class="c1">#     y_pred = recon_x_denorm * val_mask * dataset.binary_feature_mask</span>
-    
-    <span class="c1">#     bce_mat =  -(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))</span>
-
-    <span class="c1">#     total_error = masked_error + bce_mat</span>
-    <span class="c1">#     if getattr(model, &quot;debug&quot;, True):</span>
-    <span class="c1">#         print(f&quot;[DEBUG]: masked_err_continuous: \n{masked_error}\n\n BCE matrix \n{bce_mat}\n\n&quot;)</span>
-    <span class="c1">#         print(f&quot;[DEBUG]: total error: \n{total_error}\n\n&quot;)</span>
-    <span class="c1">#         ## err for binary data</span>
-
-    <span class="c1">#     return(np.mean(total_error))</span>
-
-
-
-
     
     
 
@@ -765,57 +689,57 @@
     <span class="k">return</span> <span class="n">mse</span><span class="p">,</span> <span class="n">comparison_df</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">get_val_comp_df</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get model predictions, denormalize them, and return as DataFrame with cluster labels.</span>
-<span class="sd">    </span>
-<span class="sd">    Runs the model on the full dataset to generate predictions, denormalizes the output</span>
-<span class="sd">    using the dataset&#39;s feature statistics, and returns the results as a pandas DataFrame</span>
-<span class="sd">    with cluster labels included.</span>
-<span class="sd">    </span>
-<span class="sd">    :param model: Trained model in evaluation mode</span>
-<span class="sd">    :type model: nn.Module</span>
-<span class="sd">    :param dataset: Dataset containing normalized data and feature statistics</span>
-<span class="sd">    :type dataset: ClusterDataset</span>
-<span class="sd">    :param device: Device for computations, defaults to &quot;cpu&quot;</span>
-<span class="sd">    :type device: str, optional</span>
-<span class="sd">    :return: DataFrame containing denormalized predictions and cluster labels</span>
-<span class="sd">    :rtype: pandas.DataFrame</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+<span class="c1"># def get_val_comp_df(model, dataset, device=&quot;cpu&quot;):</span>
+<span class="c1">#     &quot;&quot;&quot;Get model predictions, denormalize them, and return as DataFrame with cluster labels.</span>
     
-    <span class="c1"># Get inputs and labels</span>
-    <span class="n">full_x</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                       <span class="c1"># (N, D), normalized</span>
-    <span class="n">full_cluster</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>       <span class="c1"># (N,)</span>
+<span class="c1">#     Runs the model on the full dataset to generate predictions, denormalizes the output</span>
+<span class="c1">#     using the dataset&#39;s feature statistics, and returns the results as a pandas DataFrame</span>
+<span class="c1">#     with cluster labels included.</span>
     
-    <span class="c1"># Get model predictions</span>
-    <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-        <span class="n">recon_x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">)</span>        <span class="c1"># (N, D), normalized output</span>
+<span class="c1">#     :param model: Trained model in evaluation mode</span>
+<span class="c1">#     :type model: nn.Module</span>
+<span class="c1">#     :param dataset: Dataset containing normalized data and feature statistics</span>
+<span class="c1">#     :type dataset: ClusterDataset</span>
+<span class="c1">#     :param device: Device for computations, defaults to &quot;cpu&quot;</span>
+<span class="c1">#     :type device: str, optional</span>
+<span class="c1">#     :return: DataFrame containing denormalized predictions and cluster labels</span>
+<span class="c1">#     :rtype: pandas.DataFrame</span>
+<span class="c1">#     &quot;&quot;&quot;</span>
+<span class="c1">#     model.eval()</span>
     
-    <span class="c1"># Retrieve per-feature stats for denormalization</span>
-    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># (D,)</span>
-    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>    <span class="c1"># (D,)</span>
+<span class="c1">#     # Get inputs and labels</span>
+<span class="c1">#     full_x = dataset.data.to(device)                       # (N, D), normalized</span>
+<span class="c1">#     full_cluster = dataset.cluster_labels.to(device)       # (N,)</span>
     
-    <span class="c1"># Denormalize model output</span>
-    <span class="n">recon_x_denorm</span> <span class="o">=</span> <span class="n">recon_x</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>               <span class="c1"># (N, D), denormalized</span>
+<span class="c1">#     # Get model predictions</span>
+<span class="c1">#     with torch.no_grad():</span>
+<span class="c1">#         recon_x, _, _ = model(full_x, full_cluster, deterministic = True)        # (N, D), normalized output</span>
     
-    <span class="c1"># Convert to numpy/CPU</span>
-    <span class="n">predictions</span> <span class="o">=</span> <span class="n">recon_x_denorm</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>            <span class="c1"># (N, D)</span>
-    <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">full_cluster</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>           <span class="c1"># (N,)</span>
+<span class="c1">#     # Retrieve per-feature stats for denormalization</span>
+<span class="c1">#     means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)</span>
+<span class="c1">#     stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)    # (D,)</span>
     
-    <span class="c1"># Create DataFrame</span>
-    <span class="c1"># Assuming dataset has feature names, otherwise use generic names</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;feature_names&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">feature_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">feature_names</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">feature_names</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">feature_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;feature_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+<span class="c1">#     # Denormalize model output</span>
+<span class="c1">#     recon_x_denorm = recon_x * stds + means               # (N, D), denormalized</span>
     
-    <span class="c1"># Create DataFrame with predictions</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">feature_names</span><span class="p">)</span>
+<span class="c1">#     # Convert to numpy/CPU</span>
+<span class="c1">#     predictions = recon_x_denorm.cpu().numpy()            # (N, D)</span>
+<span class="c1">#     cluster_labels = full_cluster.cpu().numpy()           # (N,)</span>
     
-    <span class="c1"># Add cluster labels as a column</span>
-    <span class="n">df</span><span class="p">[</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_labels</span>
+<span class="c1">#     # Create DataFrame</span>
+<span class="c1">#     # Assuming dataset has feature names, otherwise use generic names</span>
+<span class="c1">#     if hasattr(dataset, &#39;feature_names&#39;) and dataset.feature_names is not None:</span>
+<span class="c1">#         feature_names = dataset.feature_names</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         feature_names = [f&quot;feature_{i}&quot; for i in range(predictions.shape[1])]</span>
     
-    <span class="k">return</span> <span class="n">df</span>
+<span class="c1">#     # Create DataFrame with predictions</span>
+<span class="c1">#     df = pd.DataFrame(predictions, columns=feature_names)</span>
+    
+<span class="c1">#     # Add cluster labels as a column</span>
+<span class="c1">#     df[&#39;cluster&#39;] = cluster_labels</span>
+    
+<span class="c1">#     return df</span>
 </pre></div>
 
            </div>

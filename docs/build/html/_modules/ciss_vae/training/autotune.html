@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ciss_vae.training.autotune &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
@@ -47,12 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
@@ -99,6 +96,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">optuna</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">torch.utils.data</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataLoader</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.vae</span><span class="w"> </span><span class="kn">import</span> <span class="n">CISSVAE</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ciss_vae.classes.cluster_dataset</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterDataset</span>
@@ -328,7 +326,7 @@
 <span class="sd">    :type max_exhaustive_orders: int, optional</span>
 <span class="sd">    :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False</span>
 <span class="sd">    :type return_history: bool, optional</span>
-<span class="sd">    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1</span>
+<span class="sd">    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1. Note: n_jobs != 1 is not necessarily deterministic. Use at own risk.</span>
 <span class="sd">    :type n_jobs: int, optional</span>
 <span class="sd">    :param debug: Defaults to False. Set True for informative debugging statements.</span>
 <span class="sd">    :type debug: bool, optional</span>
@@ -344,6 +342,12 @@
     
     <span class="c1"># NEW: Initialize Rich console</span>
     <span class="n">console</span> <span class="o">=</span> <span class="n">Console</span><span class="p">()</span>
+
+    <span class="c1">## Set torch deterministic</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">use_deterministic_algorithms</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+
     
     <span class="c1"># --------------------------</span>
     <span class="c1"># Infer device</span>
@@ -433,7 +437,7 @@
     <span class="c1"># ------------------------------------------------</span>
     <span class="c1"># Wrapper for train_initial and impute_refit functions that uses track()</span>
     <span class="c1"># ------------------------------------------------</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">train_vae_initial_with_progress</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">weight_decay</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">train_vae_initial_with_progress</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">epochs</span><span class="p">,</span> <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">weight_decay</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper for train_vae_initial that uses Rich track() for progress&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
             <span class="c1"># Create a simple progress tracker using track()</span>
@@ -449,7 +453,8 @@
                     <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                     <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
-                    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Disable verbose to avoid spam</span>
+                    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Disable verbose to avoid spam</span>
+                    <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
                 <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Call original function without progress</span>
@@ -462,12 +467,13 @@
                 <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span>
+                <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">model</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">impute_and_refit_loop_with_progress</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="p">,</span> <span class="n">max_loops</span><span class="p">,</span> <span class="n">patience</span><span class="p">,</span> <span class="n">epochs_per_loop</span><span class="p">,</span> 
-                                          <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">weight_decay</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="p">):</span>
+                                          <span class="n">initial_lr</span><span class="p">,</span> <span class="n">decay_factor</span><span class="p">,</span> <span class="n">weight_decay</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="n">verbose_inner</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrapper for impute_and_refit_loop that uses Rich track() for progress&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
             <span class="c1"># Estimate total epochs for progress bar</span>
@@ -502,7 +508,8 @@
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
-                <span class="n">progress_epoch</span><span class="o">=</span><span class="n">progress_callback</span>
+                <span class="n">progress_epoch</span><span class="o">=</span><span class="n">progress_callback</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Call original function without progress</span>
@@ -519,12 +526,23 @@
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="n">verbose</span><span class="o">=</span><span class="n">verbose_inner</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
     
     <span class="c1"># --------------------------</span>
     <span class="c1"># Create Optuna objective</span>
+    <span class="c1">#  - Added set random generators</span>
     <span class="c1"># --------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
+        <span class="c1">## Set random generators</span>
+        <span class="n">trial_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="o">*</span> <span class="mi">10_000</span> <span class="o">+</span> <span class="n">trial</span><span class="o">.</span><span class="n">number</span>
+
+        <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">trial_seed</span><span class="p">)</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">trial_seed</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">trial_seed</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">manual_seed_all</span><span class="p">(</span><span class="n">trial_seed</span><span class="p">)</span>
+
+
         <span class="c1"># NEW: Use Rich console for trial progress</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
             <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]Trial </span><span class="si">{</span><span class="n">trial</span><span class="o">.</span><span class="n">number</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_trials</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -627,7 +645,18 @@
             <span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">enc_pat</span><span class="p">)</span>
             <span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">_decode_pattern</span><span class="p">(</span><span class="n">dec_pat</span><span class="p">)</span>
             
-            <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="c1">## Seeded Data Loader</span>
+
+            <span class="n">g</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">()</span>
+            <span class="n">g</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">trial_seed</span><span class="p">)</span>
+
+            <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span>
+                <span class="n">train_dataset</span><span class="p">,</span>
+                <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">generator</span><span class="o">=</span><span class="n">g</span><span class="p">,</span>
+            <span class="p">)</span>
+
             <span class="n">model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
                 <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
                 <span class="n">hidden_dims</span><span class="o">=</span><span class="n">hidden_dims</span><span class="p">,</span>
@@ -651,7 +680,8 @@
                 <span class="n">weight_decay</span><span class="o">=</span><span class="n">weight_decay</span><span class="p">,</span>
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-                <span class="n">verbose_inner</span><span class="o">=</span><span class="n">verbose</span>
+                <span class="n">verbose_inner</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
             
             <span class="n">_</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop_with_progress</span><span class="p">(</span>
@@ -667,6 +697,7 @@
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="n">verbose_inner</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
                 <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
             
             <span class="c1"># Get validation MSE</span>
@@ -699,12 +730,16 @@
     
     <span class="c1"># -----------------------</span>
     <span class="c1"># Optuna study setup</span>
+    <span class="c1"># - added optuna seeding</span>
     <span class="c1"># -----------------------</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">samplers</span><span class="o">.</span><span class="n">TPESampler</span><span class="p">(</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">)</span>
+
     <span class="n">study</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">create_study</span><span class="p">(</span>
         <span class="n">direction</span><span class="o">=</span><span class="n">direction</span><span class="p">,</span>
         <span class="n">study_name</span><span class="o">=</span><span class="n">study_name</span><span class="p">,</span>
         <span class="n">storage</span><span class="o">=</span><span class="n">optuna_dashboard_db</span><span class="p">,</span>
-        <span class="n">load_if_exists</span><span class="o">=</span><span class="n">load_if_exists</span>
+        <span class="n">load_if_exists</span><span class="o">=</span><span class="n">load_if_exists</span><span class="p">,</span>
+        <span class="n">sampler</span> <span class="o">=</span> <span class="n">sampler</span><span class="p">,</span>
     <span class="p">)</span>
     
     <span class="n">study</span><span class="o">.</span><span class="n">set_metric_names</span><span class="p">([</span><span class="s2">&quot;Total Imputation Error&quot;</span><span class="p">])</span> 
@@ -800,10 +835,12 @@
     <span class="c1"># ---------------------------</span>
     <span class="c1"># Build &amp; train final model</span>
     <span class="c1"># ---------------------------</span>
-    <span class="c1"># ---------------------------</span>
-    <span class="c1"># Build &amp; train final model</span>
-    <span class="c1"># ---------------------------</span>
-    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1">## added generator for dataloader</span>
+    <span class="n">g_final</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">Generator</span><span class="p">()</span>
+    <span class="n">g_final</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+    <span class="n">train_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">generator</span> <span class="o">=</span> <span class="n">g_final</span><span class="p">)</span>
     <span class="n">best_model</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span>
         <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span><span class="p">,</span>
         <span class="n">hidden_dims</span><span class="o">=</span><span class="n">best_hidden_dims</span><span class="p">,</span>
@@ -836,7 +873,8 @@
                     <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">return_history</span><span class="o">=</span><span class="kc">True</span>
+                    <span class="n">return_history</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
                 <span class="p">)</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                     <span class="n">best_model</span><span class="p">,</span> <span class="n">epoch_history</span> <span class="o">=</span> <span class="n">result</span>
@@ -855,7 +893,8 @@
                     <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                     <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                     <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">return_history</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="n">return_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
                 <span class="p">)</span>
         
         <span class="c1"># Final refit with progress</span>
@@ -887,7 +926,8 @@
             <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
             <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-            <span class="n">progress_epoch</span><span class="o">=</span><span class="n">final_progress_callback</span>
+            <span class="n">progress_epoch</span><span class="o">=</span><span class="n">final_progress_callback</span><span class="p">,</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
         <span class="p">)</span>
         
         <span class="c1"># Combine initial and refit histories if requested</span>
@@ -906,7 +946,8 @@
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-                <span class="n">return_history</span><span class="o">=</span><span class="kc">True</span>
+                <span class="n">return_history</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
                 <span class="n">best_model</span><span class="p">,</span> <span class="n">initial_history_df</span> <span class="o">=</span> <span class="n">result</span>
@@ -924,7 +965,8 @@
                 <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
                 <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
                 <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
-                <span class="n">return_history</span><span class="o">=</span><span class="kc">False</span>
+                <span class="n">return_history</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
             <span class="p">)</span>
         
         <span class="n">best_imputed_df</span><span class="p">,</span> <span class="n">best_model</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">impute_and_refit_loop</span><span class="p">(</span>
@@ -938,7 +980,8 @@
             <span class="n">weight_decay</span> <span class="o">=</span> <span class="n">weight_decay</span><span class="p">,</span>
             <span class="n">beta</span><span class="o">=</span><span class="n">beta</span><span class="p">,</span>
             <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span>
+            <span class="n">verbose</span><span class="o">=</span><span class="n">verbose</span><span class="p">,</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span><span class="p">,</span>
         <span class="p">)</span>
         
         <span class="c1"># Combine initial and refit histories if requested</span>
@@ -955,7 +998,7 @@
     <span class="c1"># Save results</span>
     <span class="c1"># -----------------------</span>
     <span class="k">if</span> <span class="n">save_model_path</span><span class="p">:</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">(),</span> <span class="n">save_model_path</span><span class="p">)</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">best_model</span><span class="p">,</span> <span class="n">save_model_path</span><span class="p">)</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Model saved to </span><span class="si">{</span><span class="n">save_model_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     
     

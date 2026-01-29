@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
@@ -47,12 +47,9 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">CISS-VAE Quickstart</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#installation">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html#quickstart">Quickstart</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html">How to use CISS-VAE</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#running-the-ciss-vae-model">Running the CISS-VAE Model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#creating-a-clusterdataset-object">Creating a <code class="docutils literal notranslate"><span class="pre">ClusterDataset</span></code> object</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
@@ -218,7 +215,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set seed for selecting valdata</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">val_seed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">val_seed</span> <span class="o">=</span> <span class="n">val_seed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">val_seed</span><span class="p">)</span>
 
         <span class="c1">## set columns ignore -&gt; no validation data selected from these columns</span>
         <span class="k">if</span> <span class="n">columns_ignore</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -236,6 +234,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">)</span>
 
         <span class="c1">## set to one cluster as default!!</span>
+            
+
 
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Convert input data to numpy</span>
@@ -350,10 +350,12 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Unsupported cluster_labels format. Must be Series, ndarray, or Tensor.&quot;</span><span class="p">)</span>
         <span class="c1">## cluster labels stored as torch tensor</span>
+        <span class="c1">## Setting unique clusters once in a deterministic way!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">))</span>
-        <span class="n">unique_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">)</span>
+        <span class="c1"># unique_clusters = np.unique(cluster_labels_np)</span>
 
         <span class="c1"># --------------------------</span>
         <span class="c1"># Resolve per-cluster validation proportion</span>
@@ -364,12 +366,12 @@
                 <span class="n">p</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;`val_proportion` scalar must be in [0, 1].&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">unique_clusters</span><span class="p">}</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">p</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">}</span>
 
             <span class="c1"># pandas Series with labeled index</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vp</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">):</span>
                 <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vp</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-                <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">unique_clusters</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">]</span>
+                <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`val_proportion` Series missing clusters: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">mapping</span>
@@ -377,7 +379,7 @@
             <span class="c1"># Mapping (e.g., dict)</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vp</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
                 <span class="n">mapping</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vp</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-                <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">unique_clusters</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">]</span>
+                <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">mapping</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`val_proportion` mapping missing clusters: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                 <span class="k">return</span> <span class="n">mapping</span>
@@ -385,11 +387,11 @@
             <span class="c1"># Sequence aligned to sorted unique clusters</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vp</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">):</span>
                 <span class="n">vals</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span>
-                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">):</span>
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;`val_proportion` sequence length (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="si">}</span><span class="s2">) must equal number of clusters (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">)</span><span class="si">}</span><span class="s2">).&quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;`val_proportion` sequence length (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span><span class="si">}</span><span class="s2">) must equal number of clusters (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">)</span><span class="si">}</span><span class="s2">).&quot;</span>
                     <span class="p">)</span>
-                <span class="k">return</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">,</span> <span class="n">vals</span><span class="p">)}</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">,</span> <span class="n">vals</span><span class="p">)}</span>
 
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
                 <span class="s2">&quot;`val_proportion` must be float in [0,1], a sequence (len = #clusters), &quot;</span>
@@ -406,7 +408,7 @@
         <span class="c1"># ----------------------------------------</span>
         <span class="n">val_mask_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">raw_data_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">cluster_id</span> <span class="ow">in</span> <span class="n">unique_clusters</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">cluster_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">:</span>
             <span class="n">row_idxs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cluster_labels_np</span> <span class="o">==</span> <span class="n">cluster_id</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">row_idxs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>

@@ -8,7 +8,7 @@ CISS-VAE documentation
 
 The Clustering-Informed Shared-Structure Variational Autoencoder (CISS-VAE) is a flexible deep 
 learning model for missing data imputation that is particularly well-suited to MNAR (Missing Not at Random) scenarios where missingness patterns are informative.
-It also functions effectively under MAR (Missing at Random) assumptions. 
+It also functions effectively under MAR (Missing at Random) assumptions. Please see our `publication <https://doi.org/10.1002/sim.70335>`_ for more details.
  
 The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder 
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation 
