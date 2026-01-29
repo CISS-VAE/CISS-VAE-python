@@ -13,6 +13,8 @@ It also functions effectively under MAR (Missing at Random) assumptions. Please 
 The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder 
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation 
 accuracy compared to traditional training approaches.  
+
+.. image:: CISSVAEModelDiagram.png
  
 The CISS-VAE package also offers the :py:func:`ciss_vae.training.autotune.autotune` function, which can help select the best hyperparameters for your model within a user-defined search space. 
 The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends. 

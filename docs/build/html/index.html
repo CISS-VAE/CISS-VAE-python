@@ -94,6 +94,7 @@ It also functions effectively under MAR (Missing at Random) assumptions. Please 
 <p>The model uses unsupervised clustering to capture distinct patterns of missingness and leverages a mix of shared and unshared encoder
 and decoder layers, allowing knowledge transfer across clusters and enhancing parameter stability. Its iterative learning procedure improves imputation
 accuracy compared to traditional training approaches.</p>
+<img alt="_images/CISSVAEModelDiagram.png" src="_images/CISSVAEModelDiagram.png" />
 <p>The CISS-VAE package also offers the <a class="reference internal" href="_autosummary/ciss_vae.training.autotune.autotune.html#ciss_vae.training.autotune.autotune" title="ciss_vae.training.autotune.autotune"><code class="xref py py-func docutils literal notranslate"><span class="pre">ciss_vae.training.autotune.autotune()</span></code></a> function, which can help select the best hyperparameters for your model within a user-defined search space.
 The autotune function has compatibility with Optuna Dashboard for viewing hyperparameter importance trends.</p>
 <p>The R package associated with this model can be found at <a class="reference external" href="https://ciss-vae.github.io/rCISS-VAE/">rCISS-VAE</a>.</p>

@@ -319,7 +319,7 @@ class CISSVAE(nn.Module):
         :param logvar: Log‑variance of the approximate posterior.
         :type logvar: torch.Tensor, shape ``(batch, latent_dim)``
         :param generator: Optionl for RNG control (default None)
-        :type torch.Generator
+        :type generator: torch.Generator
 
         :returns: Sampled latent codes ``z``.
         :rtype: torch.Tensor
@@ -459,7 +459,7 @@ class CISSVAE(nn.Module):
     def get_imputed_valdata(self, dataset, device = "cpu", deterministic=True):
         """ Get denormalized imputed data from the trained model.
 
-        [IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.
+        [IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.
 
     Performs a forward pass of the model in evaluation mode to reconstruct 
     validation data. The reconstructed output is then denormalized using the 
@@ -545,8 +545,8 @@ class CISSVAE(nn.Module):
             ccols = torch.nonzero(cont_1d, as_tuple=False).squeeze(1)
             recon_out[:, ccols] = recon_x[:, ccols] * stds[ccols] + means[ccols]
 
-            # Blank out non-validation (observed) entries ->. keep only validation reconstructions
-            recon_out[val_mask] = float('nan') 
+        # Blank out non-validation (observed) entries ->. keep only validation reconstructions
+        recon_out[val_mask] = float('nan') 
 
         return(recon_out)
 
