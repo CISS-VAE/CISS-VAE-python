@@ -195,7 +195,13 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
 
     ## get initial imputed dataset and hold it, create data loader, preserve model
     dataset  = get_imputed(model, train_loader, device=device)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+        
+    ## Make a generator for the refit loop based on val_seed    
+    g = torch.Generator()
+    g.manual_seed(dataset.val_seed)
+
+
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, generator = g)
     best_dataset = copy.deepcopy(dataset)
     best_imputation_error = float("inf")
     best_model = copy.deepcopy(model)
@@ -321,11 +327,11 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
             best_model = copy.deepcopy(model)
             patience_counter = 0
             best_dataset = get_imputed(model, data_loader, device=device)
-            data_loader = DataLoader(best_dataset, batch_size=batch_size, shuffle=True)
+            data_loader = DataLoader(best_dataset, batch_size=batch_size, shuffle=True, generator = g)
         else:
             patience_counter += 1
             imputed_dataset = get_imputed(model, data_loader, device = device)
-            data_loader = DataLoader(imputed_dataset, batch_size=batch_size, shuffle=True)
+            data_loader = DataLoader(imputed_dataset, batch_size=batch_size, shuffle=True, generator = g)
             if patience_counter >= patience:
                 if verbose:
                     print("Early stopping triggered.")
@@ -345,7 +351,7 @@ def impute_and_refit_loop(model, train_loader, max_loops=10, patience=2,
 
     # ## try using the best dataset
     final_imputation_error, final_val_mse, final_val_bce = compute_val_mse(best_model, dataset, device)
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, generator = g)
     #final_imputed = get_imputed(best_model, data_loader, device)
 
     imputed_df = get_imputed_df(best_model, data_loader, device)

@@ -444,7 +444,7 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: 
     # 1) Forward pass
     # ------------------------
     with torch.no_grad():
-        recon, _, _ = model(X, C)                        # (N, D)
+        recon, _, _ = model.forward(X, C, deterministic = True)                        # (N, D)
 
         # Build "predictions in evaluation space":
         #   - Continuous: denormalize
@@ -596,54 +596,54 @@ def evaluate_imputation(imputed_df, df_complete, df_missing):
     return mse, comparison_df
 
 
-def get_val_comp_df(model, dataset, device="cpu"):
-    """Get model predictions, denormalize them, and return as DataFrame with cluster labels.
+# def get_val_comp_df(model, dataset, device="cpu"):
+#     """Get model predictions, denormalize them, and return as DataFrame with cluster labels.
     
-    Runs the model on the full dataset to generate predictions, denormalizes the output
-    using the dataset's feature statistics, and returns the results as a pandas DataFrame
-    with cluster labels included.
+#     Runs the model on the full dataset to generate predictions, denormalizes the output
+#     using the dataset's feature statistics, and returns the results as a pandas DataFrame
+#     with cluster labels included.
     
-    :param model: Trained model in evaluation mode
-    :type model: nn.Module
-    :param dataset: Dataset containing normalized data and feature statistics
-    :type dataset: ClusterDataset
-    :param device: Device for computations, defaults to "cpu"
-    :type device: str, optional
-    :return: DataFrame containing denormalized predictions and cluster labels
-    :rtype: pandas.DataFrame
-    """
-    model.eval()
+#     :param model: Trained model in evaluation mode
+#     :type model: nn.Module
+#     :param dataset: Dataset containing normalized data and feature statistics
+#     :type dataset: ClusterDataset
+#     :param device: Device for computations, defaults to "cpu"
+#     :type device: str, optional
+#     :return: DataFrame containing denormalized predictions and cluster labels
+#     :rtype: pandas.DataFrame
+#     """
+#     model.eval()
     
-    # Get inputs and labels
-    full_x = dataset.data.to(device)                       # (N, D), normalized
-    full_cluster = dataset.cluster_labels.to(device)       # (N,)
+#     # Get inputs and labels
+#     full_x = dataset.data.to(device)                       # (N, D), normalized
+#     full_cluster = dataset.cluster_labels.to(device)       # (N,)
     
-    # Get model predictions
-    with torch.no_grad():
-        recon_x, _, _ = model(full_x, full_cluster)        # (N, D), normalized output
+#     # Get model predictions
+#     with torch.no_grad():
+#         recon_x, _, _ = model(full_x, full_cluster, deterministic = True)        # (N, D), normalized output
     
-    # Retrieve per-feature stats for denormalization
-    means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
-    stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)    # (D,)
+#     # Retrieve per-feature stats for denormalization
+#     means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
+#     stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)    # (D,)
     
-    # Denormalize model output
-    recon_x_denorm = recon_x * stds + means               # (N, D), denormalized
+#     # Denormalize model output
+#     recon_x_denorm = recon_x * stds + means               # (N, D), denormalized
     
-    # Convert to numpy/CPU
-    predictions = recon_x_denorm.cpu().numpy()            # (N, D)
-    cluster_labels = full_cluster.cpu().numpy()           # (N,)
+#     # Convert to numpy/CPU
+#     predictions = recon_x_denorm.cpu().numpy()            # (N, D)
+#     cluster_labels = full_cluster.cpu().numpy()           # (N,)
     
-    # Create DataFrame
-    # Assuming dataset has feature names, otherwise use generic names
-    if hasattr(dataset, 'feature_names') and dataset.feature_names is not None:
-        feature_names = dataset.feature_names
-    else:
-        feature_names = [f"feature_{i}" for i in range(predictions.shape[1])]
+#     # Create DataFrame
+#     # Assuming dataset has feature names, otherwise use generic names
+#     if hasattr(dataset, 'feature_names') and dataset.feature_names is not None:
+#         feature_names = dataset.feature_names
+#     else:
+#         feature_names = [f"feature_{i}" for i in range(predictions.shape[1])]
     
-    # Create DataFrame with predictions
-    df = pd.DataFrame(predictions, columns=feature_names)
+#     # Create DataFrame with predictions
+#     df = pd.DataFrame(predictions, columns=feature_names)
     
-    # Add cluster labels as a column
-    df['cluster'] = cluster_labels
+#     # Add cluster labels as a column
+#     df['cluster'] = cluster_labels
     
-    return df
+#     return df

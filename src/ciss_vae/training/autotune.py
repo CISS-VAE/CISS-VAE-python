@@ -728,10 +728,12 @@ def autotune(
     # ---------------------------
     # Build & train final model
     # ---------------------------
-    # ---------------------------
-    # Build & train final model
-    # ---------------------------
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+
+    ## added generator for dataloader
+    g_final = torch.Generator()
+    g_final.manual_seed(seed)
+
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, generator = g_final)
     best_model = CISSVAE(
         input_dim=input_dim,
         hidden_dims=best_hidden_dims,

@@ -310,7 +310,7 @@ class CISSVAE(nn.Module):
                     logvar[mask] = self.cluster_fc_logvar[str(c)](x[mask])
         return mu, logvar
 
-    def reparameterize(self, mu, logvar):
+    def reparameterize(self, mu, logvar,):
         r"""
         Reparameterization trick: ``z = mu + eps * exp(0.5 * logvar)``.
 
@@ -322,6 +322,7 @@ class CISSVAE(nn.Module):
         :returns: Sampled latent codes ``z``.
         :rtype: torch.Tensor
         """
+        ## Add the generator -> generator owned by training loop
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std

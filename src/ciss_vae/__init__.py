@@ -5,7 +5,7 @@ from .utils.loss import loss_function
 from .training.autotune import autotune
 from .training.train_initial import train_vae_initial
 from .training.train_refit import impute_and_refit_loop
-from .utils.helpers import plot_vae_architecture, get_imputed_df, evaluate_imputation, get_val_comp_df
+from .utils.helpers import plot_vae_architecture, get_imputed_df, evaluate_imputation
 from .training.run_cissvae import run_cissvae
 from .utils.clustering import  cluster_on_missing, cluster_on_missing_prop
 from .utils.matrix import create_missingness_prop_matrix

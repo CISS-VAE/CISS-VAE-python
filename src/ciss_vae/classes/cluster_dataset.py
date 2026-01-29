@@ -124,7 +124,8 @@ class ClusterDataset(Dataset):
         """
 
         ## set seed for selecting valdata
-        self._rng = np.random.default_rng(val_seed)
+        self.val_seed = val_seed
+        self._rng = np.random.default_rng(self.val_seed)
 
         ## set columns ignore -> no validation data selected from these columns
         if columns_ignore is None:
@@ -316,7 +317,7 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         val_mask_np = np.zeros_like(raw_data_np, dtype=bool)
 
-        for cluster_id in self.nique_clusters:
+        for cluster_id in self.unique_clusters:
             row_idxs = np.where(cluster_labels_np == cluster_id)[0]
             if row_idxs.size == 0:
                 continue
