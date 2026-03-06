@@ -16,7 +16,10 @@ color_latent = "gold",
 color_input = "lightgreen",
 color_output = "lightgreen",
 figsize=(16, 8),
-return_fig = False):
+return_fig = False,
+fontsize_layer = 12,
+fontsize_section=14,
+fontsize_title=16,):
     """Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.
     
     :param model: An instance of CISSVAE model to visualize
@@ -37,6 +40,12 @@ return_fig = False):
     :type figsize: tuple, optional
     :param return_fig: Whether to return the figure object instead of displaying, defaults to False
     :type return_fig: bool, optional
+    :param fontsize_layer: Font size of layer blocks, defaults to 12
+    :type fontsize_layer: int, optional
+    :param fontsize_section: Font size of encoder/decoder labels, defaults to 14
+    :type fontsize_section: int, optional
+    :param fontsize_title: Font size of title, defaults to 16
+    :type fontsize_title: int, optional
     :return: Matplotlib figure object if return_fig is True, otherwise None
     :rtype: matplotlib.figure.Figure or None
     """
@@ -70,7 +79,7 @@ return_fig = False):
                 linewidth=1.5, edgecolor='black',
                 facecolor=facecolor, alpha=alpha)
         ax.add_patch(box)
-        ax.text(x0, y0, text, fontsize=9, ha='center', va='center', weight='bold')
+        ax.text(x0, y0, text, fontsize=fontsize_layer, ha='center', va='center', weight='bold')
 
     def draw_arrow(start, end):
         ax.annotate("", xy=end, xytext=start,
@@ -84,7 +93,7 @@ return_fig = False):
             edgecolor="gray", facecolor="none", linestyle="--", linewidth=1.2
         ))
         ax.text((x_start + x_end) / 2, y_base + (n_clusters * cluster_gap) / 2 + 1.2,
-                label, fontsize=11, ha='center', weight='bold')
+                label, fontsize=fontsize_section, ha='center', weight='bold')
 
     # --------------------------
     # Input Layer
@@ -185,7 +194,7 @@ return_fig = False):
     ax.set_xlim(-1, x + 2)
     ax.set_ylim(y_base - (n_clusters * cluster_gap) / 2 - 2, y_base + (n_clusters * cluster_gap) / 2 + 2)
     ax.axis("off")
-    ax.set_title(title, fontsize=15, weight='bold')
+    ax.set_title(title, fontsize=fontsize_title, weight='bold')
 
     if return_fig:
         return fig
