@@ -95,7 +95,17 @@ class ClusterDataset(Dataset):
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
     """
-    def __init__(self, data, cluster_labels, val_proportion = 0.1, replacement_value = 0, columns_ignore = None, imputable = None, val_seed = 42, binary_feature_mask = None):
+    def __init__(
+        self, 
+        data, 
+        cluster_labels, 
+        val_proportion = 0.1, 
+        replacement_value = 0, 
+        columns_ignore = None, 
+        imputable = None, 
+        val_seed = 42, 
+        binary_feature_mask = None,
+        categorical_column_map = None,):
         """Build the dataset, apply per-cluster validation masking, and normalize.
         
         Steps:  
@@ -121,6 +131,8 @@ class ClusterDataset(Dataset):
         :type val_seed: int
         :param binary_feature_mask: 1D bool vector of length 'input_dim' -> true if column is binary.
         :type binary_feature_mask: list[bool]
+        :param categorical_column_map: Optional dictionary where keys are original categories and values are resulting dummy variables. Must set binary_feature_mask if using!
+        :type categorical_column_map: dict
         """
 
         ## set seed for selecting valdata
@@ -144,7 +156,9 @@ class ClusterDataset(Dataset):
 
         ## set to one cluster as default!!
             
-
+        ## if categorical_column_map is used and bfm not set, give error 
+        if categorical_column_map is not None and binary_feature_mask is None:
+            raise RuntimeError("binary_feature_mask required to use categorical_column_map")
 
         # ----------------------------------------
         # Convert input data to numpy
@@ -266,6 +280,13 @@ class ClusterDataset(Dataset):
         self.n_clusters = len(np.unique(cluster_labels_np))
         # unique_clusters = np.unique(cluster_labels_np)
 
+        # =========================================
+        # VALIDATION BEGINS
+        # - need to separate columns in categorical_column_map from all the others
+        # - for others, do validation extraction normally
+        # - for catcols do validation holdout by cat (holdout all columns of that cat in row)
+        # =========================================
+
         # --------------------------
         # Resolve per-cluster validation proportion
         # --------------------------
@@ -312,9 +333,141 @@ class ClusterDataset(Dataset):
             if not (0.0 <= p <= 1.0):
                 raise ValueError(f"`val_proportion` for cluster {cid} must be in [0, 1]; got {p}.")
 
-        # ----------------------------------------
-        # Validation mask per cluster
-        # ----------------------------------------
+        # -----------------------
+        # Resolve categorical_column_map to integer column indices
+        # Then the masking loop iterates over validation_units.items().
+        # For categorical units, rows are chosen once and then all dummy columns
+        # in that unit are masked together.
+        # -----------------------
+        self.categorical_column_map = categorical_column_map
+        self.categorical_group_indices = {}
+
+        def _resolve_col_to_index(col_id):
+            """
+            Convert a column identifier into an integer column index.
+
+            Supports:
+            - string column names
+            - integer column indices
+            """
+            if isinstance(col_id, str):
+                if col_id not in self.feature_names:
+                    raise ValueError(
+                        f"Column '{col_id}' from categorical_column_map not found in data."
+                    )
+                return self.feature_names.index(col_id)
+
+            if isinstance(col_id, (int, np.integer)):
+                col_id = int(col_id)
+                if not (0 <= col_id < len(self.feature_names)):
+                    raise ValueError(
+                        f"Column index {col_id} from categorical_column_map is out of bounds."
+                    )
+                return col_id
+
+            raise TypeError(
+                "categorical_column_map dummy-variable entries must be column names (str) "
+                "or integer column indices."
+            )
+
+        if categorical_column_map is not None:
+            if not isinstance(categorical_column_map, Mapping):
+                raise TypeError(
+                    "`categorical_column_map` must be a mapping like "
+                    "{'C1': ['C1b1', 'C1b2'], 'C2': ['C2b1', 'C2b2']}"
+                )
+
+            used_cols = set()
+
+            for main_cat_name, dummy_cols in categorical_column_map.items():
+                if not isinstance(dummy_cols, Sequence) or isinstance(dummy_cols, str):
+                    raise TypeError(
+                        f"Value for category '{main_cat_name}' must be a sequence of dummy columns."
+                    )
+
+                if len(dummy_cols) == 0:
+                    raise ValueError(
+                        f"Value for category '{main_cat_name}' cannot be empty."
+                    )
+
+                resolved = [_resolve_col_to_index(x) for x in dummy_cols]
+
+                if len(set(resolved)) != len(resolved):
+                    raise ValueError(
+                        f"Duplicate dummy columns found for category '{main_cat_name}'."
+                    )
+
+                overlap = used_cols.intersection(resolved)
+                if overlap:
+                    overlap_names = [self.feature_names[i] for i in sorted(overlap)]
+                    raise ValueError(
+                        f"Dummy columns {overlap_names} appear in more than one category in categorical_column_map."
+                    )
+
+                for idx in resolved:
+                    if idx in self.ignore_indices:
+                        raise ValueError(
+                            f"Dummy column '{self.feature_names[idx]}' appears in both "
+                            "categorical_column_map and columns_ignore."
+                        )
+                    if not self.binary_feature_mask[idx]:
+                        raise ValueError(
+                            f"Dummy column '{self.feature_names[idx]}' is listed in "
+                            "categorical_column_map but is not marked True in binary_feature_mask."
+                        )
+
+                self.categorical_group_indices[main_cat_name] = resolved
+                used_cols.update(resolved)
+
+        # ------------
+        # Build validation Units
+        # - each non-categorical feature becomes its own unit
+        # - each original categorical becomes one grouped unit
+        #
+        # Example:
+        #   validation_units["C1"] = {"kind": "categorical", "cols": [4, 5]}
+        # -------------
+
+        dummy_cols_in_groups = set()
+        for group_cols in self.categorical_group_indices.values():
+            dummy_cols_in_groups.update(group_cols)
+
+        self.validation_units = {}
+
+        # First add ordinary single-column units.
+        for col_idx, feature_name in enumerate(self.feature_names):
+            # Skip ignored columns entirely.
+            if col_idx in self.ignore_indices:
+                continue
+
+            # Skip dummy-variable columns that belong to a grouped categorical.
+            # Those will be added once under the original category name.
+            if col_idx in dummy_cols_in_groups:
+                continue
+
+            self.validation_units[feature_name] = {
+                "kind": "column",
+                "cols": [col_idx],
+            }
+
+        # Now add categorical grouped units using the ORIGINAL category names.
+        for main_cat_name, group_cols in self.categorical_group_indices.items():
+            self.validation_units[main_cat_name] = {
+                "kind": "categorical",
+                "cols": list(group_cols),
+            }
+        
+        # ==================================================================
+        # Validation mask selection
+        # ==================================================================
+        #
+        # This loop now iterates over validation units, not raw columns.
+        #
+        # That means:
+        # - "X1" behaves like a normal single column
+        # - "C1" behaves like a grouped categorical, and all dummy columns
+        #   associated with C1 are masked together for selected rows
+        # ==================================================================
         val_mask_np = np.zeros_like(raw_data_np, dtype=bool)
 
         for cluster_id in self.unique_clusters:
@@ -322,35 +475,120 @@ class ClusterDataset(Dataset):
             if row_idxs.size == 0:
                 continue
 
-            cluster_data = raw_data_np[row_idxs]      # shape: (n_rows_in_cluster, n_features)
+            cluster_data = raw_data_np[row_idxs]
             prop = per_cluster_prop[cluster_id]
+
             if prop == 0.0:
-                continue  # nothing to select for this cluster
+                continue
 
-            for col in range(cluster_data.shape[1]):
-                if col in self.ignore_indices:
-                    continue
+            # --------------------------------------------------------------
+            # Main loop over validation units.
+            #
+            # The iterator is now:
+            #   unit_name = "X1", "X2", "B1", "B2", "C1", "C2", ...
+            #
+            # not over dummy variables like C1b1, C1b2.
+            # --------------------------------------------------------------
+            for unit_name, unit_info in self.validation_units.items():
+                unit_kind = unit_info["kind"]
+                unit_cols = unit_info["cols"]
 
-                # boolean masks (same length as row_idxs)
-                mask_non_missing = ~np.isnan(cluster_data[:, col])
-                
-                candidate_mask = mask_non_missing 
-                candidate_rows = np.where(candidate_mask)[0]  # local indices within row_idxs
+                # ----------------------------------------------------------
+                # Case 1: ordinary single-column unit
+                #
+                # Example:
+                #   unit_name = "X1"
+                #   unit_cols = [0]
+                #
+                # We choose candidate rows where that one column is observed.
+                # ----------------------------------------------------------
+                if unit_kind == "column":
+                    col = unit_cols[0]
 
-                if candidate_rows.size == 0:
-                    continue
+                    mask_non_missing = ~np.isnan(cluster_data[:, col])
+                    candidate_rows = np.where(mask_non_missing)[0]
 
-                ## Put back as floor but will mask at least one value if floor is 0
-                if prop > 0:
-                    n_val = max(1, int(np.floor(candidate_rows.size * prop)))
+                    if candidate_rows.size == 0:
+                        continue
+
+                    if prop > 0:
+                        n_val = max(1, int(np.floor(candidate_rows.size * prop)))
+                    else:
+                        continue
+
+                    if n_val <= 0:
+                        continue
+
+                    chosen_local = self._rng.choice(
+                        candidate_rows,
+                        size=n_val,
+                        replace=False,
+                    )
+
+                    # Mask only that one column for the selected rows.
+                    val_mask_np[row_idxs[chosen_local], col] = True
+
+                # ----------------------------------------------------------
+                # Case 2: grouped categorical unit
+                #
+                # Example:
+                #   unit_name = "C1"
+                #   unit_cols = [4, 5]  corresponding to C1b1, C1b2
+                #
+                # The unit is the ORIGINAL category name ("C1"), but masking is
+                # applied to all dummy columns belonging to that category.
+                #
+                # Eligibility rule:
+                #   a row is a candidate only if ALL dummy columns in this group
+                #   are observed (non-NaN)
+                #
+                # After selecting rows:
+                #   mask ALL columns in unit_cols for those rows
+                # ----------------------------------------------------------
+                elif unit_kind == "categorical":
+                    group_cols = np.array(unit_cols, dtype=int)
+
+                    # For grouped categorical masking, only consider rows where all
+                    # dummy variables for this category are observed.
+                    #
+                    # Example:
+                    # if C1 has columns [C1b1, C1b2], then a row is only eligible
+                    # if both C1b1 and C1b2 are not NaN.
+                    group_non_missing = ~np.isnan(cluster_data[:, group_cols])
+                    candidate_rows = np.where(np.all(group_non_missing, axis=1))[0]
+
+                    if candidate_rows.size == 0:
+                        continue
+
+                    if prop > 0:
+                        n_val = max(1, int(np.floor(candidate_rows.size * prop)))
+                    else:
+                        continue
+
+                    if n_val <= 0:
+                        continue
+
+                    chosen_local = self._rng.choice(
+                        candidate_rows,
+                        size=n_val,
+                        replace=False,
+                    )
+
+                    chosen_global_rows = row_idxs[chosen_local]
+
+                    # The critical grouped-masking step:
+                    # mask all dummy columns for this categorical in the selected rows.
+                    val_mask_np[np.ix_(chosen_global_rows, group_cols)] = True
+
                 else:
-                    continue
-                
-                if n_val <= 0:
-                    continue
+                    raise RuntimeError(
+                        f"Unknown validation unit kind '{unit_kind}' for unit '{unit_name}'."
+                    )
 
-                chosen_local = self._rng.choice(candidate_rows, size=n_val, replace=False)
-                val_mask_np[row_idxs[chosen_local], col] = True
+        self.val_mask = torch.tensor(val_mask_np, dtype=torch.bool)
+        # =========================================
+        # END VALIDATION CHANGES 
+        # =========================================
 
         val_mask_tensor = torch.tensor(val_mask_np, dtype=torch.bool)
         ## val_mask is a tensor
@@ -472,6 +710,14 @@ class ClusterDataset(Dataset):
         )
         if non_imputable_count is not None:
             out += f"\n  • Non-imputable entries: {non_imputable_count}"
+
+        if hasattr(self, "validation_units"):
+            unit_summary = {
+                k: {"kind": v["kind"], "cols": [self.feature_names[i] for i in v["cols"]]}
+                for k, v in self.validation_units.items()
+            }
+            out += f"\n  • Validation units: {unit_summary}"
+
         return out
 
     # ----------------------------------------
