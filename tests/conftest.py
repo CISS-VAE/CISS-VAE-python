@@ -9,6 +9,77 @@ from unittest.mock import MagicMock
 # Add this import
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 
+import numpy as np
+import pandas as pd
+import pytest
+
+
+@pytest.fixture
+def categorical_validation_base_dataframe():
+    """
+    Small fully-observed toy dataset used to test grouped categorical
+    validation masking in ClusterDataset.
+
+    Columns
+    -------
+    X1, X2
+        Continuous features.
+    B1, B2
+        Standalone binary features.
+    C1b1, C1b2
+        Dummy variables created from original categorical feature C1.
+    C2b1, C2b2
+        Dummy variables created from original categorical feature C2.
+    """
+    return pd.DataFrame(
+        {
+            "X1":   [1.0, 2.0, 3.0, 4.0],
+            "X2":   [10.0, 20.0, 30.0, 40.0],
+            "B1":   [0.0, 1.0, 0.0, 1.0],
+            "B2":   [1.0, 0.0, 1.0, 0.0],
+            "C1b1": [1.0, 0.0, 1.0, 0.0],
+            "C1b2": [0.0, 1.0, 0.0, 1.0],
+            "C2b1": [1.0, 1.0, 0.0, 0.0],
+            "C2b2": [0.0, 0.0, 1.0, 1.0],
+        }
+    )
+
+
+@pytest.fixture
+def categorical_validation_binary_feature_mask():
+    """
+    Boolean mask aligned to the columns in categorical_validation_base_dataframe.
+
+    X1, X2      -> continuous -> False
+    B1, B2      -> binary     -> True
+    C1b1, C1b2  -> dummy vars -> True
+    C2b1, C2b2  -> dummy vars -> True
+    """
+    return np.array(
+        [False, False, True, True, True, True, True, True],
+        dtype=bool,
+    )
+
+
+@pytest.fixture
+def categorical_validation_column_map():
+    """
+    Mapping from original categorical variable names to the dummy-variable
+    columns produced from them.
+    """
+    return {
+        "C1": ["C1b1", "C1b2"],
+        "C2": ["C2b1", "C2b2"],
+    }
+
+
+@pytest.fixture
+def categorical_validation_cluster_labels(categorical_validation_base_dataframe):
+    """
+    Default single-cluster assignment for the toy grouped-categorical dataset.
+    """
+    return np.zeros(len(categorical_validation_base_dataframe), dtype=int)
+
 @pytest.fixture
 def sample_data():
     """Create sample data for testing with better clustering structure"""

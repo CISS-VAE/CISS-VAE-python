@@ -9,7 +9,7 @@
   <title>API Reference &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -55,6 +55,7 @@
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="binary_vignette.html">Handling binary data columns</a></li>
+<li class="toctree-l1"><a class="reference internal" href="binary_vignette.html#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -77,6 +78,7 @@
 <li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.clustering.cluster_on_missing_prop.html">ciss_vae.utils.clustering.cluster_on_missing_prop</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.matrix.create_missingness_prop_matrix.html">ciss_vae.utils.matrix.create_missingness_prop_matrix</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed.html">ciss_vae.utils.helpers.get_imputed</a></li>
 <li class="toctree-l3"><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
 </ul>
 </li>
@@ -155,7 +157,10 @@
 <tr class="row-even"><td><p><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.html#ciss_vae.utils.helpers.plot_vae_architecture" title="ciss_vae.utils.helpers.plot_vae_architecture"><code class="xref py py-obj docutils literal notranslate"><span class="pre">helpers.plot_vae_architecture</span></code></a>(model[, ...])</p></td>
 <td><p>Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html#ciss_vae.utils.helpers.get_imputed_df" title="ciss_vae.utils.helpers.get_imputed_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">helpers.get_imputed_df</span></code></a>(model, data_loader[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed.html#ciss_vae.utils.helpers.get_imputed" title="ciss_vae.utils.helpers.get_imputed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">helpers.get_imputed</span></code></a>(model, data_loader[, device])</p></td>
+<td><p>Returns a ClusterDataset where originally missing values have been replaced with model reconstructions.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="_autosummary/ciss_vae.utils.helpers.get_imputed_df.html#ciss_vae.utils.helpers.get_imputed_df" title="ciss_vae.utils.helpers.get_imputed_df"><code class="xref py py-obj docutils literal notranslate"><span class="pre">helpers.get_imputed_df</span></code></a>(model, data_loader[, ...])</p></td>
 <td><p>Given trained model and cluster dataset object, get imputed dataset as pandas DataFrame.</p></td>
 </tr>
 </tbody>

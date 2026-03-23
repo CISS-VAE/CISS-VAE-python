@@ -36,4 +36,5 @@ Utilities & Helpers
    clustering.cluster_on_missing_prop
    matrix.create_missingness_prop_matrix
    helpers.plot_vae_architecture
+   helpers.get_imputed
    helpers.get_imputed_df
