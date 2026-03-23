@@ -8,7 +8,7 @@
   <title>ciss_vae.classes.vae &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -52,6 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -419,7 +420,7 @@
 <span class="sd">        :param logvar: Log‑variance of the approximate posterior.</span>
 <span class="sd">        :type logvar: torch.Tensor, shape ``(batch, latent_dim)``</span>
 <span class="sd">        :param generator: Optionl for RNG control (default None)</span>
-<span class="sd">        :type torch.Generator</span>
+<span class="sd">        :type generator: torch.Generator</span>
 
 <span class="sd">        :returns: Sampled latent codes ``z``.</span>
 <span class="sd">        :rtype: torch.Tensor</span>
@@ -574,7 +575,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_valdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Get denormalized imputed data from the trained model.</span>
 
-<span class="sd">        [IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</span>
+<span class="sd">        [IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</span>
 
 <span class="sd">    Performs a forward pass of the model in evaluation mode to reconstruct </span>
 <span class="sd">    validation data. The reconstructed output is then denormalized using the </span>
@@ -660,8 +661,8 @@
             <span class="n">ccols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">cont_1d</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_x</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span>
 
-            <span class="c1"># Blank out non-validation (observed) entries -&gt;. keep only validation reconstructions</span>
-            <span class="n">recon_out</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span> 
+        <span class="c1"># Blank out non-validation (observed) entries -&gt;. keep only validation reconstructions</span>
+        <span class="n">recon_out</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span> 
 
         <span class="k">return</span><span class="p">(</span><span class="n">recon_out</span><span class="p">)</span></div>
 

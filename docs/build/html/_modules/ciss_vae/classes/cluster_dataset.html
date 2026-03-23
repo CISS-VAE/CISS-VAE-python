@@ -8,7 +8,7 @@
   <title>ciss_vae.classes.cluster_dataset &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -52,6 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -186,7 +187,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="ClusterDataset.__init__">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset.__init__">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">cluster_labels</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">val_seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> 
+        <span class="n">data</span><span class="p">,</span> 
+        <span class="n">cluster_labels</span><span class="p">,</span> 
+        <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> 
+        <span class="n">replacement_value</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> 
+        <span class="n">columns_ignore</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">imputable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+        <span class="n">val_seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span> 
+        <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">categorical_column_map</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the dataset, apply per-cluster validation masking, and normalize.</span>
 <span class="sd">        </span>
 <span class="sd">        Steps:  </span>
@@ -212,6 +223,8 @@
 <span class="sd">        :type val_seed: int</span>
 <span class="sd">        :param binary_feature_mask: 1D bool vector of length &#39;input_dim&#39; -&gt; true if column is binary.</span>
 <span class="sd">        :type binary_feature_mask: list[bool]</span>
+<span class="sd">        :param categorical_column_map: Optional dictionary where keys are original categories and values are resulting dummy variables. Must set binary_feature_mask if using!</span>
+<span class="sd">        :type categorical_column_map: dict</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="c1">## set seed for selecting valdata</span>
@@ -235,7 +248,9 @@
 
         <span class="c1">## set to one cluster as default!!</span>
             
-
+        <span class="c1">## if categorical_column_map is used and bfm not set, give error </span>
+        <span class="k">if</span> <span class="n">categorical_column_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;binary_feature_mask required to use categorical_column_map&quot;</span><span class="p">)</span>
 
         <span class="c1"># ----------------------------------------</span>
         <span class="c1"># Convert input data to numpy</span>
@@ -357,6 +372,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">cluster_labels_np</span><span class="p">))</span>
         <span class="c1"># unique_clusters = np.unique(cluster_labels_np)</span>
 
+        <span class="c1"># =========================================</span>
+        <span class="c1"># VALIDATION BEGINS</span>
+        <span class="c1"># - need to separate columns in categorical_column_map from all the others</span>
+        <span class="c1"># - for others, do validation extraction normally</span>
+        <span class="c1"># - for catcols do validation holdout by cat (holdout all columns of that cat in row)</span>
+        <span class="c1"># =========================================</span>
+
         <span class="c1"># --------------------------</span>
         <span class="c1"># Resolve per-cluster validation proportion</span>
         <span class="c1"># --------------------------</span>
@@ -403,9 +425,141 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;`val_proportion` for cluster </span><span class="si">{</span><span class="n">cid</span><span class="si">}</span><span class="s2"> must be in [0, 1]; got </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
-        <span class="c1"># ----------------------------------------</span>
-        <span class="c1"># Validation mask per cluster</span>
-        <span class="c1"># ----------------------------------------</span>
+        <span class="c1"># -----------------------</span>
+        <span class="c1"># Resolve categorical_column_map to integer column indices</span>
+        <span class="c1"># Then the masking loop iterates over validation_units.items().</span>
+        <span class="c1"># For categorical units, rows are chosen once and then all dummy columns</span>
+        <span class="c1"># in that unit are masked together.</span>
+        <span class="c1"># -----------------------</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">categorical_column_map</span> <span class="o">=</span> <span class="n">categorical_column_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">categorical_group_indices</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_col_to_index</span><span class="p">(</span><span class="n">col_id</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Convert a column identifier into an integer column index.</span>
+
+<span class="sd">            Supports:</span>
+<span class="sd">            - string column names</span>
+<span class="sd">            - integer column indices</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_id</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">col_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Column &#39;</span><span class="si">{</span><span class="n">col_id</span><span class="si">}</span><span class="s2">&#39; from categorical_column_map not found in data.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">col_id</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col_id</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+                <span class="n">col_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">col_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">col_id</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Column index </span><span class="si">{</span><span class="n">col_id</span><span class="si">}</span><span class="s2"> from categorical_column_map is out of bounds.&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">return</span> <span class="n">col_id</span>
+
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;categorical_column_map dummy-variable entries must be column names (str) &quot;</span>
+                <span class="s2">&quot;or integer column indices.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">categorical_column_map</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">categorical_column_map</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;`categorical_column_map` must be a mapping like &quot;</span>
+                    <span class="s2">&quot;{&#39;C1&#39;: [&#39;C1b1&#39;, &#39;C1b2&#39;], &#39;C2&#39;: [&#39;C2b1&#39;, &#39;C2b2&#39;]}&quot;</span>
+                <span class="p">)</span>
+
+            <span class="n">used_cols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">main_cat_name</span><span class="p">,</span> <span class="n">dummy_cols</span> <span class="ow">in</span> <span class="n">categorical_column_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dummy_cols</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dummy_cols</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Value for category &#39;</span><span class="si">{</span><span class="n">main_cat_name</span><span class="si">}</span><span class="s2">&#39; must be a sequence of dummy columns.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dummy_cols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Value for category &#39;</span><span class="si">{</span><span class="n">main_cat_name</span><span class="si">}</span><span class="s2">&#39; cannot be empty.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">resolved</span> <span class="o">=</span> <span class="p">[</span><span class="n">_resolve_col_to_index</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dummy_cols</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">resolved</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Duplicate dummy columns found for category &#39;</span><span class="si">{</span><span class="n">main_cat_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="n">overlap</span> <span class="o">=</span> <span class="n">used_cols</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">overlap</span><span class="p">:</span>
+                    <span class="n">overlap_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">overlap</span><span class="p">)]</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Dummy columns </span><span class="si">{</span><span class="n">overlap_names</span><span class="si">}</span><span class="s2"> appear in more than one category in categorical_column_map.&quot;</span>
+                    <span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Dummy column &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; appears in both &quot;</span>
+                            <span class="s2">&quot;categorical_column_map and columns_ignore.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">[</span><span class="n">idx</span><span class="p">]:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Dummy column &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; is listed in &quot;</span>
+                            <span class="s2">&quot;categorical_column_map but is not marked True in binary_feature_mask.&quot;</span>
+                        <span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">categorical_group_indices</span><span class="p">[</span><span class="n">main_cat_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">resolved</span>
+                <span class="n">used_cols</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+
+        <span class="c1"># ------------</span>
+        <span class="c1"># Build validation Units</span>
+        <span class="c1"># - each non-categorical feature becomes its own unit</span>
+        <span class="c1"># - each original categorical becomes one grouped unit</span>
+        <span class="c1">#</span>
+        <span class="c1"># Example:</span>
+        <span class="c1">#   validation_units[&quot;C1&quot;] = {&quot;kind&quot;: &quot;categorical&quot;, &quot;cols&quot;: [4, 5]}</span>
+        <span class="c1"># -------------</span>
+
+        <span class="n">dummy_cols_in_groups</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">group_cols</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_group_indices</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">dummy_cols_in_groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">group_cols</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">validation_units</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># First add ordinary single-column units.</span>
+        <span class="k">for</span> <span class="n">col_idx</span><span class="p">,</span> <span class="n">feature_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">):</span>
+            <span class="c1"># Skip ignored columns entirely.</span>
+            <span class="k">if</span> <span class="n">col_idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># Skip dummy-variable columns that belong to a grouped categorical.</span>
+            <span class="c1"># Those will be added once under the original category name.</span>
+            <span class="k">if</span> <span class="n">col_idx</span> <span class="ow">in</span> <span class="n">dummy_cols_in_groups</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">validation_units</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;column&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;cols&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">col_idx</span><span class="p">],</span>
+            <span class="p">}</span>
+
+        <span class="c1"># Now add categorical grouped units using the ORIGINAL category names.</span>
+        <span class="k">for</span> <span class="n">main_cat_name</span><span class="p">,</span> <span class="n">group_cols</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categorical_group_indices</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">validation_units</span><span class="p">[</span><span class="n">main_cat_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="s2">&quot;categorical&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;cols&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">group_cols</span><span class="p">),</span>
+            <span class="p">}</span>
+        
+        <span class="c1"># ==================================================================</span>
+        <span class="c1"># Validation mask selection</span>
+        <span class="c1"># ==================================================================</span>
+        <span class="c1">#</span>
+        <span class="c1"># This loop now iterates over validation units, not raw columns.</span>
+        <span class="c1">#</span>
+        <span class="c1"># That means:</span>
+        <span class="c1"># - &quot;X1&quot; behaves like a normal single column</span>
+        <span class="c1"># - &quot;C1&quot; behaves like a grouped categorical, and all dummy columns</span>
+        <span class="c1">#   associated with C1 are masked together for selected rows</span>
+        <span class="c1"># ==================================================================</span>
         <span class="n">val_mask_np</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">raw_data_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">cluster_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unique_clusters</span><span class="p">:</span>
@@ -413,35 +567,120 @@
             <span class="k">if</span> <span class="n">row_idxs</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">continue</span>
 
-            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">raw_data_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">]</span>      <span class="c1"># shape: (n_rows_in_cluster, n_features)</span>
+            <span class="n">cluster_data</span> <span class="o">=</span> <span class="n">raw_data_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">]</span>
             <span class="n">prop</span> <span class="o">=</span> <span class="n">per_cluster_prop</span><span class="p">[</span><span class="n">cluster_id</span><span class="p">]</span>
+
             <span class="k">if</span> <span class="n">prop</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-                <span class="k">continue</span>  <span class="c1"># nothing to select for this cluster</span>
+                <span class="k">continue</span>
 
-            <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cluster_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-                <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_indices</span><span class="p">:</span>
-                    <span class="k">continue</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="c1"># Main loop over validation units.</span>
+            <span class="c1">#</span>
+            <span class="c1"># The iterator is now:</span>
+            <span class="c1">#   unit_name = &quot;X1&quot;, &quot;X2&quot;, &quot;B1&quot;, &quot;B2&quot;, &quot;C1&quot;, &quot;C2&quot;, ...</span>
+            <span class="c1">#</span>
+            <span class="c1"># not over dummy variables like C1b1, C1b2.</span>
+            <span class="c1"># --------------------------------------------------------------</span>
+            <span class="k">for</span> <span class="n">unit_name</span><span class="p">,</span> <span class="n">unit_info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_units</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">unit_kind</span> <span class="o">=</span> <span class="n">unit_info</span><span class="p">[</span><span class="s2">&quot;kind&quot;</span><span class="p">]</span>
+                <span class="n">unit_cols</span> <span class="o">=</span> <span class="n">unit_info</span><span class="p">[</span><span class="s2">&quot;cols&quot;</span><span class="p">]</span>
 
-                <span class="c1"># boolean masks (same length as row_idxs)</span>
-                <span class="n">mask_non_missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cluster_data</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
-                
-                <span class="n">candidate_mask</span> <span class="o">=</span> <span class="n">mask_non_missing</span> 
-                <span class="n">candidate_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">candidate_mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># local indices within row_idxs</span>
+                <span class="c1"># ----------------------------------------------------------</span>
+                <span class="c1"># Case 1: ordinary single-column unit</span>
+                <span class="c1">#</span>
+                <span class="c1"># Example:</span>
+                <span class="c1">#   unit_name = &quot;X1&quot;</span>
+                <span class="c1">#   unit_cols = [0]</span>
+                <span class="c1">#</span>
+                <span class="c1"># We choose candidate rows where that one column is observed.</span>
+                <span class="c1"># ----------------------------------------------------------</span>
+                <span class="k">if</span> <span class="n">unit_kind</span> <span class="o">==</span> <span class="s2">&quot;column&quot;</span><span class="p">:</span>
+                    <span class="n">col</span> <span class="o">=</span> <span class="n">unit_cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
-                <span class="k">if</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">continue</span>
+                    <span class="n">mask_non_missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cluster_data</span><span class="p">[:,</span> <span class="n">col</span><span class="p">])</span>
+                    <span class="n">candidate_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_non_missing</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-                <span class="c1">## Put back as floor but will mask at least one value if floor is 0</span>
-                <span class="k">if</span> <span class="n">prop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">n_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">prop</span><span class="p">)))</span>
+                    <span class="k">if</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="k">if</span> <span class="n">prop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">n_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">prop</span><span class="p">)))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="k">if</span> <span class="n">n_val</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">chosen_local</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                        <span class="n">candidate_rows</span><span class="p">,</span>
+                        <span class="n">size</span><span class="o">=</span><span class="n">n_val</span><span class="p">,</span>
+                        <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Mask only that one column for the selected rows.</span>
+                    <span class="n">val_mask_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen_local</span><span class="p">],</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+                <span class="c1"># ----------------------------------------------------------</span>
+                <span class="c1"># Case 2: grouped categorical unit</span>
+                <span class="c1">#</span>
+                <span class="c1"># Example:</span>
+                <span class="c1">#   unit_name = &quot;C1&quot;</span>
+                <span class="c1">#   unit_cols = [4, 5]  corresponding to C1b1, C1b2</span>
+                <span class="c1">#</span>
+                <span class="c1"># The unit is the ORIGINAL category name (&quot;C1&quot;), but masking is</span>
+                <span class="c1"># applied to all dummy columns belonging to that category.</span>
+                <span class="c1">#</span>
+                <span class="c1"># Eligibility rule:</span>
+                <span class="c1">#   a row is a candidate only if ALL dummy columns in this group</span>
+                <span class="c1">#   are observed (non-NaN)</span>
+                <span class="c1">#</span>
+                <span class="c1"># After selecting rows:</span>
+                <span class="c1">#   mask ALL columns in unit_cols for those rows</span>
+                <span class="c1"># ----------------------------------------------------------</span>
+                <span class="k">elif</span> <span class="n">unit_kind</span> <span class="o">==</span> <span class="s2">&quot;categorical&quot;</span><span class="p">:</span>
+                    <span class="n">group_cols</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">unit_cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+                    <span class="c1"># For grouped categorical masking, only consider rows where all</span>
+                    <span class="c1"># dummy variables for this category are observed.</span>
+                    <span class="c1">#</span>
+                    <span class="c1"># Example:</span>
+                    <span class="c1"># if C1 has columns [C1b1, C1b2], then a row is only eligible</span>
+                    <span class="c1"># if both C1b1 and C1b2 are not NaN.</span>
+                    <span class="n">group_non_missing</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">cluster_data</span><span class="p">[:,</span> <span class="n">group_cols</span><span class="p">])</span>
+                    <span class="n">candidate_rows</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">group_non_missing</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="k">if</span> <span class="n">prop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">n_val</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">candidate_rows</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="n">prop</span><span class="p">)))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="k">if</span> <span class="n">n_val</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">continue</span>
+
+                    <span class="n">chosen_local</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                        <span class="n">candidate_rows</span><span class="p">,</span>
+                        <span class="n">size</span><span class="o">=</span><span class="n">n_val</span><span class="p">,</span>
+                        <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                    <span class="n">chosen_global_rows</span> <span class="o">=</span> <span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen_local</span><span class="p">]</span>
+
+                    <span class="c1"># The critical grouped-masking step:</span>
+                    <span class="c1"># mask all dummy columns for this categorical in the selected rows.</span>
+                    <span class="n">val_mask_np</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ix_</span><span class="p">(</span><span class="n">chosen_global_rows</span><span class="p">,</span> <span class="n">group_cols</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
+
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                
-                <span class="k">if</span> <span class="n">n_val</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="k">continue</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unknown validation unit kind &#39;</span><span class="si">{</span><span class="n">unit_kind</span><span class="si">}</span><span class="s2">&#39; for unit &#39;</span><span class="si">{</span><span class="n">unit_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+                    <span class="p">)</span>
 
-                <span class="n">chosen_local</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rng</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">candidate_rows</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_val</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="n">val_mask_np</span><span class="p">[</span><span class="n">row_idxs</span><span class="p">[</span><span class="n">chosen_local</span><span class="p">],</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">val_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">val_mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="c1"># =========================================</span>
+        <span class="c1"># END VALIDATION CHANGES </span>
+        <span class="c1"># =========================================</span>
 
         <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">val_mask_np</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
         <span class="c1">## val_mask is a tensor</span>
@@ -564,6 +803,14 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="n">non_imputable_count</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">out</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  • Non-imputable entries: </span><span class="si">{</span><span class="n">non_imputable_count</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;validation_units&quot;</span><span class="p">):</span>
+            <span class="n">unit_summary</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">k</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;kind&quot;</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;kind&quot;</span><span class="p">],</span> <span class="s2">&quot;cols&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;cols&quot;</span><span class="p">]]}</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_units</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">}</span>
+            <span class="n">out</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  • Validation units: </span><span class="si">{</span><span class="n">unit_summary</span><span class="si">}</span><span class="s2">&quot;</span>
+
         <span class="k">return</span> <span class="n">out</span>
 
     <span class="c1"># ----------------------------------------</span>

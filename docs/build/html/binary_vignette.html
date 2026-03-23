@@ -9,7 +9,7 @@
   <title>Handling binary data columns &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -63,6 +63,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#using-binary-feature-mask-with-autotune">Using Binary Feature Mask with Autotune</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -97,7 +98,7 @@
              
   <section id="handling-binary-data-columns">
 <h1>Handling binary data columns<a class="headerlink" href="#handling-binary-data-columns" title="Link to this heading"></a></h1>
-<p>The CISS-VAE model can handle binary and categorical variables in addition to continuous ones. Categorical variables must be represented with binary dummy variables (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.get_dummies.html">pandas <code class="docutils literal notranslate"><span class="pre">get_dummies</span></code></a> can do this).</p>
+<p>The CISS-VAE model can handle binary and categorical variables in addition to continuous ones. Categorical variables must be represented with binary dummy variables (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.get_dummies.html">pandas <code class="docutils literal notranslate"><span class="pre">get_dummies</span></code></a> can do this) and the new dummy variables must be linked back to the original categorical label by passing a dictionary via categorical_column_map.</p>
 <p>When imputing binary data, the model applies a sigmoid activation function at the end of the forward pass to convert to a probability (this means that the end imputed result is the probability that the imputed value should be 1. The user will need to change these values after running).</p>
 <p>Because some datasets have both binary and continuous variables, you can include a binary variable mask (boolean vector) to tell the model which variables are binary so it acts accordingly.</p>
 <section id="example-dataset">
@@ -218,21 +219,17 @@
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/.venv/lib/python3.11/site-packages/tqdm/auto.py:21: TqdmWarning: IProgress not found. Please update jupyter and ipywidgets. See https://ipywidgets.readthedocs.io/en/stable/user_install.html
-  from .autonotebook import tqdm as notebook_tqdm
-</pre></div>
-</div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/src/ciss_vae/__init__.py
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\__init__.py
 The successfully imputed dataset:
-   feat1  feat2    feat3     feat4  feat5       bf1       bf2       bf3  \
-0   52.0    2.0  6.00000  4.000000    2.0  0.392466  0.524333  0.557564   
-1   93.0    1.0  7.00000  4.751469    2.0  0.210427  1.000000  1.000000   
-2   15.0    4.0  3.63214  4.000000    2.0  0.000000  0.000000  1.000000   
+   feat1  feat2     feat3     feat4  feat5       bf1      bf2      bf3  \
+0   52.0    2.0  6.000000  4.000000    2.0  0.303268  0.40501  0.63532   
+1   93.0    1.0  7.000000  4.150707    2.0  0.110541  1.00000  1.00000   
+2   15.0    4.0  3.439629  4.000000    2.0  0.000000  0.00000  1.00000   
 
         bf4       bf5  
-0  0.462122  0.000000  
+0  0.443717  0.000000  
 1  1.000000  1.000000  
-2  0.000000  0.543701  
+2  0.000000  0.572172  
 </pre></div>
 </div>
 </div>
@@ -249,10 +246,10 @@ The successfully imputed dataset:
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The successfully imputed dataset:
-   feat1  feat2    feat3     feat4  feat5  bf1  bf2  bf3  bf4  bf5
-0   52.0    2.0  6.00000  4.000000    2.0    0    1    1    0    0
-1   93.0    1.0  7.00000  4.751469    2.0    0    1    1    1    1
-2   15.0    4.0  3.63214  4.000000    2.0    0    0    1    0    1
+   feat1  feat2     feat3     feat4  feat5  bf1  bf2  bf3  bf4  bf5
+0   52.0    2.0  6.000000  4.000000    2.0    0    0    1    0    0
+1   93.0    1.0  7.000000  4.150707    2.0    0    1    1    1    1
+2   15.0    4.0  3.439629  4.000000    2.0    0    0    1    0    1
 </pre></div>
 </div>
 </div>
@@ -265,69 +262,57 @@ The successfully imputed dataset:
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>History 
-    epoch  train_loss     val_mse        lr  train_recon  train_kl  \
-0       0    5.665778  336.915192  0.010000          NaN       NaN   
-1       1    5.529218  409.599915  0.009990          NaN       NaN   
-2       2    5.467004  406.572754  0.009980          NaN       NaN   
-3       3    5.267822  357.014008  0.009970          NaN       NaN   
-4       4    5.052402  323.063568  0.009960          NaN       NaN   
-5       4         NaN  360.807251  0.009950          NaN       NaN   
-6       9         NaN  299.194702  0.009900          NaN       NaN   
-7       0    6.055346         NaN  0.009950          NaN       NaN   
-8       1    8.287996         NaN  0.009940          NaN       NaN   
-9       2    6.645365         NaN  0.009930          NaN       NaN   
-10      3    6.549108         NaN  0.009920          NaN       NaN   
-11      4    6.565840         NaN  0.009910          NaN       NaN   
-12     14         NaN  298.109406  0.009851          NaN       NaN   
-13      0    6.307795         NaN  0.009900          NaN       NaN   
-14      1    6.121426         NaN  0.009891          NaN       NaN   
-15      2    5.965865         NaN  0.009881          NaN       NaN   
-16      3    6.019014         NaN  0.009871          NaN       NaN   
-17      4    5.717219         NaN  0.009861          NaN       NaN   
-18     19         NaN  331.927307  0.009802          NaN       NaN   
-19      0    5.539527         NaN  0.009851          NaN       NaN   
-20      1    8.737970         NaN  0.009841          NaN       NaN   
-21      2    5.290363         NaN  0.009831          NaN       NaN   
-22      3    5.709083         NaN  0.009822          NaN       NaN   
-23      4    6.023082         NaN  0.009812          NaN       NaN   
-24     24         NaN  441.626740  0.009753          NaN       NaN   
-25      0    5.904051         NaN  0.009802          NaN       NaN   
-26      1    5.346017         NaN  0.009792          NaN       NaN   
-27      2    6.786304         NaN  0.009782          NaN       NaN   
-28      3    4.935527         NaN  0.009773          NaN       NaN   
-29      4    5.103082         NaN  0.009763          NaN       NaN   
+    epoch  train_loss   train_mse   train_bce  imputation_error     val_mse  \
+0       0    5.697448  347.701660  222.036087        320.539062  319.861664   
+1       1    5.562358  340.168030  216.051208        344.425415  343.775421   
+2       2    5.465328  339.692566  206.791824        345.298767  344.682617   
+3       3    5.349976  334.835938  200.050797        334.807343  334.233856   
+4       4    5.217632  325.737579  195.760330        337.141022  336.607391   
+5       4         NaN         NaN         NaN        347.181946  346.653870   
+6       9         NaN         NaN         NaN        271.728973  271.148438   
+7       0    5.920253  281.688995  309.766724               NaN         NaN   
+8       1    6.260297  318.909760  306.554749               NaN         NaN   
+9       2    5.865682  278.205536  307.714355               NaN         NaN   
+10      3    5.694291  265.898376  302.624451               NaN         NaN   
+11      4    5.658046  259.660339  305.226379               NaN         NaN   
+12     14         NaN         NaN         NaN        377.688568  377.069275   
+13      0    5.380131  233.666336  303.406372               NaN         NaN   
+14      1    9.380677  620.381836  315.344940               NaN         NaN   
+15      2    5.336485  226.872391  305.304321               NaN         NaN   
+16      3    5.540195  241.228012  311.292175               NaN         NaN   
+17      4    5.593123  246.618195  310.927979               NaN         NaN   
+18     19         NaN         NaN         NaN        370.147552  369.551178   
+19      0    5.478112  237.671204  307.676208               NaN         NaN   
+20      1    5.940437  279.735931  311.661987               NaN         NaN   
+21      2    5.405255  234.999512  302.320068               NaN         NaN   
+22      3    5.558175  249.377579  302.137421               NaN         NaN   
+23      4    4.837628  180.613342  298.911987               NaN         NaN   
 
-             phase  loop  
-0              NaN   NaN  
-1              NaN   NaN  
-2              NaN   NaN  
-3              NaN   NaN  
-4              NaN   NaN  
-5            refit   0.0  
-6       refit_loop   1.0  
-7   refit_training   NaN  
-8   refit_training   NaN  
-9   refit_training   NaN  
-10  refit_training   NaN  
-11  refit_training   NaN  
-12      refit_loop   2.0  
-13  refit_training   NaN  
-14  refit_training   NaN  
-15  refit_training   NaN  
-16  refit_training   NaN  
-17  refit_training   NaN  
-18      refit_loop   3.0  
-19  refit_training   NaN  
-20  refit_training   NaN  
-21  refit_training   NaN  
-22  refit_training   NaN  
-23  refit_training   NaN  
-24      refit_loop   4.0  
-25  refit_training   NaN  
-26  refit_training   NaN  
-27  refit_training   NaN  
-28  refit_training   NaN  
-29  refit_training   NaN  
+     val_bce        lr           phase  loop  
+0   0.677406  0.010000             NaN   NaN  
+1   0.649993  0.009990             NaN   NaN  
+2   0.616162  0.009980             NaN   NaN  
+3   0.573492  0.009970             NaN   NaN  
+4   0.533642  0.009960             NaN   NaN  
+5   0.528070  0.009950           refit   0.0  
+6   0.580540  0.009900           refit   0.0  
+7        NaN  0.009950  refit_training   NaN  
+8        NaN  0.009940  refit_training   NaN  
+9        NaN  0.009930  refit_training   NaN  
+10       NaN  0.009920  refit_training   NaN  
+11       NaN  0.009910  refit_training   NaN  
+12  0.619285  0.009851           refit   0.0  
+13       NaN  0.009900  refit_training   NaN  
+14       NaN  0.009891  refit_training   NaN  
+15       NaN  0.009881  refit_training   NaN  
+16       NaN  0.009871  refit_training   NaN  
+17       NaN  0.009861  refit_training   NaN  
+18  0.596373  0.009802           refit   0.0  
+19       NaN  0.009851  refit_training   NaN  
+20       NaN  0.009841  refit_training   NaN  
+21       NaN  0.009831  refit_training   NaN  
+22       NaN  0.009822  refit_training   NaN  
+23       NaN  0.009812  refit_training   NaN  
 </pre></div>
 </div>
 </div>
@@ -349,7 +334,7 @@ The successfully imputed dataset:
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/a14649cec025198d1dec65e7e7f620dd77237db51cdd185bb4df53615d1dca06.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/a14649cec025198d1dec65e7e7f620dd77237db51cdd185bb4df53615d1dca06.png" />
+<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ee64b2f7fec94ec9b376c41718c38fdaf278503a5bd9c97b90db3d930f0576f7.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ee64b2f7fec94ec9b376c41718c38fdaf278503a5bd9c97b90db3d930f0576f7.png" />
 </div>
 </div>
 </section>
@@ -385,98 +370,296 @@ The successfully imputed dataset:
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
-Starting Optuna optimization with 20 trials...
-Optimization complete. Best trial: 180 (MSE: 191.942139)
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2026-03-23 12:58:09,432] A new study created in RDB with name: vae_autotune
+\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\training\autotune.py:644: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+  study.set_metric_names([&quot;Total Imputation Error&quot;])
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Starting Optuna optimization with 20 trials...
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2026-03-23 12:58:24,755] Trial 0 finished with value: {&#39;Total Imputation Error&#39;: 471.3572998046875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 0 with value: 471.3572998046875.
+[I 2026-03-23 12:58:40,369] Trial 1 finished with value: {&#39;Total Imputation Error&#39;: 281.1874694824219} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 1 with value: 281.1874694824219.
+[I 2026-03-23 12:58:55,472] Trial 2 finished with value: {&#39;Total Imputation Error&#39;: 335.3370056152344} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 1 with value: 281.1874694824219.
+[I 2026-03-23 12:59:09,718] Trial 3 finished with value: {&#39;Total Imputation Error&#39;: 294.416748046875} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 1 with value: 281.1874694824219.
+[I 2026-03-23 12:59:24,873] Trial 4 finished with value: {&#39;Total Imputation Error&#39;: 208.5931396484375} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 12:59:40,915] Trial 5 finished with value: {&#39;Total Imputation Error&#39;: 290.7283935546875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 12:59:57,203] Trial 6 finished with value: {&#39;Total Imputation Error&#39;: 352.5667419433594} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:00:13,058] Trial 7 finished with value: {&#39;Total Imputation Error&#39;: 316.87335205078125} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:00:40,285] Trial 8 finished with value: {&#39;Total Imputation Error&#39;: 342.1788635253906} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:00:56,022] Trial 9 finished with value: {&#39;Total Imputation Error&#39;: 355.9355163574219} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:01:10,498] Trial 10 finished with value: {&#39;Total Imputation Error&#39;: 322.3448181152344} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:01:24,814] Trial 11 finished with value: {&#39;Total Imputation Error&#39;: 325.40679931640625} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:01:40,271] Trial 12 finished with value: {&#39;Total Imputation Error&#39;: 353.754150390625} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:01:57,197] Trial 13 finished with value: {&#39;Total Imputation Error&#39;: 376.3299255371094} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:02:09,840] Trial 14 finished with value: {&#39;Total Imputation Error&#39;: 317.61138916015625} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:02:28,273] Trial 15 finished with value: {&#39;Total Imputation Error&#39;: 319.0315246582031} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:02:42,850] Trial 16 finished with value: {&#39;Total Imputation Error&#39;: 384.4588928222656} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 4 with value: 208.5931396484375.
+[I 2026-03-23 13:02:55,647] Trial 17 finished with value: {&#39;Total Imputation Error&#39;: 204.75360107421875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
+[I 2026-03-23 13:03:08,546] Trial 18 finished with value: {&#39;Total Imputation Error&#39;: 313.8785705566406} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
+[I 2026-03-23 13:03:25,533] Trial 19 finished with value: {&#39;Total Imputation Error&#39;: 248.68955993652344} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Optimization complete. Best trial: 17 (Total Imputation Error: 204.753601)
 Training final model with best parameters...
 Final model training complete.
 </pre></div>
 </div>
 <div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(    feat1     feat2     feat3     feat4     feat5           bf1       bf2  \
- 0    52.0  2.000000  6.000000  4.000000  2.000000  3.309087e-07  0.991342   
- 1    93.0  1.000000  7.000000  4.972289  2.000000  1.963844e-06  1.000000   
- 2    15.0  4.000000  3.740431  4.000000  2.000000  0.000000e+00  0.000000   
- 3    72.0  4.000000  3.000000  4.040179  1.000000  2.999583e-03  1.000000   
- 4    61.0  1.906273  1.000000  3.646131  1.000000  0.000000e+00  0.267558   
+ 0    52.0  2.000000  6.000000  4.000000  2.000000  1.574351e-05  0.011680   
+ 1    93.0  1.000000  7.000000  2.549986  2.000000  1.327538e-07  1.000000   
+ 2    15.0  4.000000  6.269226  4.000000  2.000000  0.000000e+00  0.000000   
+ 3    72.0  4.000000  3.000000  2.822585  1.000000  8.273758e-01  1.000000   
+ 4    61.0  5.127302  1.000000  5.074446  1.000000  0.000000e+00  0.987302   
  ..    ...       ...       ...       ...       ...           ...       ...   
- 95   85.0  1.348827  4.671712  6.000000  2.000000  0.000000e+00  0.000000   
- 96   80.0  1.000000  5.046453  7.000000  2.000000  0.000000e+00  0.019095   
- 97   82.0  2.000000  4.000000  4.443146  1.000000  0.000000e+00  0.000024   
- 98   53.0  4.000000  3.000000  7.000000  7.000000  2.419609e-05  0.000000   
- 99   24.0  4.000000  1.000000  3.000000  5.389658  0.000000e+00  1.000000   
+ 95   85.0  1.341140  5.282604  6.000000  2.000000  0.000000e+00  0.000000   
+ 96   80.0  1.000000  6.276412  7.000000  2.000000  0.000000e+00  0.028704   
+ 97   82.0  2.000000  4.000000  3.660423  1.000000  0.000000e+00  0.001104   
+ 98   53.0  4.000000  3.000000  7.000000  7.000000  2.209703e-04  0.000000   
+ 99   24.0  4.000000  1.000000  3.000000  5.163667  0.000000e+00  1.000000   
  
-         bf3       bf4       bf5  
- 0   0.98678  0.000017  0.000000  
- 1   1.00000  1.000000  1.000000  
- 2   1.00000  0.000000  0.973099  
- 3   0.99851  1.000000  0.999740  
- 4   0.29278  0.023236  0.000000  
- ..      ...       ...       ...  
- 95  1.00000  0.003763  1.000000  
- 96  1.00000  0.144946  1.000000  
- 97  1.00000  0.000141  0.994144  
- 98  0.00000  0.000000  1.000000  
- 99  1.00000  1.000000  0.000000  
+          bf3           bf4       bf5  
+ 0   0.989517  8.568458e-09  0.000000  
+ 1   1.000000  1.000000e+00  1.000000  
+ 2   1.000000  0.000000e+00  0.821812  
+ 3   0.995228  1.000000e+00  0.954007  
+ 4   0.777846  9.999486e-01  0.000000  
+ ..       ...           ...       ...  
+ 95  1.000000  2.962417e-05  1.000000  
+ 96  1.000000  1.085632e-04  1.000000  
+ 97  1.000000  8.465250e-07  0.986807  
+ 98  0.000000  0.000000e+00  1.000000  
+ 99  1.000000  1.000000e+00  0.000000  
  
  [100 rows x 10 columns],
- CISSVAE(input_dim=10, latent_dim=10, latent_shared=True, num_clusters=3)
+ CISSVAE(input_dim=10, latent_dim=10, latent_shared=True, output_shared=True,num_clusters=3)
  Encoder Layers:
    [0] SHARED   10 → 32
-   [1] UNSHARED 32 → 32
+   [1] UNSHARED 32 → 16
  
  Latent Layer:
-   SHARED    32 → 10
+   SHARED    16 → 10
  
  Decoder Layers:
-   [0] SHARED   10 → 32
-   [1] UNSHARED 32 → 32
+   [0] SHARED   10 → 16
+   [1] UNSHARED 16 → 32
  
- Final Output Layer: 32 → 10,
- &lt;optuna.study.study.Study at 0x318e1e010&gt;,
-      trial_number     val_mse  num_hidden_layers  hidden_dim_0  hidden_dim_1  \
- 0               0         NaN                  2            32          16.0   
- 1               1         NaN                  2            16           6.0   
- 2               2         NaN                  2            16           6.0   
- 3               3         NaN                  1            32           NaN   
- 4               4         NaN                  2             6           6.0   
- ..            ...         ...                ...           ...           ...   
- 215           215  256.507690                  2            32          32.0   
- 216           216  244.737457                  2            32          32.0   
- 217           217  324.963074                  1            32           NaN   
- 218           218  370.429413                  2             6          32.0   
- 219           219  325.065643                  2            32          32.0   
+ Final Output Layer:
+    SHARED  32 → 10,
+ &lt;optuna.study.study.Study at 0x2238f31b0d0&gt;,
+     trial_number  imputation_error  num_hidden_layers  hidden_dim_0  \
+ 0              0        471.357300                  2             6   
+ 1              1        281.187469                  2            32   
+ 2              2        335.337006                  2             6   
+ 3              3        294.416748                  1             6   
+ 4              4        208.593140                  2            32   
+ 5              5        290.728394                  2            16   
+ 6              6        352.566742                  2            16   
+ 7              7        316.873352                  2            16   
+ 8              8        342.178864                  2             6   
+ 9              9        355.935516                  2             6   
+ 10            10        322.344818                  1            32   
+ 11            11        325.406799                  1            32   
+ 12            12        353.754150                  2            32   
+ 13            13        376.329926                  2            32   
+ 14            14        317.611389                  1            32   
+ 15            15        319.031525                  2            32   
+ 16            16        384.458893                  2            32   
+ 17            17        204.753601                  2            32   
+ 18            18        313.878571                  1            32   
+ 19            19        248.689560                  2            32   
  
-     encoder_shared_placement decoder_shared_placement layer_order_enc_used  \
- 0                alternating                 at_start                  S,U   
- 1                     random                   at_end                  U,S   
- 2                alternating                 at_start                  S,U   
- 3                     random                   at_end                    S   
- 4                     at_end                 at_start                  U,S   
- ..                       ...                      ...                  ...   
- 215                 at_start                   random                  S,U   
- 216              alternating              alternating                  S,U   
- 217              alternating              alternating                    S   
- 218              alternating              alternating                  S,U   
- 219              alternating              alternating                  S,U   
+     hidden_dim_1 encoder_shared_placement decoder_shared_placement  \
+ 0           32.0                   random                   at_end   
+ 1           32.0                 at_start              alternating   
+ 2           16.0                   random                 at_start   
+ 3            NaN              alternating                   random   
+ 4           16.0                   at_end                   at_end   
+ 5            6.0                   random                   random   
+ 6           16.0                   random              alternating   
+ 7           16.0                 at_start                   at_end   
+ 8            6.0                 at_start              alternating   
+ 9            6.0                 at_start                 at_start   
+ 10           NaN                   at_end                   at_end   
+ 11           NaN                   at_end              alternating   
+ 12          32.0                   at_end                   at_end   
+ 13          32.0              alternating              alternating   
+ 14           NaN                   at_end                   at_end   
+ 15          16.0                 at_start              alternating   
+ 16          32.0                   at_end                   random   
+ 17          16.0                 at_start                 at_start   
+ 18           NaN              alternating                 at_start   
+ 19          16.0                   at_end                 at_start   
  
-     layer_order_dec_used  
- 0                    S,U  
- 1                    U,S  
- 2                    S,U  
- 3                      S  
- 4                    S,U  
- ..                   ...  
- 215                  S,U  
- 216                  S,U  
- 217                    S  
- 218                  S,U  
- 219                  S,U  
- 
- [220 rows x 9 columns])
+    layer_order_enc_used layer_order_dec_used  
+ 0                   U,S                  U,S  
+ 1                   S,U                  S,U  
+ 2                   S,U                  S,U  
+ 3                     S                    S  
+ 4                   U,S                  U,S  
+ 5                   S,U                  S,U  
+ 6                   U,S                  S,U  
+ 7                   S,U                  U,S  
+ 8                   S,U                  S,U  
+ 9                   S,U                  S,U  
+ 10                    S                    S  
+ 11                    S                    S  
+ 12                  U,S                  U,S  
+ 13                  S,U                  S,U  
+ 14                    S                    S  
+ 15                  S,U                  S,U  
+ 16                  U,S                  U,S  
+ 17                  S,U                  S,U  
+ 18                    S                    S  
+ 19                  U,S                  S,U  )
 </pre></div>
 </div>
 </div>
 </div>
 </section>
+</section>
+<section id="handling-categorical-data-columns">
+<h1>Handling Categorical Data Columns<a class="headerlink" href="#handling-categorical-data-columns" title="Link to this heading"></a></h1>
+<p>When using one-hot encoding to handle categorical data, the validation data must be structured such that if one dummy variable from a given category is added to the validation dataset, all dummy variables of that category must be added. In order to achieve this, one can create a <code class="docutils literal notranslate"><span class="pre">categorical_column_map</span></code> dictionary for which the keys are the original categorical column names and the entries are the corresponding dummy variable column names. Note: When using <code class="docutils literal notranslate"><span class="pre">categorical_column_map</span></code>, the <code class="docutils literal notranslate"><span class="pre">binary_feature_mask</span></code> must also be given.</p>
+<p>To illustrate this, we will use a high hold-out proportion of 0.5, which is less realistic in real-world situations but helps illustrate the use of <code class="docutils literal notranslate"><span class="pre">categorical_column_map</span></code>.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+
+<span class="n">n_rows</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="n">prop_mask</span> <span class="o">=</span> <span class="mf">0.30</span> 
+
+<span class="n">X</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
+    <span class="s2">&quot;feat1&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_rows</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat2&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat3&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat4&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s2">&quot;feat5&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="c1">## now add some categorical and binary features</span>
+    <span class="s2">&quot;c11&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;c12&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;c21&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.75</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;c22&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.33</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+    <span class="s2">&quot;b1&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">binomial</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.66</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">),</span>
+<span class="p">})</span>
+
+<span class="n">X_raw</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+<span class="c1">## define categorical groups</span>
+<span class="n">categorical_groups</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;c1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;c11&quot;</span><span class="p">,</span> <span class="s2">&quot;c12&quot;</span><span class="p">],</span>
+    <span class="s2">&quot;c2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;c21&quot;</span><span class="p">,</span> <span class="s2">&quot;c22&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+
+<span class="n">grouped_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">categorical_groups</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">group</span><span class="p">}</span>
+<span class="n">independent_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">X</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grouped_cols</span><span class="p">]</span>  <span class="c1"># skip feat1</span>
+
+<span class="c1">## mask independent columns</span>
+<span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">independent_cols</span><span class="p">:</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">X</span><span class="p">[</span><span class="n">col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">())[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">prop_mask</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mask_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_mask</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask_idx</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+<span class="c1">## mask grouped categoricals</span>
+<span class="k">for</span> <span class="n">group_name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">categorical_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="c1">## rows eligible only if ALL dummy cols are observed</span>
+    <span class="n">group_data</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
+    <span class="n">eligible</span> <span class="o">=</span> <span class="n">group_data</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">eligible</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">n_mask</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">prop_mask</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">n_mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mask_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">n_mask</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">X</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">mask_idx</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;X matrix:</span><span class="se">\n</span><span class="si">{</span><span class="n">X</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+<span class="c1">## choosing random clusters for now </span>
+<span class="n">clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">size</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">]</span>
+
+<span class="c1">## create categorical column map</span>
+
+<span class="n">ccm</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;c1&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;c11&#39;</span><span class="p">,</span> <span class="s1">&#39;c12&#39;</span><span class="p">],</span>
+    <span class="s1">&#39;c2&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;c21&#39;</span><span class="p">,</span> <span class="s1">&#39;c22&#39;</span><span class="p">]</span>
+<span class="p">}</span>
+
+<span class="n">cd</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span>
+    <span class="n">X</span><span class="p">,</span> <span class="n">cluster_labels</span> <span class="o">=</span> <span class="n">clusters</span><span class="p">,</span> <span class="n">binary_feature_mask</span><span class="o">=</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">categorical_column_map</span> <span class="o">=</span> <span class="n">ccm</span><span class="p">,</span> <span class="n">val_proportion</span> <span class="o">=</span> <span class="mf">0.5</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>X matrix:
+    feat1  feat2  feat3  feat4  feat5  c11  c12  c21  c22   b1
+0      52    2.0    6.0    4.0    2.0  NaN  NaN  NaN  NaN  NaN
+1      93    1.0    7.0    NaN    2.0  0.0  1.0  1.0  1.0  NaN
+2      15    4.0    NaN    4.0    2.0  0.0  0.0  1.0  0.0  1.0
+3      72    4.0    3.0    NaN    1.0  1.0  1.0  NaN  NaN  NaN
+4      61    NaN    1.0    NaN    1.0  NaN  NaN  NaN  NaN  0.0
+..    ...    ...    ...    ...    ...  ...  ...  ...  ...  ...
+95     85    NaN    NaN    6.0    2.0  0.0  0.0  1.0  0.0  1.0
+96     80    1.0    NaN    7.0    2.0  NaN  NaN  1.0  1.0  1.0
+97     82    2.0    4.0    NaN    1.0  NaN  NaN  1.0  1.0  1.0
+98     53    4.0    3.0    7.0    7.0  0.0  0.0  0.0  0.0  NaN
+99     24    4.0    1.0    3.0    NaN  0.0  1.0  1.0  1.0  0.0
+
+[100 rows x 10 columns]
+</pre></div>
+</div>
+</div>
+</div>
+<p>As we can see from the validation dataset printed below, c11 and c12 are masked together and c21 and c22 are masked together.</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert val_data tensor to numpy</span>
+<span class="n">val_data_np</span> <span class="o">=</span> <span class="n">cd</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+<span class="c1"># Reconstruct DataFrame with original column names</span>
+<span class="n">val_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">val_data_np</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">cd</span><span class="o">.</span><span class="n">feature_names</span><span class="p">)</span>
+
+<span class="c1"># Print nicely</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">val_df</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">20</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>    feat1  feat2  feat3  feat4  feat5  c11  c12  c21  c22   b1
+0    52.0    2.0    6.0    4.0    2.0  NaN  NaN  NaN  NaN  NaN
+1    93.0    1.0    7.0    NaN    NaN  0.0  1.0  1.0  1.0  NaN
+2     NaN    NaN    NaN    4.0    NaN  NaN  NaN  1.0  0.0  1.0
+3    72.0    NaN    3.0    NaN    NaN  1.0  1.0  NaN  NaN  NaN
+4     NaN    NaN    NaN    NaN    1.0  NaN  NaN  NaN  NaN  0.0
+5     NaN    NaN    5.0    NaN    1.0  0.0  1.0  NaN  NaN  NaN
+6    83.0    1.0    NaN    NaN    NaN  NaN  NaN  NaN  NaN  NaN
+7     NaN    NaN    NaN    3.0    NaN  NaN  NaN  1.0  1.0  NaN
+8    75.0    NaN    NaN    NaN    NaN  NaN  NaN  1.0  0.0  0.0
+9    75.0    1.0    NaN    NaN    5.0  0.0  1.0  1.0  0.0  NaN
+10   88.0    NaN    2.0    2.0    NaN  NaN  NaN  1.0  0.0  NaN
+11    NaN    NaN    NaN    6.0    NaN  NaN  NaN  1.0  1.0  NaN
+12   24.0    1.0    NaN    NaN    NaN  0.0  1.0  NaN  NaN  1.0
+13    3.0    NaN    6.0    NaN    NaN  0.0  1.0  NaN  NaN  1.0
+14   22.0    NaN    NaN    6.0    2.0  0.0  1.0  1.0  0.0  NaN
+15   53.0    3.0    NaN    3.0    1.0  NaN  NaN  NaN  NaN  1.0
+16    2.0    NaN    NaN    NaN    NaN  0.0  0.0  NaN  NaN  1.0
+17   88.0    3.0    1.0    NaN    4.0  NaN  NaN  1.0  0.0  NaN
+18    NaN    NaN    3.0    4.0    NaN  NaN  NaN  NaN  NaN  NaN
+19   38.0    NaN    NaN    1.0    NaN  NaN  NaN  1.0  1.0  NaN
+</pre></div>
+</div>
+</div>
+</div>
 </section>
 
 

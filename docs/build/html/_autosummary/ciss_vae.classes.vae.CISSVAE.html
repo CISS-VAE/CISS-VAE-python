@@ -9,7 +9,7 @@
   <title>ciss_vae.classes.vae.CISSVAE &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
@@ -55,6 +55,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../binary_vignette.html">Handling binary data columns</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../binary_vignette.html#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -264,17 +265,14 @@ unshared stacks are inconsistent with the directives.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>mu</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">latent_dim)</span></code>) – Mean of the approximate posterior.</p></li>
 <li><p><strong>logvar</strong> (torch.Tensor, shape <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">latent_dim)</span></code>) – Log‑variance of the approximate posterior.</p></li>
-<li><p><strong>generator</strong> – Optionl for RNG control (default None)</p></li>
+<li><p><strong>generator</strong> (<em>torch.Generator</em>) – Optionl for RNG control (default None)</p></li>
 </ul>
 </dd>
-</dl>
-<p>:type torch.Generator</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Sampled latent codes <code class="docutils literal notranslate"><span class="pre">z</span></code>.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sampled latent codes <code class="docutils literal notranslate"><span class="pre">z</span></code>.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>torch.Tensor</p>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
 </dd></dl>
@@ -341,7 +339,7 @@ unshared stacks are inconsistent with the directives.</p>
 <span class="sig-name descname"><span class="pre">get_imputed_valdata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deterministic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.get_imputed_valdata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata" title="Link to this definition"></a></dt>
 <dd><p>Get denormalized imputed data from the trained model.</p>
 <blockquote>
-<div><p>[IMPORTANT!] The validation data is also imputed here! This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</p>
+<div><p>[IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</p>
 </div></blockquote>
 <p>Performs a forward pass of the model in evaluation mode to reconstruct
 validation data. The reconstructed output is then denormalized using the

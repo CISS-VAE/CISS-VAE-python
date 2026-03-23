@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ciss_vae.utils.helpers.plot_vae_architecture &mdash; CISS-VAE 1.0.18 documentation</title>
+  <title>ciss_vae.utils.helpers.get_imputed &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
@@ -24,8 +24,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ciss_vae.utils.helpers.get_imputed" href="ciss_vae.utils.helpers.get_imputed.html" />
-    <link rel="prev" title="ciss_vae.utils.matrix.create_missingness_prop_matrix" href="ciss_vae.utils.matrix.create_missingness_prop_matrix.html" /> 
+    <link rel="next" title="ciss_vae.utils.helpers.get_imputed_df" href="ciss_vae.utils.helpers.get_imputed_df.html" />
+    <link rel="prev" title="ciss_vae.utils.helpers.plot_vae_architecture" href="ciss_vae.utils.helpers.plot_vae_architecture.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -68,11 +68,11 @@
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.clustering.cluster_on_missing.html">ciss_vae.utils.clustering.cluster_on_missing</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.clustering.cluster_on_missing_prop.html">ciss_vae.utils.clustering.cluster_on_missing_prop</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.matrix.create_missingness_prop_matrix.html">ciss_vae.utils.matrix.create_missingness_prop_matrix</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.helpers.plot_vae_architecture</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.helpers.plot_vae_architecture"><code class="docutils literal notranslate"><span class="pre">plot_vae_architecture()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.plot_vae_architecture.html">ciss_vae.utils.helpers.plot_vae_architecture</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">ciss_vae.utils.helpers.get_imputed</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#ciss_vae.utils.helpers.get_imputed"><code class="docutils literal notranslate"><span class="pre">get_imputed()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed.html">ciss_vae.utils.helpers.get_imputed</a></li>
 <li class="toctree-l3"><a class="reference internal" href="ciss_vae.utils.helpers.get_imputed_df.html">ciss_vae.utils.helpers.get_imputed_df</a></li>
 </ul>
 </li>
@@ -95,9 +95,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
-      <li class="breadcrumb-item active">ciss_vae.utils.helpers.plot_vae_architecture</li>
+      <li class="breadcrumb-item active">ciss_vae.utils.helpers.get_imputed</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/_autosummary/ciss_vae.utils.helpers.plot_vae_architecture.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/_autosummary/ciss_vae.utils.helpers.get_imputed.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -105,34 +105,28 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="ciss-vae-utils-helpers-plot-vae-architecture">
-<h1>ciss_vae.utils.helpers.plot_vae_architecture<a class="headerlink" href="#ciss-vae-utils-helpers-plot-vae-architecture" title="Link to this heading"></a></h1>
+  <section id="ciss-vae-utils-helpers-get-imputed">
+<h1>ciss_vae.utils.helpers.get_imputed<a class="headerlink" href="#ciss-vae-utils-helpers-get-imputed" title="Link to this heading"></a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="ciss_vae.utils.helpers.plot_vae_architecture">
-<span class="sig-name descname"><span class="pre">plot_vae_architecture</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_shared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'skyblue'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_unshared</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lightcoral'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_latent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gold'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_input</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lightgreen'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color_output</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'lightgreen'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(16,</span> <span class="pre">8)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize_layer</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">12</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize_section</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">14</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fontsize_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/helpers.html#plot_vae_architecture"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.helpers.plot_vae_architecture" title="Link to this definition"></a></dt>
-<dd><p>Plots a horizontal schematic of the VAE architecture, showing shared and cluster-specific layers.</p>
+<dt class="sig sig-object py" id="ciss_vae.utils.helpers.get_imputed">
+<span class="sig-name descname"><span class="pre">get_imputed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/utils/helpers.html#get_imputed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.utils.helpers.get_imputed" title="Link to this definition"></a></dt>
+<dd><p>Returns a ClusterDataset where originally missing values have been replaced with model reconstructions.</p>
+<p>Processes the dataset through the trained VAE model to reconstruct missing values,
+including validation-masked entries. The returned dataset maintains the same structure
+as the original but with missing values filled in.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>nn.Module</em>) – An instance of CISSVAE model to visualize</p></li>
-<li><p><strong>title</strong> (<em>str</em><em>, </em><em>optional</em>) – Title of the plot, defaults to None</p></li>
-<li><p><strong>color_shared</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for shared hidden layers, defaults to “skyblue”</p></li>
-<li><p><strong>color_unshared</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for unshared hidden layers, defaults to “lightcoral”</p></li>
-<li><p><strong>color_latent</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for latent layer, defaults to “gold”</p></li>
-<li><p><strong>color_input</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for input layer, defaults to “lightgreen”</p></li>
-<li><p><strong>color_output</strong> (<em>str</em><em>, </em><em>optional</em>) – Color for output layer, defaults to “lightgreen”</p></li>
-<li><p><strong>figsize</strong> (<em>tuple</em><em>, </em><em>optional</em>) – Size of the matplotlib figure, defaults to (16, 8)</p></li>
-<li><p><strong>return_fig</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to return the figure object instead of displaying, defaults to False</p></li>
-<li><p><strong>fontsize_layer</strong> (<em>int</em><em>, </em><em>optional</em>) – Font size of layer blocks, defaults to 12</p></li>
-<li><p><strong>fontsize_section</strong> (<em>int</em><em>, </em><em>optional</em>) – Font size of encoder/decoder labels, defaults to 14</p></li>
-<li><p><strong>fontsize_title</strong> (<em>int</em><em>, </em><em>optional</em>) – Font size of title, defaults to 16</p></li>
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Trained VAE model</p></li>
+<li><p><strong>data_loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader for the original ClusterDataset</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Torch device for computations, defaults to “cpu”</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Matplotlib figure object if return_fig is True, otherwise None</p>
+<dd class="field-even"><p>ClusterDataset with reconstructed values filled in at originally missing positions</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>matplotlib.figure.Figure or None</p>
+<dd class="field-odd"><p><a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset">ClusterDataset</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -143,8 +137,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="ciss_vae.utils.matrix.create_missingness_prop_matrix.html" class="btn btn-neutral float-left" title="ciss_vae.utils.matrix.create_missingness_prop_matrix" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="ciss_vae.utils.helpers.get_imputed.html" class="btn btn-neutral float-right" title="ciss_vae.utils.helpers.get_imputed" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="ciss_vae.utils.helpers.plot_vae_architecture.html" class="btn btn-neutral float-left" title="ciss_vae.utils.helpers.plot_vae_architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ciss_vae.utils.helpers.get_imputed_df.html" class="btn btn-neutral float-right" title="ciss_vae.utils.helpers.get_imputed_df" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
