@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import torch
 from ciss_vae.classes.cluster_dataset import ClusterDataset
+from ciss_vae.training.run_cissvae import run_cissvae
 
 
 class TestClusterDatasetCategoricalValidation:
@@ -663,3 +664,166 @@ class TestClusterDatasetCategoricalValidation:
         for ordinary in ["X1", "X2", "B1", "B2"]:
             assert ordinary in ds.validation_units
             assert ds.validation_units[ordinary]["kind"] == "column"
+
+    # ---------------------------------------------------------------------
+    # run_cissvae integration tests for categorical_column_map behavior
+    # ---------------------------------------------------------------------
+
+    def test_categorical_column_map_masks_grouped_dummy_columns_together(self, minimal_params):
+        """
+        Test that categorical_column_map causes validation masking to happen at the
+        original categorical-variable level rather than independently for each dummy
+        column.
+
+        Expected behavior:
+        - validation_units should contain original category names (e.g. "C1", "C2")
+        - dummy columns belonging to the same category should not appear as separate
+        validation units
+        - if one dummy column in a grouped category is selected for validation in a
+        given row, all dummy columns in that grouped category should be selected
+        in that same row
+        """
+        data = pd.DataFrame(
+            {
+                "X1":   [1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+                "X2":   [10.0, 20.0, 30.0, 40.0, 50.0, 60.0],
+                "B1":   [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                "B2":   [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                "C1b1": [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                "C1b2": [0.0, 1.0, 0.0, 1.0, 0.0, 1.0],
+                "C2b1": [1.0, 1.0, 0.0, 0.0, 1.0, 0.0],
+                "C2b2": [0.0, 0.0, 1.0, 1.0, 0.0, 1.0],
+            }
+        )
+
+        binary_feature_mask = np.array(
+            [False, False, True, True, True, True, True, True],
+            dtype=bool,
+        )
+
+        categorical_column_map = {
+            "C1": ["C1b1", "C1b2"],
+            "C2": ["C2b1", "C2b2"],
+        }
+
+        clusters = np.array([0, 0, 0, 1, 1, 1], dtype=int)
+
+        params = minimal_params.copy()
+        params.update(
+            {
+                "return_dataset": True,
+                "return_model": False,
+                "return_clusters": True,
+                "return_silhouettes": False,
+                "return_history": False,
+                "clusters": clusters,
+                "binary_feature_mask": binary_feature_mask,
+                "categorical_column_map": categorical_column_map,
+                "val_proportion": 0.5,
+                "seed": 42,
+            }
+        )
+
+        result = run_cissvae(data, **params)
+
+        # Expected return order:
+        # imputed_dataset, dataset, clusters
+        imputed_dataset, dataset, returned_clusters = result
+
+        assert isinstance(imputed_dataset, pd.DataFrame)
+        assert isinstance(dataset, ClusterDataset)
+        assert isinstance(returned_clusters, np.ndarray)
+
+        assert np.array_equal(returned_clusters, clusters)
+
+        assert "C1" in dataset.validation_units
+        assert "C2" in dataset.validation_units
+
+        assert dataset.validation_units["C1"]["kind"] == "categorical"
+        assert dataset.validation_units["C2"]["kind"] == "categorical"
+
+        assert "C1b1" not in dataset.validation_units
+        assert "C1b2" not in dataset.validation_units
+        assert "C2b1" not in dataset.validation_units
+        assert "C2b2" not in dataset.validation_units
+
+        c1_cols = [dataset.feature_names[i] for i in dataset.validation_units["C1"]["cols"]]
+        c2_cols = [dataset.feature_names[i] for i in dataset.validation_units["C2"]["cols"]]
+
+        assert c1_cols == ["C1b1", "C1b2"]
+        assert c2_cols == ["C2b1", "C2b2"]
+
+        val_mask = dataset.val_mask.cpu().numpy()
+
+        c1_mask_1 = val_mask[:, dataset.feature_names.index("C1b1")]
+        c1_mask_2 = val_mask[:, dataset.feature_names.index("C1b2")]
+        c2_mask_1 = val_mask[:, dataset.feature_names.index("C2b1")]
+        c2_mask_2 = val_mask[:, dataset.feature_names.index("C2b2")]
+
+        assert np.array_equal(c1_mask_1, c1_mask_2)
+        assert np.array_equal(c2_mask_1, c2_mask_2)
+
+        assert dataset.categorical_column_map == categorical_column_map
+
+
+    def test_categorical_column_map_excludes_partially_observed_grouped_rows(self, minimal_params):
+        """
+        Test that a row is not eligible for grouped categorical validation masking
+        when one dummy column in that grouped category is missing.
+        """
+        data = pd.DataFrame(
+            {
+                "X1":   [1.0, 2.0, 3.0, 4.0],
+                "X2":   [10.0, 20.0, 30.0, 40.0],
+                "B1":   [0.0, 1.0, 0.0, 1.0],
+                "B2":   [1.0, 0.0, 1.0, 0.0],
+                "C1b1": [np.nan, 0.0, 1.0, 0.0],
+                "C1b2": [0.0,    1.0, 0.0, 1.0],
+                "C2b1": [1.0, 1.0, 0.0, 0.0],
+                "C2b2": [0.0, 0.0, 1.0, 1.0],
+            }
+        )
+
+        binary_feature_mask = np.array(
+            [False, False, True, True, True, True, True, True],
+            dtype=bool,
+        )
+
+        categorical_column_map = {
+            "C1": ["C1b1", "C1b2"],
+            "C2": ["C2b1", "C2b2"],
+        }
+
+        clusters = np.array([0, 0, 1, 1], dtype=int)
+
+        params = minimal_params.copy()
+        params.update(
+            {
+                "return_dataset": True,
+                "return_model": False,
+                "return_clusters": True,
+                "return_silhouettes": False,
+                "return_history": False,
+                "clusters": clusters,
+                "binary_feature_mask": binary_feature_mask,
+                "categorical_column_map": categorical_column_map,
+                "val_proportion": 0.5,
+                "seed": 42,
+            }
+        )
+
+        result = run_cissvae(data, **params)
+        imputed_dataset, dataset, returned_clusters = result
+
+        assert isinstance(imputed_dataset, pd.DataFrame)
+        assert isinstance(dataset, ClusterDataset)
+        assert isinstance(returned_clusters, np.ndarray)
+
+        val_mask = dataset.val_mask.cpu().numpy()
+        c1b1_idx = dataset.feature_names.index("C1b1")
+        c1b2_idx = dataset.feature_names.index("C1b2")
+
+        # Row 0 has partial missingness for grouped category C1 and should not be
+        # eligible for grouped C1 validation masking.
+        assert not val_mask[0, c1b1_idx]
+        assert not val_mask[0, c1b2_idx]

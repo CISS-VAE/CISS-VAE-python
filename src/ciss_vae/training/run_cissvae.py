@@ -15,6 +15,7 @@ def run_cissvae(
     print_dataset = True, 
     imputable_matrix = None,
     binary_feature_mask = None,
+    categorical_column_map = None,
     ## dataset params
     clusters = None, 
     n_clusters = None,     
@@ -320,7 +321,8 @@ def run_cissvae(
                             replacement_value = replacement_value, 
                             columns_ignore = columns_ignore,
                             imputable = imputable_matrix,
-                            binary_feature_mask=binary_feature_mask)
+                            binary_feature_mask=binary_feature_mask,
+                            categorical_column_map =  categorical_column_map )
 
     if print_dataset:
         print("Cluster dataset:\n", dataset)
