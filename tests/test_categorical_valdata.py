@@ -117,7 +117,7 @@ class TestClusterDatasetCategoricalValidation:
         )
 
         for feature_name in ["X1", "X2", "B1", "B2"]:
-            assert ds.validation_units[feature_name]["kind"] == "column"
+            assert ds.validation_units[feature_name]["kind"] in ["binary", "continuous"]
             cols = ds.validation_units[feature_name]["cols"]
             assert len(cols) == 1
             assert ds.feature_names[cols[0]] == feature_name
@@ -663,7 +663,7 @@ class TestClusterDatasetCategoricalValidation:
 
         for ordinary in ["X1", "X2", "B1", "B2"]:
             assert ordinary in ds.validation_units
-            assert ds.validation_units[ordinary]["kind"] == "column"
+            assert ds.validation_units[ordinary]["kind"] in ["binary", "continuous"]
 
     # ---------------------------------------------------------------------
     # run_cissvae integration tests for categorical_column_map behavior

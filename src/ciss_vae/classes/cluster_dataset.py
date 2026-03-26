@@ -174,7 +174,7 @@ class ClusterDataset(Dataset):
                                 if col in self.columns_ignore]
 
             # Build a numeric matrix column-by-column:
-            # - ignored columns -> float column filled with NaN (kept in shape, never used)
+            # - ignored columns -> if not numeric become float column filled with NaN (kept in shape, never used)
             # - non-ignored columns -> must be numeric; error if not
             converted_cols = []
             bad_cols = []
@@ -445,10 +445,23 @@ class ClusterDataset(Dataset):
             if col_idx in dummy_cols_in_groups:
                 continue
 
-            self.validation_units[feature_name] = {
-                "kind": "column",
+            if self.binary_feature_mask is None:
+                is_binary = False
+            else:
+                is_binary = self.binary_feature_mask[col_idx]
+
+            if is_binary:
+                self.validation_units[feature_name] = {
+                "kind": "binary",
                 "cols": [col_idx],
             }
+            else:
+                self.validation_units[feature_name] = {
+                "kind": "continuous",
+                "cols": [col_idx],
+            }
+
+
 
         # Now add categorical grouped units using the ORIGINAL category names.
         for main_cat_name, group_cols in self.categorical_group_indices.items():
@@ -502,7 +515,7 @@ class ClusterDataset(Dataset):
                 #
                 # We choose candidate rows where that one column is observed.
                 # ----------------------------------------------------------
-                if unit_kind == "column":
+                if unit_kind in ["binary", "continuous"]:
                     col = unit_cols[0]
 
                     mask_non_missing = ~np.isnan(cluster_data[:, col])
