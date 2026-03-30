@@ -62,7 +62,7 @@ class CISSVAE(nn.Module):
                  output_shared,
                  num_clusters,
                  # new optional inputs to define binary features at init time -> udpdate 14OCT2025
-                 binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
+                 activation_groups = None,
                  debug=False,):
         """
         Variational Autoencoder supporting flexible shared/unshared layers across clusters.
@@ -83,8 +83,8 @@ class CISSVAE(nn.Module):
         :type output_shared: bool
         :param num_clusters: Number of clusters.
         :type num_clusters: int
-        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns
-        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]
+        :param activation_groups: Defines type of each column for the purpose of matching columns to the correct activation and loss functions. 
+        :type activation_groups: dict 
         :param debug: If ``True``, print shape and routing information.
         :type debug: bool
         """
@@ -100,27 +100,47 @@ class CISSVAE(nn.Module):
         self.hidden_dims = hidden_dims
 
         # -------------------------
-        # (NEW) Binary feature mask
-        # - Added 14 OCT 2025
-        # - Create a mask that dictates which features are binary and which are not 
-        # - allows for sigmoid at end for binary features only
+        # (NEW) Activation groups metadata
+        # - Replaces binary_feature_mask
+        # - Stores feature structure for downstream use (loss, imputation, validation)
         # -------------------------
-        # We store this as a registered buffer so it follows the model to CUDA/CPU and into checkpoints.
-        mask = None
-        if binary_feature_mask is not None:
-            # Accept torch.Tensor or sequence of bools; validate length
-            ## Debug statement - Binary feature mask
-            if(self.debug):
-                print(f"Binary Feature Mask: {binary_feature_mask}\n\n")
-            mask = torch.as_tensor(binary_feature_mask, dtype=torch.bool)
-            if mask.ndim != 1 or mask.numel() != input_dim:
-                raise ValueError("binary_feature_mask must be a 1D boolean vector of length input_dim.")
-        else:
-            # Default: if nothing provided, treat no columns as binary until user sets it.
-            mask = torch.zeros(input_dim, dtype=torch.bool)
+        if activation_groups is not None:
+            if self.debug:
+                print(f"Activation Groups: {activation_groups}\n")
 
-        # register as buffer to track with device / state_dict
-        self.register_buffer("binary_mask", mask)  # shape: (input_dim,)
+            if not isinstance(activation_groups, dict):
+                raise ValueError("activation_groups must be a dictionary.")
+
+            # Validate and normalize
+            validated_groups = {}
+            for key, cols in activation_groups.items():
+                if not isinstance(cols, (list, tuple)):
+                    raise ValueError(f"activation_groups['{key}'] must be a list of column indices.")
+
+                clean_cols = []
+                for c in cols:
+                    if not isinstance(c, (int, np.integer)):
+                        raise ValueError(f"Column index '{c}' in group '{key}' is not an integer.")
+                    c = int(c)
+                    if not (0 <= c < input_dim):
+                        raise ValueError(
+                            f"Column index {c} in group '{key}' is out of bounds for input_dim={input_dim}."
+                        )
+                    clean_cols.append(c)
+
+                validated_groups[key] = clean_cols
+
+            # Store as plain attribute (NOT a buffer)
+            self.activation_groups = validated_groups
+
+        else:
+            # Default: treat everything as continuous if nothing provided
+            if self.debug:
+                print("No activation_groups provided; defaulting to all continuous.\n")
+
+            self.activation_groups = {
+                "continuous": list(range(input_dim))
+            }
 
         # ----------------------------
         # Encoder: shared and unshared
@@ -377,7 +397,7 @@ class CISSVAE(nn.Module):
                                  dtype=z.dtype)
             for cluster_mask, z_out in outputs:
                 logits[cluster_mask] = z_out
-        return self._apply_output_activations(logits)
+        return logits
 
     def forward(self, x, cluster_labels, deterministic=False, *, generator = None):
         r"""
@@ -456,176 +476,174 @@ class CISSVAE(nn.Module):
         """Returns the learning rate stored with self.set_final_lr/"""
         return(self.final_lr)
 
-    def get_imputed_valdata(self, dataset, device = "cpu", deterministic=True):
-        """ Get denormalized imputed data from the trained model.
-
-        [IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.
-
-    Performs a forward pass of the model in evaluation mode to reconstruct 
-    validation data. The reconstructed output is then denormalized using the 
-    dataset's feature means and standard deviations. Features with zero 
-    standard deviation are replaced with 1.0 to ensure numerical stability.
-
-    :param dataset: Dataset object containing normalized data, validation data, and feature statistics.
-        Must include:
-          - ``data``: Normalized input tensor of shape ``(n_samples, n_features)``
-          - ``val_data``: Original validation data tensor of shape ``(n_samples, n_features)``
-          - ``cluster_labels``: Cluster assignments for each sample, shape ``(n_samples,)``
-          - ``feature_means``: Per-feature means, length ``n_features``
-          - ``feature_stds``: Per-feature standard deviations, length ``n_features``
-          - ``feature_names``: List of feature names (used for zero-std warnings)
-    :type dataset: ClusterDataset
-
-    :param device: Device to perform computations on (e.g., ``"cpu"`` or ``"cuda"``). Default is ``"cpu"``.
-    :type device: str, optional
-
-    :param deterministic: Deterministic Evaluation of Model for Imputation (default True). 
-    :type deterministic: bool
-
-    :returns: Denormalized reconstructed (imputed) validation data of shape ``(n_samples, n_features)``.
-    :rtype: torch.Tensor
-
-    .. note::
-        - The model is evaluated using ``self.eval()`` (disables dropout, batchnorm updates, etc.).
-        - Features with ``std == 0`` are replaced with ``1.0`` and a warning listing affected features is printed.
-        - The returned tensor corresponds to the model's best reconstruction of the validation data after denormalization.
-
-    **Example**::
-
-        >>> vae = CISSVAE(...)
-        >>> dataset = ClusterDataset(...)
-        >>> imputed_val = vae.get_imputed_valdata(dataset, device="cuda")
-        >>> imputed_val.shape
-        torch.Size([100, 20])
-        """
+    def get_imputed_valdata(self, dataset, device="cpu", deterministic=True):
         self.eval()
 
-        # Get normalized inputs and val data
-        full_x = dataset.data.to(device)                       # (N, D), normalized
-        full_cluster = dataset.cluster_labels.to(device)       # (N,)
-        val_data = dataset.val_data.to(device)                 # (N, D), not normalized
-        val_mask = torch.isnan(val_data)                      # (N, D)
+        full_x = dataset.data.to(device)
+        full_cluster = dataset.cluster_labels.to(device)
+        val_data = dataset.val_data.to(device)
+        val_mask = torch.isnan(val_data)
 
         with torch.no_grad():
-            recon_x, _, _ = self.forward(full_x, full_cluster, deterministic=deterministic)        # normalized output
+            logits, _, _ = self.forward(full_x, full_cluster, deterministic=deterministic)
 
-        # Retrieve per-feature stats
         means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
         stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
 
-            # check for zero std features
+        # handle zero std
         zero_std_idx = torch.where(stds == 0)[0]
         if zero_std_idx.numel() > 0:
             bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
-            print(
-                f"[Warning] {len(bad_feats)} feature(s) have std == 0. "
-                f"Replaced with 1.0. Features: {bad_feats}"
-            )
-            stds[zero_std_idx] = 1.0  # safe replacement
+            print(f"[Warning] std == 0 → replaced with 1.0: {bad_feats}")
+            stds[zero_std_idx] = 1.0
 
-        # ------------------------------------------------------------------
-        # Identify binary vs continuous features
-        # ------------------------------------------------------------------
-        if getattr(dataset, "binary_feature_mask", None) is None:
-            bin_1d = torch.zeros(recon_x.shape[1], dtype=torch.bool, device=device)
-        else:
-            bin_1d = torch.as_tensor(
-                dataset.binary_feature_mask, dtype=torch.bool, device=device
-            )
+        recon_out = logits.clone().to(torch.float32)
 
-        cont_1d = ~bin_1d
+        # --------------------------------------------------
+        # USE activation_groups (NOT binary mask)
+        # --------------------------------------------------
+        for name, cols in dataset.activation_groups.items():
 
-        # ------------------------------------------------------------------
-        # Build output safely
-        # ------------------------------------------------------------------
-        recon_out = recon_x.clone().to(torch.float32)
+            cols = torch.tensor(cols, device=device)
 
-        # Denormalize ONLY continuous features
-        if cont_1d.any():
-            ccols = torch.nonzero(cont_1d, as_tuple=False).squeeze(1)
-            recon_out[:, ccols] = recon_x[:, ccols] * stds[ccols] + means[ccols]
+            # -------------------------
+            # CONTINUOUS
+            # -------------------------
+            if name == "continuous":
+                recon_out[:, cols] = logits[:, cols] * stds[cols] + means[cols]
 
-        # Blank out non-validation (observed) entries ->. keep only validation reconstructions
-        recon_out[val_mask] = float('nan') 
+            # -------------------------
+            # BINARY
+            # -------------------------
+            elif name == "binary":
+                recon_out[:, cols] = torch.sigmoid(logits[:, cols])
 
-        return(recon_out)
+            # -------------------------
+            # CATEGORICAL
+            # -------------------------
+            else:
+                probs = torch.softmax(logits[:, cols], dim=1)
+                idx = torch.argmax(probs, dim=1)
 
-        # -----------------------------
-        # NEW -> handles sigmoid
-        # -----------------------------
+                recon_out[:, cols] = 0
+                recon_out[torch.arange(recon_out.shape[0]), cols[idx]] = 1
 
-    def _apply_output_activations(self, logits: torch.Tensor) -> torch.Tensor:
-        """
-        Applies per-feature output activations:
-            - Binary columns (self.binary_mask == True) -> sigmoid
-            - Continuous columns -> identity (no activation)
+        # only keep imputed values
+        recon_out[val_mask] = float("nan")
 
-        Args:
-            logits: Tensor of shape (batch, input_dim) containing final-layer outputs.
+        return recon_out
 
-        Returns:
-            Tensor of same shape with sigmoid applied only to binary columns.
-        """
-        # if(self.debug):
-        #         print(f"From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n")
-        if logits.shape[1] != self.input_dim:
-            raise RuntimeError("Output dim mismatch; expected last dim == input_dim.")
-        if self.binary_mask is None:
-            # Should not happen, but be safe
-            return logits
-
-        if not torch.any(self.binary_mask):
-            # No binary columns
-            return logits
-
-        # Clone only if needed; avoids extra mem if no binary cols.
-        out = logits.clone()
-        out[:, self.binary_mask] = torch.sigmoid(out[:, self.binary_mask])
-        return out
-
-        # -----------------------------
-        # NEW -> Add mask after initialization
-        # -----------------------------
     @torch.no_grad()
-    def set_binary_features(self,
-                            mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
-                            feature_names: Optional[Sequence[str]] = None,
-                            binary_feature_names: Optional[Iterable[str]] = None) -> None:
+    def set_activation_groups(
+        self,
+        activation_groups: dict,
+    ) -> None:
         """
-        Update which columns are treated as binary at the output. This function should not be necessary for user to touch.
+        Attach feature activation structure to the model.
 
-        You can pass either:
-          - mask: 1D bool vector length `input_dim`, or
-          - feature_names + binary_feature_names: names → mask is computed
+        This method stores the resolved `activation_groups` dictionary, which defines how
+        each input column should be interpreted during loss computation and imputation.
 
-        This is safe to call after loading a model or dataset schema.
+        The model itself does NOT use this information during the forward pass; it is
+        stored purely as metadata to ensure consistency between the model, dataset,
+        loss functions, and imputation routines.
 
-        Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)
+        Parameters
+        ----------
+        activation_groups : dict
+            Dictionary mapping feature types to column indices. Expected format:
 
-        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns
-        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]
-        :param feature_names: List of all feature names - used with 'binary_feature_names'.
-        :type feature_names: Optional[Sequence[str]]
-        :param binary_feature_names: List of all binary features (features must also be included in 'feature_names').
-        :type binary_feature_names: Optional[Iterable[str]]
+            {
+                "continuous": [col_idx, ...],
+                "binary": [col_idx, ...],
+                "<categorical_name>": [col_idx, ...],
+                ...
+            }
+
+            - "continuous": indices of continuous-valued features
+            - "binary": indices of binary features
+            - Each additional key represents a grouped categorical variable
+            (multiple columns corresponding to one variable)
+
+        Raises
+        ------
+        ValueError
+            If activation_groups is not a dictionary or contains invalid column indices.
+
+        Notes
+        -----
+        - This replaces the old `set_binary_features` functionality.
+        - The model outputs raw logits for all features; interpretation is handled
+        externally using `activation_groups`.
+        - This function is primarily used after loading a model to reattach dataset
+        structure if needed.
+
+        Example
+        -------
+        >>> vae.set_activation_groups(dataset.activation_groups)
         """
-        if mask is not None:
-            mask = torch.as_tensor(mask, dtype=torch.bool, device=self.binary_mask.device)
-            if mask.ndim != 1 or mask.numel() != self.input_dim:
-                raise ValueError("mask must be a 1D boolean vector of length input_dim.")
-            self.binary_mask.copy_(mask)  # in-place update to keep buffer reference
-            return
 
-        if (feature_names is None) or (binary_feature_names is None):
-            raise ValueError("Provide either `mask` or (`feature_names` and `binary_feature_names`).")
+        if not isinstance(activation_groups, dict):
+            raise ValueError("activation_groups must be a dictionary.")
 
-        feat2idx = {name: i for i, name in enumerate(feature_names)}
-        newmask = torch.zeros(self.input_dim, dtype=torch.bool, device=self.binary_mask.device)
-        for bname in binary_feature_names:
-            if bname not in feat2idx:
-                raise ValueError(f"Binary feature name '{bname}' not found in feature_names.")
-            newmask[feat2idx[bname]] = True
-        self.binary_mask.copy_(newmask)
+        # Validate structure
+        for key, cols in activation_groups.items():
+            if not isinstance(cols, (list, tuple)):
+                raise ValueError(f"activation_groups['{key}'] must be a list of column indices.")
+
+            for c in cols:
+                if not isinstance(c, (int, np.integer)):
+                    raise ValueError(f"Column index '{c}' in group '{key}' is not an integer.")
+                if not (0 <= int(c) < self.input_dim):
+                    raise ValueError(
+                        f"Column index {c} in group '{key}' is out of bounds for input_dim={self.input_dim}."
+                    )
+
+        # Store as plain attribute (NOT buffer)
+        self.activation_groups = {
+            k: list(map(int, v)) for k, v in activation_groups.items()
+        }
+        
+    # @torch.no_grad()
+    # def set_binary_features(self,
+    #                         mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,
+    #                         feature_names: Optional[Sequence[str]] = None,
+    #                         binary_feature_names: Optional[Iterable[str]] = None) -> None:
+    #     """
+    #     Update which columns are treated as binary at the output. This function should not be necessary for user to touch.
+
+    #     You can pass either:
+    #       - mask: 1D bool vector length `input_dim`, or
+    #       - feature_names + binary_feature_names: names → mask is computed
+
+    #     This is safe to call after loading a model or dataset schema.
+
+    #     Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)
+
+    #     :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns
+    #     :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]
+    #     :param feature_names: List of all feature names - used with 'binary_feature_names'.
+    #     :type feature_names: Optional[Sequence[str]]
+    #     :param binary_feature_names: List of all binary features (features must also be included in 'feature_names').
+    #     :type binary_feature_names: Optional[Iterable[str]]
+    #     """
+    #     if mask is not None:
+    #         mask = torch.as_tensor(mask, dtype=torch.bool, device=self.binary_mask.device)
+    #         if mask.ndim != 1 or mask.numel() != self.input_dim:
+    #             raise ValueError("mask must be a 1D boolean vector of length input_dim.")
+    #         self.binary_mask.copy_(mask)  # in-place update to keep buffer reference
+    #         return
+
+    #     if (feature_names is None) or (binary_feature_names is None):
+    #         raise ValueError("Provide either `mask` or (`feature_names` and `binary_feature_names`).")
+
+    #     feat2idx = {name: i for i, name in enumerate(feature_names)}
+    #     newmask = torch.zeros(self.input_dim, dtype=torch.bool, device=self.binary_mask.device)
+    #     for bname in binary_feature_names:
+    #         if bname not in feat2idx:
+    #             raise ValueError(f"Binary feature name '{bname}' not found in feature_names.")
+    #         newmask[feat2idx[bname]] = True
+    #     self.binary_mask.copy_(newmask)
 
 
 

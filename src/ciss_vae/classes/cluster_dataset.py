@@ -433,6 +433,7 @@ class ClusterDataset(Dataset):
             dummy_cols_in_groups.update(group_cols)
 
         self.validation_units = {}
+        self.activation_groups = {"binary": [], "continuous": []}
 
         # First add ordinary single-column units.
         for col_idx, feature_name in enumerate(self.feature_names):
@@ -455,11 +456,13 @@ class ClusterDataset(Dataset):
                 "kind": "binary",
                 "cols": [col_idx],
             }
+                self.activation_groups['binary'].append(col_idx)
             else:
                 self.validation_units[feature_name] = {
                 "kind": "continuous",
                 "cols": [col_idx],
             }
+                self.activation_groups['continuous'].append(col_idx)
 
 
 
@@ -469,6 +472,7 @@ class ClusterDataset(Dataset):
                 "kind": "categorical",
                 "cols": list(group_cols),
             }
+            self.activation_groups[main_cat_name] = list(group_cols)
         
         # ==================================================================
         # Validation mask selection

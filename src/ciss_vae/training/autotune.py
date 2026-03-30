@@ -565,7 +565,7 @@ def autotune(
                 num_clusters=num_clusters,
                 latent_dim=latent_dim,
                 output_shared=output_shared,
-                binary_feature_mask = train_dataset.binary_feature_mask,
+                activation_groups = train_dataset.activation_groups,
                 debug = debug
             ).to(device)
             
@@ -600,13 +600,15 @@ def autotune(
             )
             
             # Get validation MSE
-            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            imputation_error, val_mse, val_bce, val_ce = compute_val_mse(model, train_loader.dataset, device)
             if (best_val is None) or (imputation_error < best_val):
                 best_val = imputation_error
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = model.training_history_
                 trial.set_user_attr("best_val_mse", val_mse)
                 trial.set_user_attr("best_val_bce", val_bce)
+                trial.set_user_attr("best_val_ce", val_ce)
+
         
         # Show completion with Rich
         if show_progress:
@@ -749,7 +751,7 @@ def autotune(
         num_clusters=num_clusters,
         latent_dim=latent_dim,
         output_shared=output_shared,
-        binary_feature_mask = train_dataset.binary_feature_mask,
+        activation_groups = train_dataset.activation_groups,
         debug = debug
     ).to(device)
     

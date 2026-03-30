@@ -52,69 +52,71 @@ def train_vae_initial(
     :raises ValueError: If dataset does not contain 'val_data' attribute for validation
     """
     model.to(device)
-    optimizer = optim.Adam(model.parameters(), lr=initial_lr, weight_decay = weight_decay)
+
+    optimizer = optim.Adam(model.parameters(), lr=initial_lr, weight_decay=weight_decay)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=decay_factor)
 
     g = torch.Generator(device=device)
     g.manual_seed(seed)
 
-    # Pull dataset object from loader to get validation targets
     dataset = train_loader.dataset
     if not hasattr(dataset, "val_data"):
-        raise ValueError("Dataset must include 'val_data' for validation-based early stopping.")
+        raise ValueError("Dataset must include 'val_data'.")
 
     def _to_scalar(x):
-        """Convert torch tensors to Python scalars safely."""
-        if torch.is_tensor(x):
-            return x.detach().cpu().item()
-        return x
+        return x.detach().cpu().item() if torch.is_tensor(x) else x
 
-
-    # Container to collect per-epoch metrics
     history = {
         "epoch": [],
-        "train_loss": [],   # average per-sample loss across the dataset
+        "train_loss": [],
         "train_mse": [],
         "train_bce": [],
+        "train_ce": [],
         "imputation_error": [],
-        "val_mse": [],      # validation MSE computed on validation-held positions
-        "val_bce":[],
-        "lr": [],           # learning rate at epoch end
+        "val_mse": [],
+        "val_bce": [],
+        "val_ce": [],
+        "lr": [],
     }
-
-    n_samples = len(train_loader.dataset)
-
 
     for epoch in range(epochs):
         model.train()
         total_loss = 0
 
-
         for batch in train_loader:
-            # print(f"Batch is: {len(batch)}\n")
-            x_batch, cluster_batch, mask_batch, idx_batch= batch
+            x_batch, cluster_batch, mask_batch, idx_batch = batch
+
             x_batch = x_batch.to(device)
             cluster_batch = cluster_batch.to(device)
             mask_batch = mask_batch.to(device)
-            
-            if hasattr(dataset, 'imputable') and dataset.imputable is not None:
+
+            if hasattr(dataset, "imputable") and dataset.imputable is not None:
                 imputable_batch = dataset.imputable[idx_batch].to(device).float()
             else:
                 imputable_batch = None
 
-            recon_x, mu, logvar = model(x_batch, cluster_batch, generator = g)
+            # -------------------------
+            # Forward (LOGITS)
+            # -------------------------
+            recon_x, mu, logvar = model(x_batch, cluster_batch, generator=g)
 
-            loss, train_mse, train_bce  = loss_function(
-                cluster_batch, mask_batch, recon_x, x_batch, dataset.binary_feature_mask, mu, logvar,
+            # -------------------------
+            # UPDATED LOSS CALL
+            # -------------------------
+            loss, train_mse, train_bce, train_ce = loss_function(
+                cluster_batch,
+                mask_batch,
+                recon_x,
+                x_batch,
+                dataset.activation_groups,   # 🔥 FIXED
+                mu,
+                logvar,
                 beta=beta,
                 return_components=True,
-                device = device,
-                debug = model.debug
+                device=device,
+                debug=model.debug,
             )
-            
 
-
-            ## Backprop
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -122,33 +124,34 @@ def train_vae_initial(
             total_loss += loss.item()
 
         avg_train_loss = total_loss / len(train_loader.dataset)
-
-        ## Learning rate BEFORE stepping scheduler (aka for current epoch)
         current_lr = optimizer.param_groups[0]["lr"]
 
-        # -----------------------------------
-        # Validation MSE on val_data entries
-        # -----------------------------------
+        # -------------------------
+        # VALIDATION
+        # -------------------------
         try:
-            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            imputation_error, val_mse, val_bce, val_ce = compute_val_mse(
+                model, dataset, device
+            )
         except ValueError as e:
             if verbose:
                 print(f"[WARNING] Epoch {epoch+1}: {e}")
-            val_mse = float("inf")
+            val_mse, val_bce, val_ce = float("inf"), float("inf"), float("inf")
+            imputation_error = float("inf")
 
-        # -----------------------------------
-        # Logging to history
-        # -----------------------------------
-
-        
-
+        # -------------------------
+        # LOGGING
+        # -------------------------
         history["epoch"].append(epoch)
         history["train_loss"].append(avg_train_loss)
         history["train_mse"].append(_to_scalar(train_mse))
         history["train_bce"].append(_to_scalar(train_bce))
+        history["train_ce"].append(_to_scalar(train_ce))
+
         history["imputation_error"].append(_to_scalar(imputation_error))
         history["val_mse"].append(_to_scalar(val_mse))
         history["val_bce"].append(_to_scalar(val_bce))
+        history["val_ce"].append(_to_scalar(val_ce))
 
         history["lr"].append(current_lr)
 
@@ -156,25 +159,37 @@ def train_vae_initial(
             print(
                 f"Epoch {epoch:3d} | "
                 f"Train Loss: {avg_train_loss:.6f} | "
-                f"Val MSE: {val_mse:.6f} | LR: {current_lr:.6f}"
+                f"MSE: {train_mse:.4f} BCE: {train_bce:.4f} CE: {train_ce:.4f} | "
+                f"Val MSE: {val_mse:.4f} BCE: {val_bce:.4f} CE: {val_ce:.4f} | "
+                f"LR: {current_lr:.6f}"
             )
 
-        #-----------------------
-        # Hook for progress bar
-        #-----------------------
         if progress_callback is not None:
             try:
                 progress_callback(n=1)
-            except Exception as e:
-                if verbose:
-                    print(f"Progress callback error: {e}")
+            except Exception:
+                pass
+
         scheduler.step()
 
     model.set_final_lr(optimizer.param_groups[0]["lr"])
 
-    # Build a DataFrame and attach to the model
-    history_df = pd.DataFrame(history, columns=["epoch", "train_loss", "train_mse", "train_bce", "imputation_error", "val_mse", "val_bce", "lr"])
-    model.training_history_ = history_df
+    history_df = pd.DataFrame(
+        history,
+        columns=[
+            "epoch",
+            "train_loss",
+            "train_mse",
+            "train_bce",
+            "train_ce",
+            "imputation_error",
+            "val_mse",
+            "val_bce",
+            "val_ce",
+            "lr",
+        ],
+    )
 
+    model.training_history_ = history_df
 
     return (model, history_df) if return_history else model

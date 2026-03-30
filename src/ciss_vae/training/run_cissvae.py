@@ -88,6 +88,14 @@ def run_cissvae(
         Defaults to ``None``.
     :type imputable_matrix: pandas.DataFrame or numpy.ndarray or torch.Tensor or None, optional
 
+    :param binary_feature_mask: 1D bool vector of length 'input_dim' -> true if column is binary.
+    :type binary_feature_mask: list[bool]
+
+    :param categorical_column_map: Optional dictionary where keys are original categories and values are resulting dummy variables. Must set binary_feature_mask if using!
+    :type categorical_column_map: dict
+
+    
+
     :param clusters: Precomputed cluster labels for samples (length ``n_samples``). If ``None``,
         clustering may be performed depending on ``n_clusters`` and Leiden settings. Defaults to ``None``.
     :type clusters: array-like or None, optional
@@ -344,7 +352,7 @@ def run_cissvae(
         output_shared = output_shared,
         num_clusters = dataset.n_clusters,
         debug = debug,
-        binary_feature_mask = dataset.binary_feature_mask
+        activation_groups = dataset.activation_groups
     )
 
     if return_history: 
