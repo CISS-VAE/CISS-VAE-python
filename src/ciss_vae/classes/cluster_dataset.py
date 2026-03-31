@@ -57,6 +57,17 @@ class ClusterDataset(Dataset):
     imputable : pandas.DataFrame | numpy.ndarray | torch.Tensor
         Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``.
         Should be same shape as ``data``. 
+    :param binary_feature_mask: 1D boolean vector of length ``n_features`` indicating which columns are binary.
+        Used to construct ``activation_groups``. Categorical dummy columns must also be marked as True.
+    :type binary_feature_mask: list[bool] or numpy.ndarray
+
+    :param categorical_column_map: Optional dictionary mapping original categorical variable names to their
+        corresponding dummy-variable columns. Example:
+            {"C1": ["C1b1", "C1b2"], "C2": ["C2b1", "C2b2"]}
+        These columns are grouped together in ``activation_groups`` and treated as categorical variables.
+        All listed columns must also be marked as True in ``binary_feature_mask``.
+    :type categorical_column_map: dict[str, list[str or int]]
+            
 
     Attributes
     ----------
@@ -79,6 +90,23 @@ class ClusterDataset(Dataset):
     self.shape : tuple[int, int]
         Shape of ``self.data`` (``n_samples``, ``n_features``).
     self.binary_feature_mask : np.array(bool)
+    self.activation_groups : dict
+    Dictionary mapping feature groups to column indices. Structure:
+
+    {
+        "continuous": [int, ...],
+        "binary": [int, ...],
+        "<categorical_name>": [int, ...],
+        ...
+    }
+
+    - "continuous": indices of continuous-valued features
+    - "binary": indices of binary features
+    - Each additional key corresponds to a grouped categorical variable
+      (e.g., one-hot encoded columns belonging to the same original variable)
+
+    This is the canonical representation used for loss computation,
+    imputation, and validation logic.
 
     Raises
     ------
@@ -94,6 +122,9 @@ class ClusterDataset(Dataset):
     -----
     * Normalization uses column-wise mean/std on the **current observed** values
       after validation masking; zero stds are set to 1 to avoid division by zero.
+    * Feature types (continuous, binary, categorical) are resolved into
+    ``activation_groups``, which is used throughout
+    training, loss computation, and imputation.
     """
     def __init__(
         self, 
