@@ -1,4 +1,11 @@
-"""run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model."""
+"""
+End-to-end pipeline for preparing data, optionally clustering samples,
+training the CISS-VAE model, and performing iterative imputation.
+
+Handles validation masking, feature-type resolution (via activation groups),
+optional clustering on missingness patterns, and model training with
+impute–refit loops.
+"""
 from __future__ import annotations
 from typing import Optional, Sequence, Tuple, Union
 import pandas as pd
@@ -88,11 +95,21 @@ def run_cissvae(
         Defaults to ``None``.
     :type imputable_matrix: pandas.DataFrame or numpy.ndarray or torch.Tensor or None, optional
 
-    :param binary_feature_mask: 1D bool vector of length 'input_dim' -> true if column is binary.
-    :type binary_feature_mask: list[bool]
 
-    :param categorical_column_map: Optional dictionary where keys are original categories and values are resulting dummy variables. Must set binary_feature_mask if using!
-    :type categorical_column_map: dict
+    :param binary_feature_mask: 1D boolean vector of length ``n_features`` indicating which columns are binary.
+        Used during dataset construction to derive ``activation_groups``. Columns belonging to
+        categorical dummy variables must also be marked as True.
+    :type binary_feature_mask: list[bool] or numpy.ndarray
+
+    :param categorical_column_map: Optional dictionary mapping original categorical variable names
+        to their corresponding dummy-variable columns. Example:
+
+            {"C1": ["C1b1", "C1b2"], "C2": ["C2b1", "C2b2"]}
+
+        These columns are grouped together in ``activation_groups`` and treated as
+        categorical variables during loss computation and imputation. All listed columns
+        must also be marked as True in ``binary_feature_mask``.
+    :type categorical_column_map: dict[str, list[str or int]]
 
     
 

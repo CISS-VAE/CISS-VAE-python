@@ -3,7 +3,9 @@ Variational Autoencoder with cluster‑aware shared/unshared layers.
 
 This module defines :class:`CISSVAE`, a VAE that can route samples through
 either **shared** or **cluster‑specific** (unshared) layers in the encoder and
-decoder, controlled by per‑layer directives. For binary features, a sigmoid activation function is applied at the end to get probabilities.
+decoder, controlled by per‑layer directives. For all features, the model outputs raw logits. Feature-specific activation
+functions (e.g., sigmoid for binary, softmax for categorical) are applied
+externally using ``activation_groups`` to map features to correct activation function.
 
 """
 
@@ -84,8 +86,25 @@ class CISSVAE(nn.Module):
         :type output_shared: bool
         :param num_clusters: Number of clusters.
         :type num_clusters: int
-        :param activation_groups: Defines type of each column for the purpose of matching columns to the correct activation and loss functions. 
-        :type activation_groups: dict 
+        :param activation_groups: Dictionary mapping feature groups to column indices. Attribute of ClusterDataset object. 
+            Expected format:
+
+                {
+                    "continuous": [int, ...],
+                    "binary": [int, ...],
+                    "<categorical_name>": [int, ...],
+                    ...
+                }
+
+            Each key defines a feature group:
+            - "continuous": indices of continuous-valued features
+            - "binary": indices of binary features
+            - additional keys correspond to grouped categorical variables
+            (e.g., one-hot encoded columns belonging to the same variable)
+
+            This structure is used to determine loss functions and output
+            transformations outside the model.
+        :type activation_groups: dict[str, list[int]]
         :param debug: If ``True``, print shape and routing information.
         :type debug: bool
         """

@@ -80,7 +80,7 @@ def train_vae_refit(model,
 
             recon_x, mu, logvar = model(x_batch, cluster_batch, generator=g_reparam)
 
-            # 🔥 FIX: activation_groups + CE
+            # activation_groups + CE
             loss, train_mse, train_bce, train_ce = loss_function_nomask(
                 cluster_batch,
                 recon_x,
