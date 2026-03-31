@@ -44,6 +44,18 @@ def categorical_validation_base_dataframe():
         }
     )
 
+@pytest.fixture
+def categorical_validation_activation_groups():
+    """
+    Activation groups aligned to categorical_validation_base_dataframe.
+    """
+    return {
+        "continuous": [0, 1],        # X1, X2
+        "binary": [2, 3],            # B1, B2
+        "C1": [4, 5],                # C1b1, C1b2
+        "C2": [6, 7],                # C2b1, C2b2
+    }
+
 
 @pytest.fixture
 def categorical_validation_binary_feature_mask():

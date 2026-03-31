@@ -302,6 +302,34 @@ class TestRunCissVAE:
         assert isinstance(vae, CISSVAE)
         # History might be None or DataFrame depending on implementation
         assert isinstance(history, (pd.DataFrame, type(None)))
+
+    def test_activation_groups_present_in_dataset(self, sample_data, minimal_params):
+        result = run_cissvae(
+            sample_data,
+            return_dataset=True,
+            return_model=False,
+            return_clusters=False,
+            return_silhouettes=False,
+            return_history=False,
+            **minimal_params
+        )
+
+        imputed_dataset, dataset = result
+
+        assert isinstance(dataset, ClusterDataset)
+
+        ag = dataset.activation_groups
+
+        # structure
+        assert isinstance(ag, dict)
+        assert "continuous" in ag
+
+        # coverage
+        all_cols = set()
+        for cols in ag.values():
+            all_cols.update(cols)
+
+        assert all_cols == set(range(dataset.shape[1]))
     
     @pytest.mark.slow
     def test_full_pipeline_integration(self, large_sample_data):

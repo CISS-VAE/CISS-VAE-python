@@ -246,7 +246,8 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     x_all_denorm = x_all.clone()
 
     for name, cols in dataset.activation_groups.items():
-        cols = torch.tensor(cols, device=device)
+         # enforce correct dtype
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
 
         # -------------------------
         # Continuous → denormalize
@@ -373,7 +374,8 @@ def get_imputed(model, data_loader, device="cpu"):
     recon_real = recon_sorted.clone()
 
     for name, cols in dataset.activation_groups.items():
-        cols = torch.tensor(cols)
+         # enforce correct dtype
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
 
         if name == "continuous":
             pass  # already correct scale (still normalized)
@@ -436,7 +438,12 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: fl
     # 2) Convert logits → usable values
     # ------------------------
     for name, cols in dataset.activation_groups.items():
-        cols = torch.tensor(cols, device=device)
+        #  skip empty grooups
+        if len(cols) == 0:
+            continue
+
+        # enforce correct dtype
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
 
         if name == "continuous":
             pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]

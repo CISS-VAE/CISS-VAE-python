@@ -188,7 +188,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.5, 0.45, 0.05
+        mock_compute_val_mse.return_value = 0.5, 0.45, 0.025, 0.025
         
         result = run_autotune(
             search_space=all_fixed_search_space,
@@ -220,7 +220,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.3, 0.25, 0.05
+        mock_compute_val_mse.return_value = 0.3, 0.25,  0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -246,7 +246,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.4, 0.35, 0.05
+        mock_compute_val_mse.return_value = 0.4, 0.35,  0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -272,7 +272,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.2, 0.15, 0.05
+        mock_compute_val_mse.return_value = 0.2, 0.15, 0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -298,7 +298,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.35, 0.30, 0.05
+        mock_compute_val_mse.return_value = 0.35, 0.30,  0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -321,7 +321,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
-        mock_compute_val_mse.return_value = 0.25, 0.2, 0.05
+        mock_compute_val_mse.return_value = 0.25, 0.2,  0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -357,7 +357,7 @@ class TestAutoTune:
 
         mock_initial.return_value = (mock_model, mock_history_df)
         mock_refit.return_value = (pd.DataFrame({'col1': [1, 2, 3]}), mock_model, None)
-        mock_compute_val_mse.return_value = 0.15, 0.1, 0.05
+        mock_compute_val_mse.return_value = 0.15, 0.1,  0.025, 0.025
         
         result = run_autotune(
             search_space=basic_search_space,
@@ -397,7 +397,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.45, 0.4, 0.05
+        mock_compute_val_mse.return_value = 0.45, 0.4,  0.025, 0.025
         
         result = run_autotune(
             search_space=search_space,
@@ -431,7 +431,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.3, 0.25, 0.05
+        mock_compute_val_mse.return_value = 0.3, 0.25,  0.025, 0.025
         
         result = run_autotune(
             search_space=search_space,
@@ -455,7 +455,7 @@ class TestAutoTune:
         mock_model = _make_mock_model()
         mock_initial.return_value = mock_model
         mock_refit.return_value = (pd.DataFrame(), mock_model, None)
-        mock_compute_val_mse.return_value = 0.333, 0.3, 0.033
+        mock_compute_val_mse.return_value = 0.333, 0.3, 0.03, 0.003
         
         # Run with same seed twice
         result1 = run_autotune(

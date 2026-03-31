@@ -52,6 +52,8 @@ class TestClusterDatasetCategoricalValidation:
         if binary_feature_mask is None:
             binary_feature_mask = categorical_validation_binary_feature_mask.copy()
 
+        
+
         return ClusterDataset(
             data=data,
             cluster_labels=cluster_labels,
@@ -827,3 +829,131 @@ class TestClusterDatasetCategoricalValidation:
         # eligible for grouped C1 validation masking.
         assert not val_mask[0, c1b1_idx]
         assert not val_mask[0, c1b2_idx]
+
+    ## =========================
+    ## Added tests for activation groups
+    ## =========================
+
+    def test_activation_groups_structure(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        # Required keys
+        assert "continuous" in ag
+        assert "binary" in ag
+        assert "C1" in ag
+        assert "C2" in ag
+
+        # Categorical groups must have multiple columns
+        assert len(ag["C1"]) == 2
+        assert len(ag["C2"]) == 2
+
+    def test_activation_groups_column_indices_correct(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        # Continuous
+        cont_cols = [ds.feature_names[i] for i in ag["continuous"]]
+        assert set(cont_cols) == {"X1", "X2"}
+
+        # Binary (should NOT include categorical dummies)
+        bin_cols = [ds.feature_names[i] for i in ag["binary"]]
+        assert set(bin_cols) == {"B1", "B2"}
+
+        # Categorical
+        c1_cols = [ds.feature_names[i] for i in ag["C1"]]
+        c2_cols = [ds.feature_names[i] for i in ag["C2"]]
+
+        assert c1_cols == ["C1b1", "C1b2"]
+        assert c2_cols == ["C2b1", "C2b2"]
+
+    def test_activation_groups_no_overlap(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        all_indices = []
+        for cols in ag.values():
+            all_indices.extend(cols)
+
+        assert len(all_indices) == len(set(all_indices))
+
+    def test_activation_groups_covers_all_columns(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        all_indices = set()
+        for cols in ag.values():
+            all_indices.update(cols)
+
+        expected = set(range(len(ds.feature_names)))
+
+        assert all_indices == expected
+
+    def test_categorical_columns_not_in_binary_group(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        binary_set = set(ag["binary"])
+        categorical_set = set(ag["C1"]) | set(ag["C2"])
+
+        assert binary_set.isdisjoint(categorical_set)

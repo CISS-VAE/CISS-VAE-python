@@ -10,6 +10,7 @@ decoder, controlled by per‑layer directives. For binary features, a sigmoid ac
 import torch
 import torch.nn as nn
 from typing import Iterable, Optional, Sequence, Union
+import numpy as np
 
 class CISSVAE(nn.Module):
     r"""

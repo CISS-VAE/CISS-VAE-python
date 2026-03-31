@@ -61,3 +61,9 @@ include = ["ciss_vae*"]
 
 [tool.setuptools.package-data]
 your_package = ["data/*.csv"]
+
+[pytest]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial",
+]
