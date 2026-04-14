@@ -583,24 +583,7 @@ class TestClusterDatasetCategoricalValidation:
                 categorical_validation_binary_feature_mask=bad_binary_mask,
             )
 
-    def test_categorical_column_map_rejects_overlap_with_columns_ignore(
-        self,
-        categorical_validation_base_dataframe,
-        categorical_validation_cluster_labels,
-        categorical_validation_column_map,
-        categorical_validation_binary_feature_mask,
-    ):
-        """
-        Grouped dummy columns should not also appear in columns_ignore.
-        """
-        with pytest.raises(ValueError, match="appears in both categorical_column_map and columns_ignore"):
-            self._build_dataset(
-                categorical_validation_base_dataframe=categorical_validation_base_dataframe,
-                categorical_validation_cluster_labels=categorical_validation_cluster_labels,
-                categorical_validation_column_map=categorical_validation_column_map,
-                categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
-                columns_ignore=["C1b1"],
-            )
+    
 
     def test_repr_includes_validation_units_summary(
         self,

@@ -7,6 +7,9 @@ from ciss_vae.classes.vae import CISSVAE
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.utils.matrix import create_missingness_prop_matrix
 
+from torch.utils.data import DataLoader
+from types import SimpleNamespace
+
 
 class TestRunCissVAE:
     
@@ -368,3 +371,127 @@ class TestRunCissVAE:
         # Data integrity
         assert imputed_dataset.shape == large_sample_data.shape
         assert not imputed_dataset.isna().any().any()
+
+
+
+class DummyModel:
+    """Minimal model stub for testing get_imputed_df."""
+    def eval(self):
+        return self
+
+
+def test_get_imputed_df_unscales_ignored_continuous_columns(monkeypatch):
+    """
+    Ensure get_imputed_df correctly denormalizes ignored continuous columns.
+
+    Why this test matters
+    ---------------------
+    Ignored columns are excluded from validation masking, but they may still be
+    present in activation_groups. This test checks that get_imputed_df applies
+    the continuous-column denormalization step to ignored continuous columns
+    rather than leaving them in normalized space.
+
+    Test strategy
+    -------------
+    1. Build a ClusterDataset with one ignored continuous column.
+    2. Manually create a fake object returned by get_imputed(...) whose `.data`
+       is in normalized space.
+    3. Monkeypatch get_imputed so get_imputed_df uses the fake normalized data.
+    4. Verify that the ignored continuous column is converted back to the
+       original scale in the final returned DataFrame.
+    """
+
+    # ------------------------------------------------------------------
+    # Create a tiny dataset:
+    # - "id_ignore" is an ignored continuous column
+    # - "x1" is a regular continuous column
+    # ------------------------------------------------------------------
+    df = pd.DataFrame(
+        {
+            "id_ignore": [10.0, 20.0, 30.0, 40.0],
+            "x1": [1.0, 2.0, 3.0, 4.0],
+        }
+    )
+
+    # Single cluster is enough for this test.
+    clusters = np.array([0, 0, 0, 0])
+
+    dataset = ClusterDataset(
+        data=df,
+        cluster_labels=clusters,
+        val_proportion=0.0,              # no validation masking
+        columns_ignore=["id_ignore"],    # ignored continuous column
+        binary_feature_mask=[False, False],
+        categorical_column_map=None,
+    )
+
+    # ------------------------------------------------------------------
+    # Sanity check: ignored column should still be in activation_groups
+    # under "continuous" so get_imputed_df attempts to denormalize it.
+    # ------------------------------------------------------------------
+    ignored_idx = dataset.feature_names.index("id_ignore")
+    assert ignored_idx in dataset.activation_groups["continuous"]
+
+    # ------------------------------------------------------------------
+    # Build a fake "imputed" object returned by get_imputed(...).
+    #
+    # We intentionally place the ignored column in normalized space.
+    # After get_imputed_df runs, it should be denormalized back to the
+    # original values [10, 20, 30, 40].
+    # ------------------------------------------------------------------
+    means = np.asarray(dataset.feature_means, dtype=np.float32)
+    stds = np.asarray(dataset.feature_stds, dtype=np.float32)
+
+    # Normalize the full original data using the dataset's stored stats.
+    raw_np = dataset.raw_data.cpu().numpy()
+    normalized_np = (raw_np - means) / stds
+
+    # Package the fake result in the shape expected by get_imputed_df.
+    fake_imputed = SimpleNamespace(
+        data=torch.tensor(normalized_np, dtype=torch.float32),
+        feature_means=means,
+        feature_stds=stds,
+    )
+
+    # ------------------------------------------------------------------
+    # Monkeypatch the module-level get_imputed function used by
+    # get_imputed_df so the test is isolated to the unscaling logic.
+    #
+    # IMPORTANT:
+    # Replace "your_package_name.imputation" below with the actual module
+    # path where get_imputed_df is defined.
+    # ------------------------------------------------------------------
+    import your_package_name.imputation as imputation_module
+
+    def fake_get_imputed(model, data_loader, device="cpu"):
+        return fake_imputed
+
+    monkeypatch.setattr(imputation_module, "get_imputed", fake_get_imputed)
+
+    # Minimal DataLoader; batch size does not matter for this unit test.
+    data_loader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    # ------------------------------------------------------------------
+    # Run the function under test.
+    # ------------------------------------------------------------------
+    out_df = get_imputed_df(DummyModel(), data_loader, device="cpu")
+
+    # ------------------------------------------------------------------
+    # Assert that the ignored continuous column is returned on the
+    # original scale, not the normalized scale.
+    # ------------------------------------------------------------------
+    np.testing.assert_allclose(
+        out_df["id_ignore"].to_numpy(),
+        df["id_ignore"].to_numpy(),
+        rtol=0.0,
+        atol=1e-6,
+    )
+
+    # Optional extra check: the non-ignored continuous column should also
+    # be denormalized correctly.
+    np.testing.assert_allclose(
+        out_df["x1"].to_numpy(),
+        df["x1"].to_numpy(),
+        rtol=0.0,
+        atol=1e-6,
+    )

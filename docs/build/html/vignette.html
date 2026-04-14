@@ -9,7 +9,7 @@
   <title>How to use CISS-VAE &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -241,7 +241,7 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
     <span class="n">return_model</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="c1">## if true, outputs imputed dataset and model, otherwise just outputs imputed dataset. Set to true to return model for `plot_vae_architecture`</span>
 
 <span class="c1">## Initial Training params</span>
-    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="c1">## default </span>
+    <span class="n">epochs</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="c1">#1000 is default </span>
     <span class="n">initial_lr</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span> <span class="c1">## default</span>
     <span class="n">decay_factor</span> <span class="o">=</span> <span class="mf">0.999</span><span class="p">,</span> <span class="c1">## default, factor learning rate is multiplied by after each epoch, prevents overfitting</span>
     <span class="n">beta</span><span class="o">=</span> <span class="mf">0.001</span><span class="p">,</span> <span class="c1">## default</span>
@@ -284,9 +284,10 @@ pip<span class="w"> </span>install<span class="w"> </span>ciss-vae<span class="o
   • .data shape:     (8000, 30)
   • .masks shape:    (8000, 30)
   • .val_data shape: (8000, 30)
+  • Validation units: {&#39;Y11&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y11&#39;]}, &#39;Y12&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y12&#39;]}, &#39;Y13&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y13&#39;]}, &#39;Y14&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y14&#39;]}, &#39;Y15&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y15&#39;]}, &#39;Y21&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y21&#39;]}, &#39;Y22&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y22&#39;]}, &#39;Y23&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y23&#39;]}, &#39;Y24&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y24&#39;]}, &#39;Y25&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y25&#39;]}, &#39;Y31&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y31&#39;]}, &#39;Y32&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y32&#39;]}, &#39;Y33&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y33&#39;]}, &#39;Y34&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y34&#39;]}, &#39;Y35&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y35&#39;]}, &#39;Y41&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y41&#39;]}, &#39;Y42&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y42&#39;]}, &#39;Y43&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y43&#39;]}, &#39;Y44&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y44&#39;]}, &#39;Y45&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y45&#39;]}, &#39;Y51&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y51&#39;]}, &#39;Y52&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y52&#39;]}, &#39;Y53&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y53&#39;]}, &#39;Y54&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y54&#39;]}, &#39;Y55&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;Y55&#39;]}}
 </pre></div>
 </div>
-<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/5152cd836b685654ede45489be55a85ba6143b4a5ec962f580829a76a22b12e6.png" />
+<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/d4335a43be56a88a3e25ab06e54a36593ee53e42e38bff2c00c73f32cb230cd0.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/d4335a43be56a88a3e25ab06e54a36593ee53e42e38bff2c00c73f32cb230cd0.png" />
 </div>
 </div>
 <p>Use the <code class="docutils literal notranslate"><span class="pre">return_clusters</span></code> parameter to get the cluster labels.
@@ -395,7 +396,7 @@ either tunable or non-tunable.</p>
                  <span class="n">lr</span><span class="o">=</span><span class="p">(</span><span class="mf">1e-4</span><span class="p">,</span> <span class="mf">1e-3</span><span class="p">),</span>
                  <span class="n">decay_factor</span><span class="o">=</span><span class="p">(</span><span class="mf">0.9</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">),</span>
                  <span class="n">beta</span><span class="o">=</span><span class="mf">0.01</span><span class="p">,</span>
-                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">num_epochs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="c1">## small for tutorial&#39;s sake. More realistic range would be 100-1000</span>
                  <span class="n">batch_size</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
                  <span class="n">num_shared_encode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
                  <span class="n">num_shared_decode</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
@@ -403,7 +404,7 @@ either tunable or non-tunable.</p>
                  <span class="n">decoder_shared_placement</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;at_end&quot;</span><span class="p">,</span> <span class="s2">&quot;at_start&quot;</span><span class="p">,</span> <span class="s2">&quot;alternating&quot;</span><span class="p">,</span> <span class="s2">&quot;random&quot;</span><span class="p">],</span> <span class="c1">## where should the shared layers be placed in the decoder</span>
                  <span class="n">refit_patience</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
                  <span class="n">refit_loops</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
-                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+                 <span class="n">epochs_per_loop</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
                  <span class="n">reset_lr_refit</span> <span class="o">=</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -439,7 +440,7 @@ either tunable or non-tunable.</p>
   decay_factor: [0.9, 0.999]  [TUNABLE]
   weight_decay: 0.001  [FIXED]
   beta: 0.01  [FIXED]
-  num_epochs: 1000  [FIXED]
+  num_epochs: 10  [FIXED]
   batch_size: 64  [FIXED]
   num_shared_encode: [0, 1, 3]  [TUNABLE]
   num_shared_decode: [0, 1, 3]  [TUNABLE]
@@ -447,7 +448,7 @@ either tunable or non-tunable.</p>
   decoder_shared_placement: [&#39;at_end&#39;, &#39;at_start&#39;, &#39;alternating&#39;, &#39;random&#39;]  [TUNABLE]
   refit_patience: 2  [FIXED]
   refit_loops: 100  [FIXED]
-  epochs_per_loop: 1000  [FIXED]
+  epochs_per_loop: 10  [FIXED]
   reset_lr_refit: [True, False]  [TUNABLE]
 )
 </pre></div>
@@ -477,7 +478,7 @@ either tunable or non-tunable.</p>
     <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># ClusterDataset object</span>
     <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
     <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
@@ -489,20 +490,23 @@ either tunable or non-tunable.</p>
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2025-11-10 11:39:19,649] A new study created in memory with name: vae_autotune
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">[I 2026-04-08 09:21:47,774]</span> A new study created in memory with name: vae_autotune
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
-Starting Optuna optimization with 20 trials...
+Starting Optuna optimization with 3 trials...
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>/Users/dvaithilingam/Desktop/CISS-VAE-python/src/ciss_vae/training/autotune.py:598: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\training\autotune.py:652: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
   study.set_metric_names([&quot;Total Imputation Error&quot;])
-[I 2025-11-10 12:15:21,367] Trial 0 finished with value: {&#39;Total Imputation Error&#39;: 87.15758514404297} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00036897025309268346, &#39;decay_factor&#39;: 0.9134620169142295, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 0 with value: 87.15758514404297.
-[I 2025-11-10 13:22:28,612] Trial 1 finished with value: {&#39;Total Imputation Error&#39;: 69.23899841308594} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 512, &#39;hidden_dim_3&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.00011110395853184703, &#39;decay_factor&#39;: 0.9352917535064903, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 1 with value: 69.23899841308594.
-[I 2025-11-10 13:31:02,462] Trial 2 finished with value: {&#39;Total Imputation Error&#39;: 133.9871368408203} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0003349564182234021, &#39;decay_factor&#39;: 0.9529162383235371, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 1 with value: 69.23899841308594.
-[I 2025-11-10 15:32:30,760] Trial 3 finished with value: {&#39;Total Imputation Error&#39;: 19.561391830444336} and parameters: {&#39;num_hidden_layers&#39;: 4, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 64, &#39;hidden_dim_2&#39;: 512, &#39;hidden_dim_3&#39;: 512, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: False, &#39;lr&#39;: 0.0008887500003389021, &#39;decay_factor&#39;: 0.9586114897425149, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 3 with value: 19.561391830444336.
-[I 2025-11-10 16:23:39,773] Trial 4 finished with value: {&#39;Total Imputation Error&#39;: 2.569357395172119} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 512, &#39;hidden_dim_1&#39;: 512, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0005650755995185884, &#39;decay_factor&#39;: 0.9825239189078409, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 3, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 4 with value: 2.569357395172119.
+<span class=" -Color -Color-Green">[I 2026-04-08 09:31:46,035]</span> Trial 0 finished with value: {&#39;Total Imputation Error&#39;: 41.686851501464844} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0009330606024425672, &#39;decay_factor&#39;: 0.9816830436117746, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 0 with value: 41.686851501464844.
+<span class=" -Color -Color-Green">[I 2026-04-08 09:32:57,914]</span> Trial 1 finished with value: {&#39;Total Imputation Error&#39;: 124.64112091064453} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0004833180632488466, &#39;decay_factor&#39;: 0.9423050781656934, &#39;num_shared_encode&#39;: 1, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 0 with value: 41.686851501464844.
+<span class=" -Color -Color-Green">[I 2026-04-08 10:14:05,174]</span> Trial 2 finished with value: {&#39;Total Imputation Error&#39;: 177.10365295410156} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0003488960745139223, &#39;decay_factor&#39;: 0.913333978958143, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 0 with value: 41.686851501464844.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Optimization complete. Best trial: 0 (Total Imputation Error: 41.686852)
+Training final model with best parameters...
+Final model training complete.
 </pre></div>
 </div>
 </div>
@@ -526,14 +530,37 @@ can have multiple autotune ‘studies’ in the same database.</p>
     <span class="n">train_dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="p">,</span>                   <span class="c1"># &#39;ClusterDataset&#39; object</span>
     <span class="n">save_model_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">save_search_space_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">n_trials</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+    <span class="n">n_trials</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
     <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;vae_autotune&quot;</span><span class="p">,</span>                 <span class="c1"># Default study name</span>
     <span class="n">device_preference</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">,</span>
     <span class="n">show_progress</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>                       <span class="c1"># Show progress bar for training</span>
-    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///db.sqlite3&quot;</span><span class="p">,</span>   <span class="c1"># If using optuna dashboard set db location here, otherwise set to None</span>
+    <span class="n">optuna_dashboard_db</span><span class="o">=</span><span class="s2">&quot;sqlite:///optunadb.sqlite3&quot;</span><span class="p">,</span>   <span class="c1"># If using optuna dashboard set db location here, otherwise set to None</span>
     <span class="n">load_if_exists</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                       <span class="c1"># Continues previous study by study_name if one exists. If false, will give error if study_name already exists in the set dashboard</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="mi">42</span><span class="p">,</span>
 <span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">[I 2026-04-08 10:14:19,131]</span> Using an existing study with name &#39;vae_autotune&#39; instead of creating a new one.
+\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\training\autotune.py:652: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+  study.set_metric_names([&quot;Total Imputation Error&quot;])
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Starting Optuna optimization with 3 trials...
+</pre></div>
+</div>
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">[I 2026-04-08 10:15:50,076]</span> Trial 3 finished with value: {&#39;Total Imputation Error&#39;: 48.51778793334961} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 64, &#39;hidden_dim_1&#39;: 64, &#39;latent_dim&#39;: 10, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0009330606024425672, &#39;decay_factor&#39;: 0.9816830436117746, &#39;num_shared_encode&#39;: 0, &#39;num_shared_decode&#39;: 1, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 3 with value: 48.51778793334961.
+<span class=" -Color -Color-Green">[I 2026-04-08 10:16:46,988]</span> Trial 4 finished with value: {&#39;Total Imputation Error&#39;: 142.89920043945312} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: True, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0004833180632488466, &#39;decay_factor&#39;: 0.9423050781656934, &#39;num_shared_encode&#39;: 1, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;, &#39;reset_lr_refit&#39;: False}. Best is trial 3 with value: 48.51778793334961.
+<span class=" -Color -Color-Green">[I 2026-04-08 10:19:25,513]</span> Trial 5 finished with value: {&#39;Total Imputation Error&#39;: 157.7293243408203} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 64, &#39;latent_dim&#39;: 100, &#39;latent_shared&#39;: False, &#39;output_shared&#39;: True, &#39;lr&#39;: 0.0003488960745139223, &#39;decay_factor&#39;: 0.913333978958143, &#39;num_shared_encode&#39;: 3, &#39;num_shared_decode&#39;: 0, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;, &#39;reset_lr_refit&#39;: True}. Best is trial 3 with value: 48.51778793334961.
+</pre></div>
+</div>
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Optimization complete. Best trial: 3 (Total Imputation Error: 48.517788)
+Training final model with best parameters...
+Final model training complete.
 </pre></div>
 </div>
 </div>

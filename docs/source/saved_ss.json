@@ -29,7 +29,7 @@
   ],
   "weight_decay": 0.001,
   "beta": 0.01,
-  "num_epochs": 1000,
+  "num_epochs": 10,
   "batch_size": 64,
   "num_shared_encode": [
     0,
@@ -55,7 +55,7 @@
   ],
   "refit_patience": 2,
   "refit_loops": 100,
-  "epochs_per_loop": 1000,
+  "epochs_per_loop": 10,
   "reset_lr_refit": [
     true,
     false

@@ -9,7 +9,7 @@
   <title>Handling binary data columns &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -221,15 +221,15 @@
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\__init__.py
 The successfully imputed dataset:
-   feat1  feat2     feat3     feat4  feat5       bf1      bf2      bf3  \
-0   52.0    2.0  6.000000  4.000000    2.0  0.303268  0.40501  0.63532   
-1   93.0    1.0  7.000000  4.150707    2.0  0.110541  1.00000  1.00000   
-2   15.0    4.0  3.439629  4.000000    2.0  0.000000  0.00000  1.00000   
+   feat1  feat2    feat3     feat4  feat5       bf1       bf2       bf3  \
+0   52.0    2.0  6.00000  4.000000    2.0  0.302485  0.404743  0.636127   
+1   93.0    1.0  7.00000  4.189552    2.0  0.110679  1.000000  1.000000   
+2   15.0    4.0  3.44211  4.000000    2.0  0.000000  0.000000  1.000000   
 
-        bf4       bf5  
-0  0.443717  0.000000  
-1  1.000000  1.000000  
-2  0.000000  0.572172  
+        bf4      bf5  
+0  0.443553  0.00000  
+1  1.000000  1.00000  
+2  0.000000  0.57127  
 </pre></div>
 </div>
 </div>
@@ -246,10 +246,10 @@ The successfully imputed dataset:
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>The successfully imputed dataset:
-   feat1  feat2     feat3     feat4  feat5  bf1  bf2  bf3  bf4  bf5
-0   52.0    2.0  6.000000  4.000000    2.0    0    0    1    0    0
-1   93.0    1.0  7.000000  4.150707    2.0    0    1    1    1    1
-2   15.0    4.0  3.439629  4.000000    2.0    0    0    1    0    1
+   feat1  feat2    feat3     feat4  feat5  bf1  bf2  bf3  bf4  bf5
+0   52.0    2.0  6.00000  4.000000    2.0    0    0    1    0    0
+1   93.0    1.0  7.00000  4.189552    2.0    0    1    1    1    1
+2   15.0    4.0  3.44211  4.000000    2.0    0    0    1    0    1
 </pre></div>
 </div>
 </div>
@@ -262,57 +262,57 @@ The successfully imputed dataset:
 </div>
 <div class="cell_output docutils container">
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>History 
-    epoch  train_loss   train_mse   train_bce  imputation_error     val_mse  \
-0       0    5.697448  347.701660  222.036087        320.539062  319.861664   
-1       1    5.562358  340.168030  216.051208        344.425415  343.775421   
-2       2    5.465328  339.692566  206.791824        345.298767  344.682617   
-3       3    5.349976  334.835938  200.050797        334.807343  334.233856   
-4       4    5.217632  325.737579  195.760330        337.141022  336.607391   
-5       4         NaN         NaN         NaN        347.181946  346.653870   
-6       9         NaN         NaN         NaN        271.728973  271.148438   
-7       0    5.920253  281.688995  309.766724               NaN         NaN   
-8       1    6.260297  318.909760  306.554749               NaN         NaN   
-9       2    5.865682  278.205536  307.714355               NaN         NaN   
-10      3    5.694291  265.898376  302.624451               NaN         NaN   
-11      4    5.658046  259.660339  305.226379               NaN         NaN   
-12     14         NaN         NaN         NaN        377.688568  377.069275   
-13      0    5.380131  233.666336  303.406372               NaN         NaN   
-14      1    9.380677  620.381836  315.344940               NaN         NaN   
-15      2    5.336485  226.872391  305.304321               NaN         NaN   
-16      3    5.540195  241.228012  311.292175               NaN         NaN   
-17      4    5.593123  246.618195  310.927979               NaN         NaN   
-18     19         NaN         NaN         NaN        370.147552  369.551178   
-19      0    5.478112  237.671204  307.676208               NaN         NaN   
-20      1    5.940437  279.735931  311.661987               NaN         NaN   
-21      2    5.405255  234.999512  302.320068               NaN         NaN   
-22      3    5.558175  249.377579  302.137421               NaN         NaN   
-23      4    4.837628  180.613342  298.911987               NaN         NaN   
+    epoch  train_loss   train_mse   train_bce  train_ce  imputation_error  \
+0       0    6.945113  347.701630  346.802612       0.0        320.539062   
+1       1    6.810024  340.168030  340.817749       0.0        344.425415   
+2       2    6.712993  339.692535  331.558289       0.0        345.298767   
+3       3    6.597640  334.835938  324.817261       0.0        334.807343   
+4       4    6.465297  325.737579  320.526825       0.0        337.141022   
+5       4         NaN         NaN         NaN       NaN        347.181915   
+6       9         NaN         NaN         NaN       NaN        271.728943   
+7       0    5.920253  281.688995  309.766754       0.0               NaN   
+8       1    6.260298  318.909790  306.554749       0.0               NaN   
+9       2    5.865682  278.205566  307.714355       0.0               NaN   
+10      3    5.694291  265.898407  302.624420       0.0               NaN   
+11      4    5.658046  259.660370  305.226379       0.0               NaN   
+12     14         NaN         NaN         NaN       NaN        377.688629   
+13      0    5.380131  233.666336  303.406342       0.0               NaN   
+14      1    9.380676  620.381714  315.344940       0.0               NaN   
+15      2    5.336485  226.872391  305.304321       0.0               NaN   
+16      3    5.540195  241.228027  311.292175       0.0               NaN   
+17      4    5.593123  246.618195  310.927979       0.0               NaN   
+18     19         NaN         NaN         NaN       NaN        370.147614   
+19      0    5.478112  237.671204  307.676208       0.0               NaN   
+20      1    5.940436  279.735870  311.661987       0.0               NaN   
+21      2    5.405255  234.999435  302.320129       0.0               NaN   
+22      3    5.558175  249.377594  302.137451       0.0               NaN   
+23      4    4.837627  180.613281  298.911987       0.0               NaN   
 
-     val_bce        lr           phase  loop  
-0   0.677406  0.010000             NaN   NaN  
-1   0.649993  0.009990             NaN   NaN  
-2   0.616162  0.009980             NaN   NaN  
-3   0.573492  0.009970             NaN   NaN  
-4   0.533642  0.009960             NaN   NaN  
-5   0.528070  0.009950           refit   0.0  
-6   0.580540  0.009900           refit   0.0  
-7        NaN  0.009950  refit_training   NaN  
-8        NaN  0.009940  refit_training   NaN  
-9        NaN  0.009930  refit_training   NaN  
-10       NaN  0.009920  refit_training   NaN  
-11       NaN  0.009910  refit_training   NaN  
-12  0.619285  0.009851           refit   0.0  
-13       NaN  0.009900  refit_training   NaN  
-14       NaN  0.009891  refit_training   NaN  
-15       NaN  0.009881  refit_training   NaN  
-16       NaN  0.009871  refit_training   NaN  
-17       NaN  0.009861  refit_training   NaN  
-18  0.596373  0.009802           refit   0.0  
-19       NaN  0.009851  refit_training   NaN  
-20       NaN  0.009841  refit_training   NaN  
-21       NaN  0.009831  refit_training   NaN  
-22       NaN  0.009822  refit_training   NaN  
-23       NaN  0.009812  refit_training   NaN  
+       val_mse   val_bce  val_ce        lr           phase  loop  
+0   319.861664  0.677406     0.0  0.010000             NaN   NaN  
+1   343.775421  0.649993     0.0  0.009990             NaN   NaN  
+2   344.682617  0.616162     0.0  0.009980             NaN   NaN  
+3   334.233856  0.573492     0.0  0.009970             NaN   NaN  
+4   336.607391  0.533642     0.0  0.009960             NaN   NaN  
+5   346.653839  0.528070     0.0  0.009950           refit   0.0  
+6   271.148407  0.580540     0.0  0.009900           refit   1.0  
+7          NaN       NaN     NaN  0.009950  refit_training   NaN  
+8          NaN       NaN     NaN  0.009940  refit_training   NaN  
+9          NaN       NaN     NaN  0.009930  refit_training   NaN  
+10         NaN       NaN     NaN  0.009920  refit_training   NaN  
+11         NaN       NaN     NaN  0.009910  refit_training   NaN  
+12  377.069336  0.619285     0.0  0.009851           refit   2.0  
+13         NaN       NaN     NaN  0.009900  refit_training   NaN  
+14         NaN       NaN     NaN  0.009891  refit_training   NaN  
+15         NaN       NaN     NaN  0.009881  refit_training   NaN  
+16         NaN       NaN     NaN  0.009871  refit_training   NaN  
+17         NaN       NaN     NaN  0.009861  refit_training   NaN  
+18  369.551239  0.596373     0.0  0.009802           refit   3.0  
+19         NaN       NaN     NaN  0.009851  refit_training   NaN  
+20         NaN       NaN     NaN  0.009841  refit_training   NaN  
+21         NaN       NaN     NaN  0.009831  refit_training   NaN  
+22         NaN       NaN     NaN  0.009822  refit_training   NaN  
+23         NaN       NaN     NaN  0.009812  refit_training   NaN  
 </pre></div>
 </div>
 </div>
@@ -334,7 +334,7 @@ The successfully imputed dataset:
 </div>
 </div>
 <div class="cell_output docutils container">
-<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ee64b2f7fec94ec9b376c41718c38fdaf278503a5bd9c97b90db3d930f0576f7.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ee64b2f7fec94ec9b376c41718c38fdaf278503a5bd9c97b90db3d930f0576f7.png" />
+<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/30ddb3edc7c6d3dfdf48a5e5a6425dd673b6a5d0d46f82c16a5b7505e911b74d.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/30ddb3edc7c6d3dfdf48a5e5a6425dd673b6a5d0d46f82c16a5b7505e911b74d.png" />
 </div>
 </div>
 </section>
@@ -372,72 +372,72 @@ The successfully imputed dataset:
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[Warning] CUDA requested but not available. Falling back to CPU.
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2026-03-23 12:58:09,432] A new study created in RDB with name: vae_autotune
-\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\training\autotune.py:644: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">[I 2026-04-01 09:56:56,124]</span> Using an existing study with name &#39;vae_autotune&#39; instead of creating a new one.
+\\VPensBST\BstShared\Biostatistics\Danielle\Repos\CISS_VAE\CISS-VAE-python\src\ciss_vae\training\autotune.py:652: ExperimentalWarning: optuna.study.study.Study.set_metric_names is experimental (supported from v3.2.0). The interface can change in the future.
   study.set_metric_names([&quot;Total Imputation Error&quot;])
 </pre></div>
 </div>
 <div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Starting Optuna optimization with 20 trials...
 </pre></div>
 </div>
-<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[I 2026-03-23 12:58:24,755] Trial 0 finished with value: {&#39;Total Imputation Error&#39;: 471.3572998046875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 0 with value: 471.3572998046875.
-[I 2026-03-23 12:58:40,369] Trial 1 finished with value: {&#39;Total Imputation Error&#39;: 281.1874694824219} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 1 with value: 281.1874694824219.
-[I 2026-03-23 12:58:55,472] Trial 2 finished with value: {&#39;Total Imputation Error&#39;: 335.3370056152344} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 1 with value: 281.1874694824219.
-[I 2026-03-23 12:59:09,718] Trial 3 finished with value: {&#39;Total Imputation Error&#39;: 294.416748046875} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 1 with value: 281.1874694824219.
-[I 2026-03-23 12:59:24,873] Trial 4 finished with value: {&#39;Total Imputation Error&#39;: 208.5931396484375} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 12:59:40,915] Trial 5 finished with value: {&#39;Total Imputation Error&#39;: 290.7283935546875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 12:59:57,203] Trial 6 finished with value: {&#39;Total Imputation Error&#39;: 352.5667419433594} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:00:13,058] Trial 7 finished with value: {&#39;Total Imputation Error&#39;: 316.87335205078125} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:00:40,285] Trial 8 finished with value: {&#39;Total Imputation Error&#39;: 342.1788635253906} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:00:56,022] Trial 9 finished with value: {&#39;Total Imputation Error&#39;: 355.9355163574219} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:01:10,498] Trial 10 finished with value: {&#39;Total Imputation Error&#39;: 322.3448181152344} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:01:24,814] Trial 11 finished with value: {&#39;Total Imputation Error&#39;: 325.40679931640625} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:01:40,271] Trial 12 finished with value: {&#39;Total Imputation Error&#39;: 353.754150390625} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:01:57,197] Trial 13 finished with value: {&#39;Total Imputation Error&#39;: 376.3299255371094} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:02:09,840] Trial 14 finished with value: {&#39;Total Imputation Error&#39;: 317.61138916015625} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:02:28,273] Trial 15 finished with value: {&#39;Total Imputation Error&#39;: 319.0315246582031} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;alternating&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:02:42,850] Trial 16 finished with value: {&#39;Total Imputation Error&#39;: 384.4588928222656} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 4 with value: 208.5931396484375.
-[I 2026-03-23 13:02:55,647] Trial 17 finished with value: {&#39;Total Imputation Error&#39;: 204.75360107421875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
-[I 2026-03-23 13:03:08,546] Trial 18 finished with value: {&#39;Total Imputation Error&#39;: 313.8785705566406} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
-[I 2026-03-23 13:03:25,533] Trial 19 finished with value: {&#39;Total Imputation Error&#39;: 248.68955993652344} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 17 with value: 204.75360107421875.
+<div class="output stderr highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span><span class=" -Color -Color-Green">[I 2026-04-01 09:57:11,614]</span> Trial 23 finished with value: {&#39;Total Imputation Error&#39;: 280.91204833984375} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:57:25,087]</span> Trial 24 finished with value: {&#39;Total Imputation Error&#39;: 213.1970672607422} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:57:38,223]</span> Trial 25 finished with value: {&#39;Total Imputation Error&#39;: 313.8942565917969} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:57:48,507]</span> Trial 26 finished with value: {&#39;Total Imputation Error&#39;: 378.0359191894531} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:57:58,126]</span> Trial 27 finished with value: {&#39;Total Imputation Error&#39;: 291.3521423339844} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:58:08,416]</span> Trial 28 finished with value: {&#39;Total Imputation Error&#39;: 270.27435302734375} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:58:19,106]</span> Trial 29 finished with value: {&#39;Total Imputation Error&#39;: 256.9208068847656} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:58:30,824]</span> Trial 30 finished with value: {&#39;Total Imputation Error&#39;: 278.3486633300781} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_end&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:58:41,303]</span> Trial 31 finished with value: {&#39;Total Imputation Error&#39;: 318.2501220703125} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 6, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 21 with value: 202.40597534179688.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:58:55,522]</span> Trial 32 finished with value: {&#39;Total Imputation Error&#39;: 193.67373657226562} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 32 with value: 193.67373657226562.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:59:06,457]</span> Trial 33 finished with value: {&#39;Total Imputation Error&#39;: 323.4795837402344} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 32 with value: 193.67373657226562.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:59:30,637]</span> Trial 34 finished with value: {&#39;Total Imputation Error&#39;: 148.54522705078125} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:59:41,609]</span> Trial 35 finished with value: {&#39;Total Imputation Error&#39;: 252.63011169433594} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 09:59:52,709]</span> Trial 36 finished with value: {&#39;Total Imputation Error&#39;: 261.8629150390625} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:03,830]</span> Trial 37 finished with value: {&#39;Total Imputation Error&#39;: 402.05194091796875} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:10,947]</span> Trial 38 finished with value: {&#39;Total Imputation Error&#39;: 293.0616760253906} and parameters: {&#39;num_hidden_layers&#39;: 1, &#39;hidden_dim_0&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;alternating&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:19,768]</span> Trial 39 finished with value: {&#39;Total Imputation Error&#39;: 280.6060485839844} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 32, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;at_start&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:29,228]</span> Trial 40 finished with value: {&#39;Total Imputation Error&#39;: 208.51077270507812} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:37,311]</span> Trial 41 finished with value: {&#39;Total Imputation Error&#39;: 421.8951416015625} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 6, &#39;hidden_dim_1&#39;: 16, &#39;encoder_shared_placement&#39;: &#39;random&#39;, &#39;decoder_shared_placement&#39;: &#39;random&#39;}. Best is trial 34 with value: 148.54522705078125.
+<span class=" -Color -Color-Green">[I 2026-04-01 10:00:44,687]</span> Trial 42 finished with value: {&#39;Total Imputation Error&#39;: 282.4975280761719} and parameters: {&#39;num_hidden_layers&#39;: 2, &#39;hidden_dim_0&#39;: 16, &#39;hidden_dim_1&#39;: 32, &#39;encoder_shared_placement&#39;: &#39;at_end&#39;, &#39;decoder_shared_placement&#39;: &#39;at_start&#39;}. Best is trial 34 with value: 148.54522705078125.
 </pre></div>
 </div>
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Optimization complete. Best trial: 17 (Total Imputation Error: 204.753601)
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>Optimization complete. Best trial: 34 (Total Imputation Error: 148.545227)
 Training final model with best parameters...
 Final model training complete.
 </pre></div>
 </div>
-<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(    feat1     feat2     feat3     feat4     feat5           bf1       bf2  \
- 0    52.0  2.000000  6.000000  4.000000  2.000000  1.574351e-05  0.011680   
- 1    93.0  1.000000  7.000000  2.549986  2.000000  1.327538e-07  1.000000   
- 2    15.0  4.000000  6.269226  4.000000  2.000000  0.000000e+00  0.000000   
- 3    72.0  4.000000  3.000000  2.822585  1.000000  8.273758e-01  1.000000   
- 4    61.0  5.127302  1.000000  5.074446  1.000000  0.000000e+00  0.987302   
- ..    ...       ...       ...       ...       ...           ...       ...   
- 95   85.0  1.341140  5.282604  6.000000  2.000000  0.000000e+00  0.000000   
- 96   80.0  1.000000  6.276412  7.000000  2.000000  0.000000e+00  0.028704   
- 97   82.0  2.000000  4.000000  3.660423  1.000000  0.000000e+00  0.001104   
- 98   53.0  4.000000  3.000000  7.000000  7.000000  2.209703e-04  0.000000   
- 99   24.0  4.000000  1.000000  3.000000  5.163667  0.000000e+00  1.000000   
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>(    feat1     feat2     feat3     feat4     feat5       bf1       bf2  \
+ 0    52.0  2.000000  6.000000  4.000000  2.000000  0.603871  0.159842   
+ 1    93.0  1.000000  7.000000 -0.439109  2.000000  0.000002  1.000000   
+ 2    15.0  4.000000  3.687330  4.000000  2.000000  0.000000  0.000000   
+ 3    72.0  4.000000  3.000000  3.249043  1.000000  0.004010  1.000000   
+ 4    61.0  2.255670  1.000000  2.768236  1.000000  0.000000  0.018236   
+ ..    ...       ...       ...       ...       ...       ...       ...   
+ 95   85.0  0.962307  3.369231  6.000000  2.000000  0.000000  0.000000   
+ 96   80.0  1.000000  3.238206  7.000000  2.000000  0.000000  0.000018   
+ 97   82.0  2.000000  4.000000  6.498518  1.000000  0.000000  0.000099   
+ 98   53.0  4.000000  3.000000  7.000000  7.000000  0.000504  0.000000   
+ 99   24.0  4.000000  1.000000  3.000000  2.768066  0.000000  1.000000   
  
           bf3           bf4       bf5  
- 0   0.989517  8.568458e-09  0.000000  
+ 0   0.517981  2.188087e-02  0.000000  
  1   1.000000  1.000000e+00  1.000000  
- 2   1.000000  0.000000e+00  0.821812  
- 3   0.995228  1.000000e+00  0.954007  
- 4   0.777846  9.999486e-01  0.000000  
+ 2   1.000000  0.000000e+00  0.966626  
+ 3   1.000000  1.000000e+00  0.999973  
+ 4   0.761495  1.825549e-01  0.000000  
  ..       ...           ...       ...  
- 95  1.000000  2.962417e-05  1.000000  
- 96  1.000000  1.085632e-04  1.000000  
- 97  1.000000  8.465250e-07  0.986807  
+ 95  1.000000  8.229457e-10  1.000000  
+ 96  1.000000  5.805393e-11  1.000000  
+ 97  1.000000  4.715938e-10  0.994726  
  98  0.000000  0.000000e+00  1.000000  
  99  1.000000  1.000000e+00  0.000000  
  
  [100 rows x 10 columns],
  CISSVAE(input_dim=10, latent_dim=10, latent_shared=True, output_shared=True,num_clusters=3)
  Encoder Layers:
-   [0] SHARED   10 → 32
-   [1] UNSHARED 32 → 16
+   [0] UNSHARED 10 → 32
+   [1] SHARED   32 → 16
  
  Latent Layer:
    SHARED    16 → 10
@@ -448,7 +448,7 @@ Final model training complete.
  
  Final Output Layer:
     SHARED  32 → 10,
- &lt;optuna.study.study.Study at 0x2238f31b0d0&gt;,
+ &lt;optuna.study.study.Study at 0x2af125bf1c0&gt;,
      trial_number  imputation_error  num_hidden_layers  hidden_dim_0  \
  0              0        471.357300                  2             6   
  1              1        281.187469                  2            32   
@@ -470,6 +470,29 @@ Final model training complete.
  17            17        204.753601                  2            32   
  18            18        313.878571                  1            32   
  19            19        248.689560                  2            32   
+ 20            20        359.694733                  2            16   
+ 21            21        202.405975                  2            32   
+ 22            22               NaN                  2            32   
+ 23            23        280.912048                  2            32   
+ 24            24        213.197067                  2            32   
+ 25            25        313.894257                  2            32   
+ 26            26        378.035919                  2            32   
+ 27            27        291.352142                  1            32   
+ 28            28        270.274353                  2            32   
+ 29            29        256.920807                  2            16   
+ 30            30        278.348663                  2            32   
+ 31            31        318.250122                  2             6   
+ 32            32        193.673737                  2            32   
+ 33            33        323.479584                  2            32   
+ 34            34        148.545227                  2            32   
+ 35            35        252.630112                  2            32   
+ 36            36        261.862915                  2            32   
+ 37            37        402.051941                  2             6   
+ 38            38        293.061676                  1            32   
+ 39            39        280.606049                  2            32   
+ 40            40        208.510773                  2            16   
+ 41            41        421.895142                  2             6   
+ 42            42        282.497528                  2            16   
  
      hidden_dim_1 encoder_shared_placement decoder_shared_placement  \
  0           32.0                   random                   at_end   
@@ -492,6 +515,29 @@ Final model training complete.
  17          16.0                 at_start                 at_start   
  18           NaN              alternating                 at_start   
  19          16.0                   at_end                 at_start   
+ 20          16.0                 at_start                 at_start   
+ 21          16.0                   at_end                 at_start   
+ 22          16.0                   at_end                 at_start   
+ 23          16.0                   at_end                 at_start   
+ 24          16.0                   at_end                 at_start   
+ 25          16.0                   at_end                 at_start   
+ 26          16.0                   at_end                   at_end   
+ 27           NaN                 at_start                 at_start   
+ 28          16.0              alternating                 at_start   
+ 29          16.0                   at_end                   at_end   
+ 30          16.0                   random                   at_end   
+ 31           6.0                 at_start                   random   
+ 32          16.0                   at_end                 at_start   
+ 33          16.0                   at_end                 at_start   
+ 34          16.0                   at_end                 at_start   
+ 35          16.0                   at_end                 at_start   
+ 36          16.0                   at_end                 at_start   
+ 37          16.0                   random                 at_start   
+ 38           NaN              alternating                 at_start   
+ 39          16.0                 at_start                 at_start   
+ 40          32.0                   at_end                 at_start   
+ 41          16.0                   random                   random   
+ 42          32.0                   at_end                 at_start   
  
     layer_order_enc_used layer_order_dec_used  
  0                   U,S                  U,S  
@@ -513,7 +559,30 @@ Final model training complete.
  16                  U,S                  U,S  
  17                  S,U                  S,U  
  18                    S                    S  
- 19                  U,S                  S,U  )
+ 19                  U,S                  S,U  
+ 20                  S,U                  S,U  
+ 21                  U,S                  S,U  
+ 22                 None                 None  
+ 23                  U,S                  S,U  
+ 24                  U,S                  S,U  
+ 25                  U,S                  S,U  
+ 26                  U,S                  U,S  
+ 27                    S                    S  
+ 28                  S,U                  S,U  
+ 29                  U,S                  U,S  
+ 30                  S,U                  U,S  
+ 31                  S,U                  S,U  
+ 32                  U,S                  S,U  
+ 33                  U,S                  S,U  
+ 34                  U,S                  S,U  
+ 35                  U,S                  S,U  
+ 36                  U,S                  S,U  
+ 37                  U,S                  S,U  
+ 38                    S                    S  
+ 39                  S,U                  S,U  
+ 40                  U,S                  S,U  
+ 41                  U,S                  U,S  
+ 42                  U,S                  S,U  )
 </pre></div>
 </div>
 </div>

@@ -9,7 +9,7 @@
   <title>Using create_missingness_prop_matrix: A Complete Guide &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="_static/styles.css" />
 
@@ -258,9 +258,13 @@ C     0.5     0.5
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>  subject  baseline_glucose  followup_glucose  glucose_final  insulin_start  insulin_end
-0      S1              90.0                95            NaN            4.0          4.5
-1      S2               NaN                88           92.0            3.8          NaN
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>  subject  baseline_glucose  followup_glucose  glucose_final  insulin_start  \
+0      S1              90.0                95            NaN            4.0   
+1      S2               NaN                88           92.0            3.8   
+
+   insulin_end  
+0          4.5  
+1          NaN  
 Output: 
      glucose  insulin
 S1  0.333333      0.0
@@ -312,20 +316,27 @@ S2  0.333333      0.5
 </div>
 </div>
 <div class="cell_output docutils container">
-<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>  sample_id  glucose_t0  glucose_t1  glucose_t2  insulin_t0  insulin_t1  insulin_t2
-0    mouse1       100.0       110.0         115         5.2         NaN         6.0
-1    mouse2        95.0         NaN         100         4.8         NaN         5.1
-2    mouse3         NaN       105.0         107         NaN         5.5         NaN
-3    mouse4       102.0       108.0         118         NaN         5.3         NaN
-4    mouse5        98.0         NaN         112         5.1         5.4         NaN
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>  sample_id  glucose_t0  glucose_t1  glucose_t2  insulin_t0  insulin_t1  \
+0    mouse1       100.0       110.0         115         5.2         NaN   
+1    mouse2        95.0         NaN         100         4.8         NaN   
+2    mouse3         NaN       105.0         107         NaN         5.5   
+3    mouse4       102.0       108.0         118         NaN         5.3   
+4    mouse5        98.0         NaN         112         5.1         5.4   
+
+   insulin_t2  
+0         6.0  
+1         5.1  
+2         NaN  
+3         NaN  
+4         NaN  
         glucose_t0  glucose_t1  glucose_t2  insulin_t0  insulin_t1  insulin_t2
 mouse1         0.0         0.0         0.0         0.0         1.0         0.0
 mouse2         0.0         1.0         0.0         0.0         1.0         0.0
 mouse3         1.0         0.0         0.0         1.0         0.0         1.0
 mouse4         0.0         0.0         0.0         1.0         0.0         1.0
 mouse5         0.0         1.0         0.0         0.0         0.0         1.0
-Clusters: [0 1 0 0 1]
-Silhouette score: 0.17776416479646978
+Clusters: [1 1 0 0 1]
+Silhouette score: 0.4639966826516685
 </pre></div>
 </div>
 </div>
@@ -366,9 +377,10 @@ Cluster dataset:
   • .data shape:     (5, 6)
   • .masks shape:    (5, 6)
   • .val_data shape: (5, 6)
+  • Validation units: {&#39;glucose_t0&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_t0&#39;]}, &#39;glucose_t1&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_t1&#39;]}, &#39;glucose_t2&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_t2&#39;]}, &#39;insulin_t0&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;insulin_t0&#39;]}, &#39;insulin_t1&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;insulin_t1&#39;]}, &#39;insulin_t2&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;insulin_t2&#39;]}}
 </pre></div>
 </div>
-<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/f6b7bbc2f2f4e5df3a1d1446bfbbac25ac4fe8a4d0ceaa4e2db66a6b6d55257e.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/f6b7bbc2f2f4e5df3a1d1446bfbbac25ac4fe8a4d0ceaa4e2db66a6b6d55257e.png" />
+<img alt="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ff0e7be264cc64ef4d587e960eb1f33b0ac5806ba908e680ca8e2b8a30f8ea1a.png" src="/VPensBST/BstShared/Biostatistics/Danielle/Repos/CISS_VAE/CISS-VAE-python/docs/build/jupyter_execute/ff0e7be264cc64ef4d587e960eb1f33b0ac5806ba908e680ca8e2b8a30f8ea1a.png" />
 </div>
 </div>
 </section>
@@ -440,22 +452,37 @@ Cluster dataset:
   • .data shape:     (100, 8)
   • .masks shape:    (100, 8)
   • .val_data shape: (100, 8)
+  • Validation units: {&#39;glucose_baseline&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_baseline&#39;]}, &#39;glucose_month1&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_month1&#39;]}, &#39;glucose_month3&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_month3&#39;]}, &#39;glucose_month6&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;glucose_month6&#39;]}, &#39;hba1c_baseline&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;hba1c_baseline&#39;]}, &#39;hba1c_month1&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;hba1c_month1&#39;]}, &#39;hba1c_month3&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;hba1c_month3&#39;]}, &#39;hba1c_month6&#39;: {&#39;kind&#39;: &#39;continuous&#39;, &#39;cols&#39;: [&#39;hba1c_month6&#39;]}}
 
 Original Data: 
-   glucose_baseline  glucose_month1  glucose_month3  glucose_month6  hba1c_baseline  hba1c_month1  hba1c_month3  hba1c_month6
-0         99.967142       92.156023             NaN       87.339202             NaN      5.859505      6.079557      5.634611
-1         93.617357             NaN       78.972177             NaN        6.819309      7.239745           NaN      5.757494
-2        101.476885             NaN             NaN       81.481639        6.469892           NaN      6.534880      5.492823
-3        110.230299      124.642030       86.824755       88.473987             NaN      7.962037           NaN      5.189670
-4         92.658466       99.508008       93.549904       79.395866        6.591382      6.825535           NaN      5.445506 
+   glucose_baseline  glucose_month1  glucose_month3  glucose_month6  \
+0         99.967142       92.156023             NaN       87.339202   
+1         93.617357             NaN       78.972177             NaN   
+2        101.476885             NaN             NaN       81.481639   
+3        110.230299      124.642030       86.824755       88.473987   
+4         92.658466       99.508008       93.549904       79.395866   
+
+   hba1c_baseline  hba1c_month1  hba1c_month3  hba1c_month6  
+0             NaN      5.859505      6.079557      5.634611  
+1        6.819309      7.239745           NaN      5.757494  
+2        6.469892           NaN      6.534880      5.492823  
+3             NaN      7.962037           NaN      5.189670  
+4        6.591382      6.825535           NaN      5.445506   
 
 Imputed Data:
-   glucose_baseline  glucose_month1  glucose_month3  glucose_month6  hba1c_baseline  hba1c_month1  hba1c_month3  hba1c_month6
-0         99.967140       92.156021       91.040680       87.339203        6.638026      5.859505      6.079557      5.634611
-1         93.617355       93.880074       78.972176       92.288696        6.819309      7.239745      6.510371      5.757494
-2        101.476883       94.809273       97.503601       81.481636        6.469892      6.370516      6.534880      5.492823
-3        110.230301      124.642029       86.824753       88.473984        5.975946      7.962037      7.977868      5.189670
-4         92.658463       99.508011       93.549904       79.395866        6.591382      6.825535      5.856393      5.445506
+   glucose_baseline  glucose_month1  glucose_month3  glucose_month6  \
+0         99.967140       92.156021       97.108841       87.339203   
+1         93.617355      107.307274       78.972176       92.720222   
+2        101.476883       82.597275       98.518005       81.481636   
+3        110.230301      124.642029       86.824753       88.473984   
+4         92.658463       99.508011       93.549904       79.395866   
+
+   hba1c_baseline  hba1c_month1  hba1c_month3  hba1c_month6  
+0        6.375147      5.859505      6.079557      5.634611  
+1        6.819309      7.239745      6.351654      5.757494  
+2        6.469892      6.724995      6.534880      5.492823  
+3        8.114622      7.962037      7.808603      5.189670  
+4        6.591382      6.825535      4.805406      5.445506  
 </pre></div>
 </div>
 </div>

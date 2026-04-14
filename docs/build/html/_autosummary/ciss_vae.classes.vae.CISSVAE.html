@@ -9,7 +9,7 @@
   <title>ciss_vae.classes.vae.CISSVAE &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
@@ -105,7 +105,7 @@
 <h1>ciss_vae.classes.vae.CISSVAE<a class="headerlink" href="#ciss-vae-classes-vae-cissvae" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CISSVAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">CISSVAE</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code></p>
 <blockquote>
 <div><p>Clustering-Informed Shared-Structure Variational Autoencoder (CISSVAE).</p>
@@ -127,11 +127,11 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If an item of <code class="docutils literal notranslate"><span class="pre">layer_order_enc</span></code> or <code class="docutils literal notranslate"><span class="pre">layer_order_dec</span></code> is not one of
-<code class="docutils literal notranslate"><span class="pre">{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}</span></code> (case‑insensitive), or if their lengths do not match
-<code class="docutils literal notranslate"><span class="pre">len(hidden_dims)</span></code> for the respective path.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – If an item of <code class="docutils literal notranslate"><span class="pre">layer_order_enc</span></code> or <code class="docutils literal notranslate"><span class="pre">layer_order_dec</span></code> is not one of</p>
 </dd>
 </dl>
+<p><code class="docutils literal notranslate"><span class="pre">{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}</span></code> (case‑insensitive), or if their lengths do not match
+<code class="docutils literal notranslate"><span class="pre">len(hidden_dims)</span></code> for the respective path.</p>
 <dl class="simple">
 <dt><strong>Expected shapes</strong></dt><dd><ul class="simple">
 <li><p>Encoder input <code class="docutils literal notranslate"><span class="pre">x</span></code>: <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">input_dim)</span></code></p></li>
@@ -148,7 +148,7 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.__init__" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hidden_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_enc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_order_dec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latent_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_shared</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_clusters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_groups</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.__init__" title="Link to this definition"></a></dt>
 <dd><p>Variational Autoencoder supporting flexible shared/unshared layers across clusters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -161,9 +161,29 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 <li><p><strong>latent_dim</strong> (<em>int</em>) – Dimensionality of the latent space.</p></li>
 <li><p><strong>output_shared</strong> (<em>bool</em>) – Whether output layer is shared across clusters.</p></li>
 <li><p><strong>num_clusters</strong> (<em>int</em>) – Number of clusters.</p></li>
-<li><p><strong>binary_feature_mask</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>Sequence</em><em>[</em><em>bool</em><em>]</em><em>]</em><em>]</em>) – Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</p></li>
-<li><p><strong>debug</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, print shape and routing information.</p></li>
+<li><p><strong>activation_groups</strong> – Dictionary mapping feature groups to column indices. Attribute of ClusterDataset object.</p></li>
 </ul>
+</dd>
+</dl>
+<p>Expected format:</p>
+<dl class="simple">
+<dt>{</dt><dd><p>“continuous”: [int, …],
+“binary”: [int, …],
+“&lt;categorical_name&gt;”: [int, …],
+…</p>
+</dd>
+</dl>
+<p>}</p>
+<p>Each key defines a feature group:
+- “continuous”: indices of continuous-valued features
+- “binary”: indices of binary features
+- additional keys correspond to grouped categorical variables
+(e.g., one-hot encoded columns belonging to the same variable)</p>
+<p>This structure is used to determine loss functions and output
+transformations outside the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>debug</strong> (<em>bool</em>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, print shape and routing information.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -187,7 +207,7 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 <td><p>Returns the learning rate stored with self.set_final_lr/</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata" title="ciss_vae.classes.vae.CISSVAE.get_imputed_valdata"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_imputed_valdata</span></code></a>(dataset[, device, ...])</p></td>
-<td><p>Get denormalized imputed data from the trained model.</p></td>
+<td><p>Compute imputed values for the validation dataset.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.reparameterize" title="ciss_vae.classes.vae.CISSVAE.reparameterize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reparameterize</span></code></a>(mu, logvar[, generator])</p></td>
 <td><p>Reparameterization trick: <code class="docutils literal notranslate"><span class="pre">z</span> <span class="pre">=</span> <span class="pre">mu</span> <span class="pre">+</span> <span class="pre">eps</span> <span class="pre">*</span> <span class="pre">exp(0.5</span> <span class="pre">*</span> <span class="pre">logvar)</span></code>.</p></td>
@@ -195,7 +215,7 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.route_through_layers" title="ciss_vae.classes.vae.CISSVAE.route_through_layers"><code class="xref py py-obj docutils literal notranslate"><span class="pre">route_through_layers</span></code></a>(x, cluster_labels, ...)</p></td>
 <td><p>Apply a sequence of shared/unshared layers according to <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_binary_features" title="ciss_vae.classes.vae.CISSVAE.set_binary_features"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_binary_features</span></code></a>(self[, mask, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_activation_groups" title="ciss_vae.classes.vae.CISSVAE.set_activation_groups"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_activation_groups</span></code></a>(self, activation_groups)</p></td>
 <td><p></p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="#ciss_vae.classes.vae.CISSVAE.set_final_lr" title="ciss_vae.classes.vae.CISSVAE.set_final_lr"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_final_lr</span></code></a>(final_lr)</p></td>
@@ -209,10 +229,8 @@ clusters in both encoder and decoder. Unshared layers are applied by cluster, sh
 <dd><p>Apply a sequence of shared/unshared layers according to <code class="docutils literal notranslate"><span class="pre">layer_type_list</span></code>.</p>
 <p>For each position <code class="docutils literal notranslate"><span class="pre">i</span></code>:
 * if <code class="docutils literal notranslate"><span class="pre">layer_type_list[i]</span></code> is shared → apply <code class="docutils literal notranslate"><span class="pre">shared_layers[i_shared]</span></code> to all rows;
-* if unshared → for each cluster <code class="docutils literal notranslate"><span class="pre">c</span></code>, apply the <code class="docutils literal notranslate"><span class="pre">c</span></code>‑specific layer</p>
-<blockquote>
-<div><p>at that depth to the subset of rows where <code class="docutils literal notranslate"><span class="pre">cluster_labels</span> <span class="pre">==</span> <span class="pre">c</span></code>.</p>
-</div></blockquote>
+* if unshared → for each cluster <code class="docutils literal notranslate"><span class="pre">c</span></code>, apply the <code class="docutils literal notranslate"><span class="pre">c</span></code>‑specific layer
+at that depth to the subset of rows where <code class="docutils literal notranslate"><span class="pre">cluster_labels</span> <span class="pre">==</span> <span class="pre">c</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -337,84 +355,87 @@ unshared stacks are inconsistent with the directives.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.get_imputed_valdata">
 <span class="sig-name descname"><span class="pre">get_imputed_valdata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cpu'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deterministic</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ciss_vae/classes/vae.html#CISSVAE.get_imputed_valdata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata" title="Link to this definition"></a></dt>
-<dd><p>Get denormalized imputed data from the trained model.</p>
-<blockquote>
-<div><p>[IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</p>
-</div></blockquote>
-<p>Performs a forward pass of the model in evaluation mode to reconstruct
-validation data. The reconstructed output is then denormalized using the
-dataset’s feature means and standard deviations. Features with zero
-standard deviation are replaced with 1.0 to ensure numerical stability.</p>
+<dd><p>Compute imputed values for the validation dataset.</p>
+<p>Performs a forward pass through the trained VAE and reconstructs only the
+validation-masked entries. Outputs are interpreted according to
+<cite>activation_groups</cite>:</p>
+<ul class="simple">
+<li><p>continuous → denormalized using mean/std</p></li>
+<li><p>binary → sigmoid applied</p></li>
+<li><p>categorical → softmax + argmax (one-hot reconstruction)</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>dataset</strong> (<a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><em>ClusterDataset</em></a>) – <p>Dataset object containing normalized data, validation data, and feature statistics.
-Must include:</p>
-<blockquote>
-<div><ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">data</span></code>: Normalized input tensor of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">val_data</span></code>: Original validation data tensor of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cluster_labels</span></code>: Cluster assignments for each sample, shape <code class="docutils literal notranslate"><span class="pre">(n_samples,)</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">feature_means</span></code>: Per-feature means, length <code class="docutils literal notranslate"><span class="pre">n_features</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">feature_stds</span></code>: Per-feature standard deviations, length <code class="docutils literal notranslate"><span class="pre">n_features</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">feature_names</span></code>: List of feature names (used for zero-std warnings)</p></li>
+<li><p><strong>dataset</strong> (<a class="reference internal" href="ciss_vae.classes.cluster_dataset.ClusterDataset.html#ciss_vae.classes.cluster_dataset.ClusterDataset" title="ciss_vae.classes.cluster_dataset.ClusterDataset"><em>ClusterDataset</em></a>) – <dl class="simple">
+<dt>Dataset object containing:</dt><dd><ul>
+<li><p>data : normalized tensor (N, D)</p></li>
+<li><p>val_data : original data with NaNs at validation positions</p></li>
+<li><p>cluster_labels : (N,)</p></li>
+<li><p>feature_means : (D,)</p></li>
+<li><p>feature_stds : (D,)</p></li>
+<li><p>feature_names : list[str]</p></li>
+<li><p>activation_groups : dict[str, list[int]]</p></li>
 </ul>
-</div></blockquote>
+</dd>
+</dl>
 </p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Device to perform computations on (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>). Default is <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>.</p></li>
-<li><p><strong>deterministic</strong> (<em>bool</em>) – Deterministic Evaluation of Model for Imputation (default True).</p></li>
+<li><p><strong>device</strong> (<em>str</em><em>, </em><em>default=&quot;cpu&quot;</em>) – Device to run computations on.</p></li>
+<li><p><strong>deterministic</strong> (<em>bool</em><em>, </em><em>default=True</em>) – Whether to use deterministic forward pass.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Denormalized reconstructed (imputed) validation data of shape <code class="docutils literal notranslate"><span class="pre">(n_samples,</span> <span class="pre">n_features)</span></code>.</p>
+<dd class="field-even"><p>Tensor of shape (N, D) containing imputed validation values.
+Non-validation entries are set to NaN.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>torch.Tensor</p>
 </dd>
 </dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<ul class="simple">
-<li><p>The model is evaluated using <code class="docutils literal notranslate"><span class="pre">self.eval()</span></code> (disables dropout, batchnorm updates, etc.).</p></li>
-<li><p>Features with <code class="docutils literal notranslate"><span class="pre">std</span> <span class="pre">==</span> <span class="pre">0</span></code> are replaced with <code class="docutils literal notranslate"><span class="pre">1.0</span></code> and a warning listing affected features is printed.</p></li>
-<li><p>The returned tensor corresponds to the model’s best reconstruction of the validation data after denormalization.</p></li>
-</ul>
-</div>
-<p><strong>Example</strong>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">vae</span> <span class="o">=</span> <span class="n">CISSVAE</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">ClusterDataset</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">imputed_val</span> <span class="o">=</span> <span class="n">vae</span><span class="o">.</span><span class="n">get_imputed_valdata</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cuda&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">imputed_val</span><span class="o">.</span><span class="n">shape</span>
-<span class="go">torch.Size([100, 20])</span>
-</pre></div>
-</div>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.set_binary_features">
-<span class="sig-name descname"><span class="pre">set_binary_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binary_feature_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.set_binary_features" title="Link to this definition"></a></dt>
-<dd><p>Update which columns are treated as binary at the output. This function should not be necessary for user to touch.</p>
-<dl class="simple">
-<dt>You can pass either:</dt><dd><ul class="simple">
-<li><p>mask: 1D bool vector length <cite>input_dim</cite>, or</p></li>
-<li><p>feature_names + binary_feature_names: names → mask is computed</p></li>
-</ul>
-</dd>
-</dl>
-<p>This is safe to call after loading a model or dataset schema.</p>
-<p>Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</p>
+<dt class="sig sig-object py" id="ciss_vae.classes.vae.CISSVAE.set_activation_groups">
+<span class="sig-name descname"><span class="pre">set_activation_groups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">activation_groups</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#ciss_vae.classes.vae.CISSVAE.set_activation_groups" title="Link to this definition"></a></dt>
+<dd><p>Attach feature activation structure to the model.</p>
+<p>This method stores the resolved <cite>activation_groups</cite> dictionary, which defines how
+each input column should be interpreted during loss computation and imputation.</p>
+<p>The model itself does NOT use this information during the forward pass; it is
+stored purely as metadata to ensure consistency between the model, dataset,
+loss functions, and imputation routines.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>binary_feature_mask</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><em>torch.Tensor</em><em>, </em><em>Sequence</em><em>[</em><em>bool</em><em>]</em><em>]</em><em>]</em>) – Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</p></li>
-<li><p><strong>feature_names</strong> (<em>Optional</em><em>[</em><em>Sequence</em><em>[</em><em>str</em><em>]</em><em>]</em>) – List of all feature names - used with ‘binary_feature_names’.</p></li>
-<li><p><strong>binary_feature_names</strong> (<em>Optional</em><em>[</em><em>Iterable</em><em>[</em><em>str</em><em>]</em><em>]</em>) – List of all binary features (features must also be included in ‘feature_names’).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+<dd class="field-odd"><p><strong>activation_groups</strong> (<em>dict</em>) – <p>Dictionary mapping feature types to column indices. Expected format:</p>
+<dl class="simple">
+<dt>{</dt><dd><p>“continuous”: [col_idx, …],
+“binary”: [col_idx, …],
+“&lt;categorical_name&gt;”: [col_idx, …],
+…</p>
 </dd>
 </dl>
+<p>}</p>
+<ul class="simple">
+<li><p>”continuous”: indices of continuous-valued features</p></li>
+<li><p>”binary”: indices of binary features</p></li>
+<li><p>Each additional key represents a grouped categorical variable (multiple columns corresponding to one variable)</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If activation_groups is not a dictionary or contains invalid column indices.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><span class="sphinx_autodoc_typehints-type"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></span></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>This replaces the old <cite>set_binary_features</cite> functionality.</p></li>
+<li><p>The model outputs raw logits for all features; interpretation is handled</p></li>
+</ul>
+<p>externally using <cite>activation_groups</cite>.
+- This function is primarily used after loading a model to reattach dataset
+structure if needed.</p>
 </dd></dl>
 
 </dd></dl>

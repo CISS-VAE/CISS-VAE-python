@@ -86,7 +86,14 @@
            <div itemprop="articleBody">
              
   <h1>Source code for ciss_vae.training.run_cissvae</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;run_cissvae takes in the dataset as an input and (optionally) clusters on missingness before running ciss_vae full model.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">End-to-end pipeline for preparing data, optionally clustering samples,</span>
+<span class="sd">training the CISS-VAE model, and performing iterative imputation.</span>
+
+<span class="sd">Handles validation masking, feature-type resolution (via activation groups),</span>
+<span class="sd">optional clustering on missingness patterns, and model training with</span>
+<span class="sd">impute–refit loops.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
@@ -177,6 +184,24 @@
 <span class="sd">        are eligible for imputation. Use ``1`` to **allow** imputation and ``0`` to **exclude** from imputation.</span>
 <span class="sd">        Defaults to ``None``.</span>
 <span class="sd">    :type imputable_matrix: pandas.DataFrame or numpy.ndarray or torch.Tensor or None, optional</span>
+
+
+<span class="sd">    :param binary_feature_mask: 1D boolean vector of length ``n_features`` indicating which columns are binary.</span>
+<span class="sd">        Used during dataset construction to derive ``activation_groups``. Columns belonging to</span>
+<span class="sd">        categorical dummy variables must also be marked as True.</span>
+<span class="sd">    :type binary_feature_mask: list[bool] or numpy.ndarray</span>
+
+<span class="sd">    :param categorical_column_map: Optional dictionary mapping original categorical variable names</span>
+<span class="sd">        to their corresponding dummy-variable columns. Example:</span>
+
+<span class="sd">            {&quot;C1&quot;: [&quot;C1b1&quot;, &quot;C1b2&quot;], &quot;C2&quot;: [&quot;C2b1&quot;, &quot;C2b2&quot;]}</span>
+
+<span class="sd">        These columns are grouped together in ``activation_groups`` and treated as</span>
+<span class="sd">        categorical variables during loss computation and imputation. All listed columns</span>
+<span class="sd">        must also be marked as True in ``binary_feature_mask``.</span>
+<span class="sd">    :type categorical_column_map: dict[str, list[str or int]]</span>
+
+<span class="sd">    </span>
 
 <span class="sd">    :param clusters: Precomputed cluster labels for samples (length ``n_samples``). If ``None``,</span>
 <span class="sd">        clustering may be performed depending on ``n_clusters`` and Leiden settings. Defaults to ``None``.</span>
@@ -434,7 +459,7 @@
         <span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span><span class="p">,</span>
         <span class="n">num_clusters</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">n_clusters</span><span class="p">,</span>
         <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span><span class="p">,</span>
-        <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span>
+        <span class="n">activation_groups</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">activation_groups</span>
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">return_history</span><span class="p">:</span> 

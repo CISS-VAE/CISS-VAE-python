@@ -32,7 +32,7 @@ class CISSVAE(nn.Module):
     :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.
     :type latent_shared: bool
     :param latent_dim: Dimensionality of the latent space.
-    :type latent_dim: int
+    :type latent_dim: int 
     :param output_shared: If ``True``, the final output layer is shared; otherwise one output layer per cluster.
     :type output_shared: bool
     :param num_clusters: Number of clusters present in the data.
@@ -41,8 +41,8 @@ class CISSVAE(nn.Module):
     :type debug: bool
 
     :raises ValueError: If an item of ``layer_order_enc`` or ``layer_order_dec`` is not one of
-        ``{"shared","unshared","s","u"}`` (case‑insensitive), or if their lengths do not match
-        ``len(hidden_dims)`` for the respective path.
+    ``{"shared","unshared","s","u"}`` (case‑insensitive), or if their lengths do not match
+    ``len(hidden_dims)`` for the respective path.
 
     **Expected shapes**
         * Encoder input ``x``: ``(batch, input_dim)``
@@ -53,6 +53,7 @@ class CISSVAE(nn.Module):
         * The decoder consumes ``hidden_dims[::-1]`` (reverse order).
         * Unshared layers maintain per‑cluster ``ModuleList``/``ModuleDict`` replicas.
         * Routing never reorders rows; masks are used to apply cluster‑specific sublayers in‑place.
+
     """
 
     def __init__(self,
@@ -87,33 +88,35 @@ class CISSVAE(nn.Module):
         :param num_clusters: Number of clusters.
         :type num_clusters: int
         :param activation_groups: Dictionary mapping feature groups to column indices. Attribute of ClusterDataset object. 
-            Expected format:
+        Expected format:
 
-                {
-                    "continuous": [int, ...],
-                    "binary": [int, ...],
-                    "<categorical_name>": [int, ...],
-                    ...
-                }
+        {
+            "continuous": [int, ...],
+            "binary": [int, ...],
+            "<categorical_name>": [int, ...],
+            ...
+        }
 
-            Each key defines a feature group:
-            - "continuous": indices of continuous-valued features
-            - "binary": indices of binary features
-            - additional keys correspond to grouped categorical variables
-            (e.g., one-hot encoded columns belonging to the same variable)
+        Each key defines a feature group:
+        - "continuous": indices of continuous-valued features
+        - "binary": indices of binary features
+        - additional keys correspond to grouped categorical variables
+        (e.g., one-hot encoded columns belonging to the same variable)
 
-            This structure is used to determine loss functions and output
-            transformations outside the model.
+        This structure is used to determine loss functions and output
+        transformations outside the model.
+
         :type activation_groups: dict[str, list[int]]
         :param debug: If ``True``, print shape and routing information.
         :type debug: bool
+
         """
         super().__init__()
         self.debug = debug
         self.num_clusters = num_clusters
         self.latent_shared = latent_shared
-        self.layer_order_enc = layer_order_enc
-        self.layer_order_dec = layer_order_dec
+        self.layer_order_enc = self._normalize_layer_order(layer_order_enc, "layer_order_enc")
+        self.layer_order_dec = self._normalize_layer_order(layer_order_dec, "layer_order_dec")
         self.latent_dim = latent_dim
         self.input_dim = input_dim
         self.output_shared = output_shared
@@ -220,14 +223,14 @@ class CISSVAE(nn.Module):
 
         in_features = latent_dim
         for idx, (out_features, layer_type) in enumerate(zip(hidden_dims[::-1], layer_order_dec)):
-            if layer_type.lower() in ["shared", "s"]:
+            if layer_type == "shared":
                 self.decoder_layers.append(
                     nn.Sequential(
                         nn.Linear(in_features, out_features),
                         nn.ReLU()
                     )
                 )
-            elif layer_type.lower() in ["unshared", "u"]:
+            elif layer_type == "unshared":
                 for c in range(num_clusters):
                     self.cluster_decoder_layers[str(c)].append(
                         nn.Sequential(
@@ -260,7 +263,7 @@ class CISSVAE(nn.Module):
         For each position ``i``:
         * if ``layer_type_list[i]`` is shared → apply ``shared_layers[i_shared]`` to all rows;
         * if unshared → for each cluster ``c``, apply the ``c``‑specific layer
-            at that depth to the subset of rows where ``cluster_labels == c``.
+        at that depth to the subset of rows where ``cluster_labels == c``.
 
         :param x: Input activations to be routed.
         :type x: torch.Tensor, shape ``(batch, d_in)``
@@ -495,36 +498,85 @@ class CISSVAE(nn.Module):
     def get_final_lr(self):
         """Returns the learning rate stored with self.set_final_lr/"""
         return(self.final_lr)
-
     def get_imputed_valdata(self, dataset, device="cpu", deterministic=True):
+        """
+        Compute imputed values for the validation dataset.
+
+        Performs a forward pass through the trained VAE and reconstructs only the
+        validation-masked entries. Outputs are interpreted according to
+        `activation_groups`:
+
+        - continuous → denormalized using mean/std
+        - binary → sigmoid applied
+        - categorical → softmax + argmax (one-hot reconstruction)
+
+        Parameters
+        ----------
+        dataset : ClusterDataset
+            Dataset object containing:
+                - data : normalized tensor (N, D)
+                - val_data : original data with NaNs at validation positions
+                - cluster_labels : (N,)
+                - feature_means : (D,)
+                - feature_stds : (D,)
+                - feature_names : list[str]
+                - activation_groups : dict[str, list[int]]
+
+        device : str, default="cpu"
+            Device to run computations on.
+
+        deterministic : bool, default=True
+            Whether to use deterministic forward pass.
+
+        Returns
+        -------
+        torch.Tensor
+            Tensor of shape (N, D) containing imputed validation values.
+            Non-validation entries are set to NaN.
+        """
         self.eval()
 
+        # -------------------------
+        # Load data
+        # -------------------------
         full_x = dataset.data.to(device)
         full_cluster = dataset.cluster_labels.to(device)
         val_data = dataset.val_data.to(device)
         val_mask = torch.isnan(val_data)
 
+        # -------------------------
+        # Forward pass (logits)
+        # -------------------------
         with torch.no_grad():
-            logits, _, _ = self.forward(full_x, full_cluster, deterministic=deterministic)
+            logits, _, _ = self.forward(
+                full_x, full_cluster, deterministic=deterministic
+            )
 
-        means = torch.tensor(dataset.feature_means, dtype=torch.float32, device=device)
-        stds = torch.tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+        # -------------------------
+        # Feature stats
+        # -------------------------
+        means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
+        stds = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
 
-        # handle zero std
+        # Handle zero std safely
         zero_std_idx = torch.where(stds == 0)[0]
         if zero_std_idx.numel() > 0:
             bad_feats = [dataset.feature_names[i] for i in zero_std_idx.tolist()]
             print(f"[Warning] std == 0 → replaced with 1.0: {bad_feats}")
             stds[zero_std_idx] = 1.0
 
+        # -------------------------
+        # Output container
+        # -------------------------
         recon_out = logits.clone().to(torch.float32)
 
-        # --------------------------------------------------
-        # USE activation_groups (NOT binary mask)
-        # --------------------------------------------------
+        # -------------------------
+        # Apply activation groups
+        # -------------------------
         for name, cols in dataset.activation_groups.items():
 
-            cols = torch.tensor(cols, device=device)
+            # CRITICAL FIX: enforce correct dtype
+            cols = torch.as_tensor(cols, dtype=torch.long, device=device)
 
             # -------------------------
             # CONTINUOUS
@@ -542,17 +594,31 @@ class CISSVAE(nn.Module):
             # CATEGORICAL
             # -------------------------
             else:
-                probs = torch.softmax(logits[:, cols], dim=1)
+                # logits subset → (N, K)
+                cat_logits = logits[:, cols]
+
+                # probabilities
+                probs = torch.softmax(cat_logits, dim=1)
+
+                # argmax per row
                 idx = torch.argmax(probs, dim=1)
 
-                recon_out[:, cols] = 0
-                recon_out[torch.arange(recon_out.shape[0]), cols[idx]] = 1
+                # zero-out group
+                recon_out[:, cols] = 0.0
 
-        # only keep imputed values
+                # CORRECT one-hot assignment
+                row_idx = torch.arange(recon_out.shape[0], device=device)
+                recon_out[row_idx.unsqueeze(1), cols.unsqueeze(0)] = 0  # ensure clean
+
+                recon_out[row_idx, cols[idx]] = 1.0
+
+        # -------------------------
+        # Keep only validation entries
+        # -------------------------
         recon_out[val_mask] = float("nan")
 
         return recon_out
-
+        
     @torch.no_grad()
     def set_activation_groups(
         self,
@@ -582,8 +648,7 @@ class CISSVAE(nn.Module):
 
             - "continuous": indices of continuous-valued features
             - "binary": indices of binary features
-            - Each additional key represents a grouped categorical variable
-            (multiple columns corresponding to one variable)
+            - Each additional key represents a grouped categorical variable (multiple columns corresponding to one variable)
 
         Raises
         ------
@@ -598,9 +663,6 @@ class CISSVAE(nn.Module):
         - This function is primarily used after loading a model to reattach dataset
         structure if needed.
 
-        Example
-        -------
-        >>> vae.set_activation_groups(dataset.activation_groups)
         """
 
         if not isinstance(activation_groups, dict):
@@ -622,7 +684,29 @@ class CISSVAE(nn.Module):
         # Store as plain attribute (NOT buffer)
         self.activation_groups = {
             k: list(map(int, v)) for k, v in activation_groups.items()
+            
         }
+
+    def _normalize_layer_order(self, layer_order, name):
+        normalized = []
+
+        for i, lt in enumerate(layer_order):
+            if not isinstance(lt, str):
+                raise ValueError(f"{name}[{i}] must be a string.")
+
+            lt_clean = lt.lower()
+
+            if lt_clean in ["shared", "s"]:
+                normalized.append("shared")
+            elif lt_clean in ["unshared", "u"]:
+                normalized.append("unshared")
+            else:
+                raise ValueError(
+                    f"Invalid value in {name}[{i}]: '{lt}'. "
+                    "Must be one of {'shared','unshared','s','u'}."
+                )
+
+        return normalized
         
     # @torch.no_grad()
     # def set_binary_features(self,
