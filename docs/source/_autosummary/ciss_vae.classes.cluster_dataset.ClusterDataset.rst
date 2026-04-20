@@ -15,6 +15,7 @@
    
       ~ClusterDataset.__init__
       ~ClusterDataset.copy
+      ~ClusterDataset.get_activation_groups
    
    
 
