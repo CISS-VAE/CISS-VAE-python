@@ -407,42 +407,81 @@ def get_imputed(model, data_loader, device="cpu"):
 
     return new_dataset
 
-
-def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: float = 1e-7):
+def compute_val_mse(
+    model,
+    dataset,
+    device="cpu",
+    auto_fix_binary=False,
+    eps: float = 1e-7,
+    debug: bool = False,
+):
     model.eval()
 
-    # ------------------------
-    # 0) Tensors
-    # ------------------------
+    # --------------------------------------------------
+    # 1. Load tensors
+    # --------------------------------------------------
     X = dataset.data.to(device)
     C = dataset.cluster_labels.to(device)
     val_data = dataset.val_data.to(device)
+
     val_mask = ~torch.isnan(val_data)
 
+    ignore_set = set(getattr(dataset, "ignore_indices", []))
+
+    if debug:
+        print("\n=== VAL DATA / MASK ===")
+        print("val_data (first 5 rows):\n", val_data[:5])
+        print("val_mask (first 5 rows):\n", val_mask[:5].int())
+        print("ignored idx:", list(ignore_set))
+
+        if len(ignore_set) > 0:
+            ignore_idx = torch.tensor(list(ignore_set), device=device)
+            print("ignored columns all NaN?:",
+                  torch.isnan(val_data[:, ignore_idx]).all().item())
+
+    # --------------------------------------------------
+    # 2. Load normalization stats
+    # --------------------------------------------------
     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
-    stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)
+    stds = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
 
-    if (stds == 0).any():
-        stds = stds.clone()
-        stds[stds == 0] = 1.0
+    stds = stds.clone()
+    stds[stds == 0] = 1.0
 
-    # ------------------------
-    # 1) Forward (LOGITS)
-    # ------------------------
+    means = torch.nan_to_num(means, nan=0.0)
+    stds = torch.nan_to_num(stds, nan=1.0)
+
+    if debug:
+        print("\n=== NORMALIZATION STATS ===")
+        print("means:", means)
+        print("stds:", stds)
+
+    # --------------------------------------------------
+    # 3. Forward pass
+    # --------------------------------------------------
     with torch.no_grad():
         recon, _, _ = model.forward(X, C, deterministic=True)
 
     pred = recon.clone()
 
-    # ------------------------
-    # 2) Convert logits → usable values
-    # ------------------------
-    for name, cols in dataset.activation_groups.items():
-        #  skip empty grooups
+    # --------------------------------------------------
+    # 4. Activation groups
+    # --------------------------------------------------
+    groups = dataset.get_activation_groups(exclude_ignored=True)
+
+    if debug:
+        print("\n=== ACTIVATION GROUPS (pre-filter) ===")
+        for k, v in groups.items():
+            print(k, v)
+
+    # --------------------------------------------------
+    # 5. Convert logits → usable values
+    # --------------------------------------------------
+    for name, cols in groups.items():
+        cols = [c for c in cols if c not in ignore_set]
         if len(cols) == 0:
             continue
 
-        # enforce correct dtype
         cols = torch.tensor(cols, dtype=torch.long, device=device)
 
         if name == "continuous":
@@ -451,84 +490,312 @@ def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: fl
         elif name == "binary":
             pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
 
-        else:  # categorical
+        else:
             probs = torch.softmax(recon[:, cols], dim=1)
             idx = torch.argmax(probs, dim=1)
 
             pred[:, cols] = 0
             pred[torch.arange(pred.shape[0]), cols[idx]] = 1
 
-    # ------------------------
-    # 3) Continuous MSE
-    # ------------------------
-    cont_cols = torch.tensor(dataset.activation_groups.get("continuous", []), device=device)
+        if debug:
+            print(f"\n--- {name.upper()} ---")
+            print("cols (filtered):", cols.tolist())
+            print("pred (first 5):\n", pred[:5, cols])
+
+    # ==================================================
+    # 6. CONTINUOUS MSE
+    # ==================================================
+    cont_cols = [c for c in groups.get("continuous", []) if c not in ignore_set]
+    cont_cols = torch.tensor(cont_cols, dtype=torch.long, device=device)
+
+    if debug:
+        print("\n=== CONTINUOUS MSE ===")
+        print("cont_cols:", cont_cols.tolist())
 
     if len(cont_cols) > 0:
-        use_c = val_mask[:, cont_cols]
-        se = (pred[:, cont_cols] - val_data[:, cont_cols]) ** 2
-        mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
+        val_cont = val_data[:, cont_cols]
+        mask = ~torch.isnan(val_cont)
+
+        val_cont = val_cont * stds[cont_cols] + means[cont_cols]
+        se = (pred[:, cont_cols] - val_cont) ** 2
+
+        if debug:
+            print("mask sum:", mask.sum().item())
+            print("SE contributing:", se[mask])
+
+        mse = se[mask].mean() if mask.any() else pred.new_zeros(())
     else:
         mse = pred.new_zeros(())
 
-    # ------------------------
-    # 4) Binary BCE
-    # ------------------------
-    bin_cols = torch.tensor(dataset.activation_groups.get("binary", []), device=device)
+    # ==================================================
+    # 7. BINARY BCE
+    # ==================================================
+    bin_cols = [c for c in groups.get("binary", []) if c not in ignore_set]
+    bin_cols = torch.tensor(bin_cols, dtype=torch.long, device=device)
+
+    if debug:
+        print("\n=== BINARY BCE ===")
+        print("bin_cols:", bin_cols.tolist())
 
     if len(bin_cols) > 0:
-        target_b = val_data[:, bin_cols].clone()
-        nan_mask = torch.isnan(target_b)
-        if nan_mask.any():
-            target_b[nan_mask] = 0.0
+        target = val_data[:, bin_cols]
+        mask = ~torch.isnan(target)
 
-        use_b = val_mask[:, bin_cols]
-
-        masked_targets = target_b[use_b]
-        if masked_targets.numel():
-            bad = (~torch.isfinite(masked_targets)) | (masked_targets < 0) | (masked_targets > 1)
-            if bad.any():
-                if not auto_fix_binary:
-                    raise RuntimeError("Binary target(s) out of [0,1].")
-                target_b[use_b] = (masked_targets > 0.5).float()
+        target = target.clone()
+        target[~mask] = 0.0
 
         prob = pred[:, bin_cols]
-        bce_elem = F.binary_cross_entropy(prob, target_b, reduction="none")
 
-        bmask = use_b.to(bce_elem.dtype)
+        bce_elem = F.binary_cross_entropy(prob, target, reduction="none")
+
+        bmask = mask.to(bce_elem.dtype)
         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
+
+        if debug:
+            print("BCE contributing:", bce_elem[mask])
     else:
         bce = pred.new_zeros(())
 
-    # ------------------------
-    # 5) Categorical CE (NEW)
-    # ------------------------
+    # ==================================================
+    # 8. CATEGORICAL CE
+    # ==================================================
     ce = pred.new_zeros(())
 
-    for name, cols in dataset.activation_groups.items():
+    for name, cols in groups.items():
         if name in ["continuous", "binary"]:
             continue
 
-        cols = torch.tensor(cols, device=device)
+        cols = [c for c in cols if c not in ignore_set]
+        if len(cols) == 0:
+            continue
 
-        # valid rows: at least one observed entry in group
-        mask_sub = val_mask[:, cols]
-        valid_rows = mask_sub.sum(dim=1) > 0
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+        mask = ~torch.isnan(val_data[:, cols])
+        valid_rows = mask.any(dim=1)
 
         if valid_rows.any():
             logits = recon[valid_rows][:, cols]
-
-            # convert one-hot target → class index
             target = torch.argmax(val_data[valid_rows][:, cols], dim=1)
 
-            ce_loss = F.cross_entropy(logits, target, reduction="mean")
-            ce += ce_loss
+            ce += F.cross_entropy(logits, target, reduction="mean")
 
-    # ------------------------
-    # 6) Final metrics
-    # ------------------------
-    imputation_error = (mse + bce + ce).item()
+            if debug:
+                print(f"\n=== CATEGORICAL: {name} ===")
+                print("cols (filtered):", cols.tolist())
+                print("num valid:", valid_rows.sum().item())
 
-    return imputation_error, mse.item(), bce.item(), ce.item()
+    # ==================================================
+    # 9. Final output
+    # ==================================================
+    total = (mse + bce + ce).item()
+
+    if debug:
+        print("\n=== FINAL METRICS ===")
+        print("MSE:", mse.item())
+        print("BCE:", bce.item())
+        print("CE:", ce.item())
+        print("TOTAL:", total)
+
+    return total, mse.item(), bce.item(), ce.item()
+
+# def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: float = 1e-7, debug = False):
+#     model.eval()
+
+#     # ------------------------
+#     # 0) Tensors
+#     # ------------------------
+#     X = dataset.data.to(device)
+#     C = dataset.cluster_labels.to(device)
+#     val_data = dataset.val_data.to(device)
+#     val_mask = ~torch.isnan(val_data)
+
+#     if debug:
+#         print("\n=== VAL DATA / MASK ===")
+#         print("val_data (first 5 rows):\n", val_data[:5])
+#         print("val_mask (first 5 rows):\n", val_mask[:5].int())
+
+#         if hasattr(dataset, "ignore_indices") and len(dataset.ignore_indices) > 0:
+#             ignore_idx = torch.tensor(dataset.ignore_indices, device=device)
+#             print("ignored idx:", dataset.ignore_indices)
+#             print("ignored columns all NaN in val_data?:",
+#                 torch.isnan(val_data[:, ignore_idx]).all().item())
+
+
+#     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
+#     stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)
+
+#     if (stds == 0).any():
+#         stds = stds.clone()
+#         stds[stds == 0] = 1.0
+
+#     # ------------------------
+#     # 1) Forward (LOGITS)
+#     # ------------------------
+#     with torch.no_grad():
+#         recon, _, _ = model.forward(X, C, deterministic=True)
+
+#     pred = recon.clone()
+
+#     groups = dataset.get_activation_groups(exclude_ignored=True)
+#     if debug:
+#         print("\n=== ACTIVATION GROUPS (filtered) ===")
+#         for k, v in groups.items():
+#             print(f"{k}: {v}")
+
+#     # ------------------------
+#     # 2) Convert logits → usable values
+#     # ------------------------
+#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():
+#         #  skip empty grooups
+#         if len(cols) == 0:
+#             continue
+
+#         # enforce correct dtype
+#         cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+#         if name == "continuous":
+#             pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#         elif name == "binary":
+#             pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#         else:  # categorical
+#             probs = torch.softmax(recon[:, cols], dim=1)
+#             idx = torch.argmax(probs, dim=1)
+
+#             pred[:, cols] = 0
+#             pred[torch.arange(pred.shape[0]), cols[idx]] = 1
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#     # ------------------------
+#     # 3) Continuous MSE
+#     # ------------------------
+#     cont_cols = torch.tensor(
+#         dataset.get_activation_groups(exclude_ignored=True).get("continuous", []),
+#         dtype=torch.long,
+#         device=device
+#     )
+#     if debug:
+#         print("\n=== CONTINUOUS MSE DEBUG ===")
+#         print("cont_cols:", cont_cols.tolist())
+
+#     if len(cont_cols) > 0:
+#         val_cont = val_data[:, cont_cols]
+#         if debug:
+#             print("val_cont (raw, first 5):\n", val_cont[:5])
+#         use_c = ~torch.isnan(val_cont)
+#         if debug:
+#             print("use_c (first 5):\n", use_c[:5].int())
+#             print("num contributing entries:", use_c.sum().item())
+
+#         val_cont = val_cont * stds[cont_cols] + means[cont_cols]
+#         se = (pred[:, cont_cols] - val_cont) ** 2
+#         if debug:
+#             print("se (first 5):\n", se[:5])
+#             print("se contributing values:", se[use_c])
+
+#         mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
+#     else:
+#         mse = pred.new_zeros(())
+
+#     # ------------------------
+#     # 4) Binary BCE
+#     # ------------------------
+#     bin_cols = torch.tensor(
+#     dataset.get_activation_groups(exclude_ignored=True).get("binary", []),
+#     dtype = torch.long,
+#     device=device
+#     )
+
+#     if debug:
+#         print("\n=== BINARY BCE DEBUG ===")
+#         print("bin_cols:", bin_cols.tolist())
+
+#     if len(bin_cols) > 0:
+#         target_b = val_data[:, bin_cols].clone()
+#         nan_mask = torch.isnan(target_b)
+#         if nan_mask.any():
+#             target_b[nan_mask] = 0.0
+#         if debug:
+#             print("target_b (raw, first 5):\n", target_b[:5])
+
+#         use_b = ~torch.isnan(target_b)
+#         if debug:
+#             print("use_b (first 5):\n", use_b[:5].int())
+#             print("num contributing entries:", use_b.sum().item())
+
+#         masked_targets = target_b[use_b]
+#         if masked_targets.numel():
+#             bad = (~torch.isfinite(masked_targets)) | (masked_targets < 0) | (masked_targets > 1)
+#             if bad.any():
+#                 if not auto_fix_binary:
+#                     raise RuntimeError("Binary target(s) out of [0,1].")
+#                 target_b[use_b] = (masked_targets > 0.5).float()
+
+#         prob = pred[:, bin_cols]
+#         if debug:
+#             print("prob (first 5):\n", prob[:5])
+#         bce_elem = F.binary_cross_entropy(prob, target_b, reduction="none")
+
+#         bmask = use_b.to(bce_elem.dtype)
+#         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
+#     else:
+#         bce = pred.new_zeros(())
+
+#     # ------------------------
+#     # 5) Categorical CE (NEW)
+#     # ------------------------
+#     ce = pred.new_zeros(())
+
+#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():
+#         if name in ["continuous", "binary"]:
+#             continue
+
+#         cols = torch.tensor(cols, dtype = torch.long, device=device)
+#         if debug:
+#             print(f"\n=== CATEGORICAL GROUP: {name} ===")
+#             print("cols:", cols.tolist())
+
+#         # valid rows: at least one observed entry in group
+#         mask_sub = val_mask[:, cols]
+#         valid_rows = mask_sub.sum(dim=1) > 0
+
+#         if valid_rows.any():
+#             logits = recon[valid_rows][:, cols]
+
+#             # convert one-hot target → class index
+#             target = torch.argmax(val_data[valid_rows][:, cols], dim=1)
+
+#             ce_loss = F.cross_entropy(logits, target, reduction="mean")
+#             ce += ce_loss
+#         if debug:
+#             print("valid_rows:", valid_rows[:10])
+#             print("num valid rows:", valid_rows.sum().item())
+
+#     # ------------------------
+#     # 6) Final metrics
+#     # ------------------------
+#     imputation_error = (mse + bce + ce).item()
+#     if debug:
+#         print("\n=== FINAL METRICS ===")
+#         print("MSE:", mse.item())
+#         print("BCE:", bce.item())
+#         print("CE:", ce.item())
+#         print("Total:", imputation_error)
+
+#     return imputation_error, mse.item(), bce.item(), ce.item()
     
     
 

@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.training.run_cissvae import run_cissvae
+from ciss_vae.utils.helpers import compute_val_mse
 
 
 class TestClusterDatasetCategoricalValidation:
@@ -940,3 +941,123 @@ class TestClusterDatasetCategoricalValidation:
         categorical_set = set(ag["C1"]) | set(ag["C2"])
 
         assert binary_set.isdisjoint(categorical_set)
+
+
+class DummyModel(torch.nn.Module):
+    def __init__(self, recon):
+        super().__init__()
+        self.recon = recon
+
+    def forward(self, X, C, deterministic=True):
+        return self.recon, None, None
+
+def test_compute_val_metrics_exclude_ignored_columns():
+    """
+    Ensure ignored columns do NOT contribute to:
+    - MSE (continuous)
+    - BCE (binary)
+    - CE (categorical)
+    """
+
+    import numpy as np
+    import pandas as pd
+    import torch
+
+    # ---------------------------------------
+    # Dataset with all three types
+    # ---------------------------------------
+    df = pd.DataFrame({
+        "ignored_cont": [10.0, 20.0, 30.0, 40.0],
+        "active_cont":  [1.0,  2.0,  3.0,  4.0],
+
+        "ignored_bin":  [0, 1, 0, 1],
+        "active_bin":   [1, 0, 1, 0],
+
+        # categorical (one-hot)
+        "cat_a": [1, 0, 1, 0],
+        "cat_b": [0, 1, 0, 1],
+    })
+
+    clusters = np.zeros(len(df))
+
+    dataset = ClusterDataset(
+        data=df,
+        cluster_labels=clusters,
+        val_proportion=1.0,
+        columns_ignore=["ignored_cont", "ignored_bin"],
+        binary_feature_mask=[False, False, True, True, True, True],
+        categorical_column_map={"cat": ["cat_a", "cat_b"]},
+    )
+
+    true = dataset.val_data.clone()
+    recon = torch.zeros_like(true)
+
+    # ---------------------------------------
+    # Index mapping
+    # ---------------------------------------
+    idx = {name: dataset.feature_names.index(name) for name in df.columns}
+
+    # ---------------------------------------
+    # 1. Continuous (normalized space → already correct)
+    # ---------------------------------------
+    recon[:, idx["active_cont"]] = true[:, idx["active_cont"]]
+    recon[:, idx["ignored_cont"]] = 9999.0  # inject error
+
+    # ---------------------------------------
+    # 2. Binary (MUST be logits, not probabilities)
+    # ---------------------------------------
+    eps = 1e-6
+
+    def to_logit(x):
+        x = x.clamp(eps, 1 - eps)
+        return torch.log(x / (1 - x))
+
+    # Active binary → perfect reconstruction
+    recon[:, idx["active_bin"]] = to_logit(true[:, idx["active_bin"]])
+
+    # Ignored binary → wrong logits
+    recon[:, idx["ignored_bin"]] = -10.0  # sigmoid ≈ 0
+
+    # ---------------------------------------
+    # 3. Categorical (must be logits)
+    # ---------------------------------------
+    cat_cols = [idx["cat_a"], idx["cat_b"]]
+
+    # Perfect reconstruction → very confident logits
+    recon[:, cat_cols] = true[:, cat_cols] * 10.0  # strong separation
+
+    # ---------------------------------------
+    # Model
+    # ---------------------------------------
+    model = DummyModel(recon)
+
+    # ---------------------------------------
+    # Compute metrics
+    # ---------------------------------------
+    imputation_error, mse, bce, ce = compute_val_mse(
+        model, dataset, debug=True
+    )
+
+    # ---------------------------------------
+    # Assertions
+    # ---------------------------------------
+    assert mse < 1e-8, "Ignored continuous affected MSE"
+    assert bce < 1e-5, "Ignored binary affected BCE"
+    assert ce  < 1e-4, "Ignored categorical affected CE"
+
+
+def test_partial_ignore_categorical_raises():
+    df = pd.DataFrame({
+        "cat_a": [1, 0, 1],
+        "cat_b": [0, 1, 0],
+    })
+
+    with pytest.raises(ValueError):
+        ClusterDataset(
+            data=df,
+            cluster_labels=np.zeros(len(df)),
+            val_proportion=0.5,
+            columns_ignore=["cat_a"],  # partial ignore
+            binary_feature_mask=[True, True],
+            categorical_column_map={"cat": ["cat_a", "cat_b"]},
+        )

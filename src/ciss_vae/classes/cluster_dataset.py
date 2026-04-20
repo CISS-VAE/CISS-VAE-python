@@ -60,7 +60,7 @@ class ClusterDataset(Dataset):
     :type columns_ignore: list[str | int] or None
 
     :param imputable: Matrix indicating which entries should be excluded from imputation
-        (0 = impute, 1 = exclude). Must have the same shape as ``data``.
+        (1 = impute, 0 = exclude). Must have the same shape as ``data``.
     :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor
 
     :param binary_feature_mask: Boolean vector of length ``n_features`` indicating binary columns.
@@ -169,7 +169,7 @@ class ClusterDataset(Dataset):
         :type replacement_value: float, optional
         :param columns_ignore: Columns to exclude from validation masking (names for DataFrame, indices otherwise), defaults to None
         :type columns_ignore: list[str or int] or None, optional
-        :param imputable: Optional Matrix showing which data entries to exclude from imputation (0 for impute, 1 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. 
+        :param imputable: Optional Matrix showing which data entries to exclude from imputation (1 for impute, 0 for exclude from imputation), shape ``(n_samples, n_features)``. Should be same shape as ``data``. 
         :type imputable: pandas.DataFrame | numpy.ndarray | torch.Tensor, optional
         :param val_seed: Optional (default 42), seed for random number generator for selecting validation dataset
         :type val_seed: int
@@ -198,6 +198,8 @@ class ClusterDataset(Dataset):
             self.binary_feature_mask = None
         else:
             self.binary_feature_mask = np.array(binary_feature_mask)
+
+
 
         ## set to one cluster as default!!
             
@@ -272,6 +274,10 @@ class ClusterDataset(Dataset):
 
         self.raw_data = torch.tensor(raw_data_np, dtype=torch.float32)
 
+        ## added check for binary feature mask matches number of features
+        if self.binary_feature_mask is not None:
+            if len(self.binary_feature_mask) != raw_data_np.shape[1]:
+                raise ValueError("binary_feature_mask must match number of features")
 
         # --------------------
         # Added 'imputable' matrix
@@ -378,87 +384,6 @@ class ClusterDataset(Dataset):
             if not (0.0 <= p <= 1.0):
                 raise ValueError(f"`val_proportion` for cluster {cid} must be in [0, 1]; got {p}.")
 
-        # -----------------------
-        # Resolve categorical_column_map to integer column indices
-        # Then the masking loop iterates over validation_units.items().
-        # For categorical units, rows are chosen once and then all dummy columns
-        # in that unit are masked together.
-        # -----------------------
-        self.categorical_column_map = categorical_column_map
-        self.categorical_group_indices = {}
-
-        def _resolve_col_to_index(col_id):
-            """
-            Convert a column identifier into an integer column index.
-
-            Supports:
-            - string column names
-            - integer column indices
-            """
-            if isinstance(col_id, str):
-                if col_id not in self.feature_names:
-                    raise ValueError(
-                        f"Column '{col_id}' from categorical_column_map not found in data."
-                    )
-                return self.feature_names.index(col_id)
-
-            if isinstance(col_id, (int, np.integer)):
-                col_id = int(col_id)
-                if not (0 <= col_id < len(self.feature_names)):
-                    raise ValueError(
-                        f"Column index {col_id} from categorical_column_map is out of bounds."
-                    )
-                return col_id
-
-            raise TypeError(
-                "categorical_column_map dummy-variable entries must be column names (str) "
-                "or integer column indices."
-            )
-
-        if categorical_column_map is not None:
-            if not isinstance(categorical_column_map, Mapping):
-                raise TypeError(
-                    "`categorical_column_map` must be a mapping like "
-                    "{'C1': ['C1b1', 'C1b2'], 'C2': ['C2b1', 'C2b2']}"
-                )
-
-            used_cols = set()
-
-            for main_cat_name, dummy_cols in categorical_column_map.items():
-                if not isinstance(dummy_cols, Sequence) or isinstance(dummy_cols, str):
-                    raise TypeError(
-                        f"Value for category '{main_cat_name}' must be a sequence of dummy columns."
-                    )
-
-                if len(dummy_cols) == 0:
-                    raise ValueError(
-                        f"Value for category '{main_cat_name}' cannot be empty."
-                    )
-
-                resolved = [_resolve_col_to_index(x) for x in dummy_cols]
-
-                if len(set(resolved)) != len(resolved):
-                    raise ValueError(
-                        f"Duplicate dummy columns found for category '{main_cat_name}'."
-                    )
-
-                overlap = used_cols.intersection(resolved)
-                if overlap:
-                    overlap_names = [self.feature_names[i] for i in sorted(overlap)]
-                    raise ValueError(
-                        f"Dummy columns {overlap_names} appear in more than one category in categorical_column_map."
-                    )
-
-                for idx in resolved:
-                    if not self.binary_feature_mask[idx]:
-                        raise ValueError(
-                            f"Dummy column '{self.feature_names[idx]}' is listed in "
-                            "categorical_column_map but is not marked True in binary_feature_mask."
-                        )
-
-                self.categorical_group_indices[main_cat_name] = resolved
-                used_cols.update(resolved)
-
         # ------------
         # Build validation Units
         # - each non-categorical feature becomes its own unit
@@ -538,14 +463,15 @@ class ClusterDataset(Dataset):
                 if overlap:
                     overlap_names = [self.feature_names[i] for i in sorted(overlap)]
                     raise ValueError(
-                        f"Dummy columns {overlap_names} appear in multiple categories."
+                        f"Dummy columns {overlap_names} appear in more than one category."
                     )
 
                 # ---- check binary mask correctness ----
                 for idx in resolved:
                     if self.binary_feature_mask is None or not self.binary_feature_mask[idx]:
                         raise ValueError(
-                            f"Dummy column '{self.feature_names[idx]}' must be marked True "
+                            f"Dummy column '{self.feature_names[idx]}' is listed in categorical_column_map but is not marked True in binary_feature_mask." 
+                            f"'{self.feature_names[idx]}' must be binary and marked True"
                             "in binary_feature_mask."
                         )
 
@@ -634,10 +560,26 @@ class ClusterDataset(Dataset):
             else:
                 self.validation_units[name] = {"kind": "continuous", "cols": [i]}
 
+        ignore_set = set(self.ignore_indices)
+
         for k, cols in self.categorical_group_indices.items():
-            if any(i in self.ignore_indices for i in cols):
+            cols_set = set(cols)
+            ignored_in_group = cols_set.intersection(ignore_set)
+
+            if len(ignored_in_group) == 0:
+                self.validation_units[k] = {"kind": "categorical", "cols": list(cols)}
+
+            elif len(ignored_in_group) == len(cols_set):
+                # all ignored → skip entirely
                 continue
-            self.validation_units[k] = {"kind": "categorical", "cols": list(cols)}
+
+            else:
+                bad_cols = [self.feature_names[i] for i in sorted(ignored_in_group)]
+                raise ValueError(
+                    f"Categorical group '{k}' has partially ignored columns: {bad_cols}. "
+                    "Either ignore ALL dummy columns for this category or NONE."
+                )
+            
 
         # ============================================================
         # Validation masking 
@@ -649,7 +591,7 @@ class ClusterDataset(Dataset):
             if rows.size == 0:
                 continue
 
-            prop = val_proportion if isinstance(val_proportion, float) else val_proportion[cid]
+            prop = per_cluster_prop[cid]# prop = val_proportion if isinstance(val_proportion, float) else val_proportion[cid]
 
             cluster_data = raw_data_np[rows]
 
@@ -660,12 +602,21 @@ class ClusterDataset(Dataset):
                 if kind in ["binary", "continuous"]:
                     col = cols[0]
                     valid = ~np.isnan(cluster_data[:, col])
+
+                    # ----------------------------------------
+                    # Exclude DNI entries (DO NOT IMPUTE)
+                    # ----------------------------------------
+                    if dni_np is not None: 
+                        valid = valid & (dni_np[rows, col] == 1)
+
                     idxs = np.where(valid)[0]
 
                     if len(idxs) == 0:
                         continue
 
-                    n_val = max(1, int(len(idxs) * prop))
+                    n_val = int(len(idxs) * prop)
+                    if n_val == 0 and prop > 0:
+                        n_val = 1
                     chosen = self._rng.choice(idxs, size=n_val, replace=False)
 
                     val_mask_np[rows[chosen], col] = True
@@ -673,18 +624,20 @@ class ClusterDataset(Dataset):
                 elif kind == "categorical":
                     group = np.array(cols)
                     valid = np.all(~np.isnan(cluster_data[:, group]), axis=1)
+
+                    if dni_np is not None:
+                        valid = valid & (dni_np[rows][:, group].all(axis=1))
                     idxs = np.where(valid)[0]
 
                     if len(idxs) == 0:
                         continue
 
-                    n_val = max(1, int(len(idxs) * prop))
+                    n_val = int(len(idxs) * prop)
+                    if n_val == 0 and prop > 0:
+                        n_val = 1
                     chosen = self._rng.choice(idxs, size=n_val, replace=False)
 
                     val_mask_np[np.ix_(rows[chosen], group)] = True
-
-        self.val_mask = torch.tensor(val_mask_np, dtype=torch.bool)
-
 
         # =========================================
         # END VALIDATION CHANGES 
@@ -700,6 +653,10 @@ class ClusterDataset(Dataset):
         self.val_data = self.raw_data.clone()
         self.val_data[~val_mask_tensor] = torch.nan  # keep only validation-masked values
 
+        if len(self.ignore_indices) > 0:
+            ignore_idx = torch.tensor(self.ignore_indices, dtype=torch.long)
+            self.val_data[:, ignore_idx] = torch.nan
+
         # ----------------------------------------
         # Combine true + validation-masked missingness
         # ----------------------------------------
@@ -712,8 +669,13 @@ class ClusterDataset(Dataset):
         # ----------------------------------------
         ## Compute mean and std on observed (non-NaN) entries
         data_np = self.data.numpy()
+
+
+
         self.feature_means = np.nanmean(data_np, axis=0)
         self.feature_stds = np.nanstd(data_np, axis=0)
+        self.feature_means = np.nan_to_num(self.feature_means, nan=0.0)
+        self.feature_stds = np.nan_to_num(self.feature_stds, nan=1.0)
 
         zero_std_idx = np.where(self.feature_stds == 0)[0]
         if zero_std_idx.size > 0:
@@ -727,10 +689,11 @@ class ClusterDataset(Dataset):
         self.feature_stds[self.feature_stds == 0] = 1.0  # avoid division by zero
 
         
-
+        ## improved handling of bfm
         if self.binary_feature_mask is not None:
             norm_data_cont = (data_np - self.feature_means) / self.feature_stds
-            norm_data_np = data_np * self.binary_feature_mask + norm_data_cont * ~self.binary_feature_mask
+            bfm_mask = self.binary_feature_mask.astype(bool)
+            norm_data_np = data_np * bfm_mask + norm_data_cont * (~bfm_mask)
 
         else:
             ## Normalize (in-place)
@@ -749,6 +712,59 @@ class ClusterDataset(Dataset):
             torch.tensor(replacement_value, dtype=torch.float32)
             )
         self.shape = self.data.shape
+
+    def get_activation_groups(self, exclude_ignored: bool = False):
+        """
+        Return activation groups, optionally excluding ignored columns.
+
+        Parameters
+        ----------
+        exclude_ignored : bool
+            If True, removes columns listed in columns_ignore.
+
+        Returns
+        -------
+        dict
+            Filtered activation groups with ignored columns removed.
+        """
+
+        # --------------------------------------------------
+        # 1. Fast path: no filtering needed
+        # --------------------------------------------------
+        if not exclude_ignored:
+            return self.activation_groups
+
+        # --------------------------------------------------
+        # 2. Convert ignore list to set (O(1) lookup)
+        # --------------------------------------------------
+        ignore_set = set(self.ignore_indices)
+
+        filtered = {}
+
+        # --------------------------------------------------
+        # 3. Filter each group
+        # --------------------------------------------------
+        for name, cols in self.activation_groups.items():
+
+            # Remove ignored columns
+            kept = [c for c in cols if c not in ignore_set]
+
+            # Only keep non-empty groups
+            if len(kept) > 0:
+                filtered[name] = kept
+
+        # --------------------------------------------------
+        # 4. SAFETY CHECK (prevents silent bugs)
+        # --------------------------------------------------
+        # Ensure no ignored columns leaked through
+        for name, cols in filtered.items():
+            overlap = set(cols).intersection(ignore_set)
+            if overlap:
+                raise RuntimeError(
+                    f"BUG: ignored columns still present in activation group '{name}': {overlap}"
+                )
+
+        return filtered
 
     def __len__(self):
         """
