@@ -4,6 +4,7 @@ import pandas as pd
 import torch
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.training.run_cissvae import run_cissvae
+from ciss_vae.utils.helpers import compute_val_mse
 
 
 class TestClusterDatasetCategoricalValidation:
@@ -51,6 +52,8 @@ class TestClusterDatasetCategoricalValidation:
 
         if binary_feature_mask is None:
             binary_feature_mask = categorical_validation_binary_feature_mask.copy()
+
+        
 
         return ClusterDataset(
             data=data,
@@ -581,24 +584,7 @@ class TestClusterDatasetCategoricalValidation:
                 categorical_validation_binary_feature_mask=bad_binary_mask,
             )
 
-    def test_categorical_column_map_rejects_overlap_with_columns_ignore(
-        self,
-        categorical_validation_base_dataframe,
-        categorical_validation_cluster_labels,
-        categorical_validation_column_map,
-        categorical_validation_binary_feature_mask,
-    ):
-        """
-        Grouped dummy columns should not also appear in columns_ignore.
-        """
-        with pytest.raises(ValueError, match="appears in both categorical_column_map and columns_ignore"):
-            self._build_dataset(
-                categorical_validation_base_dataframe=categorical_validation_base_dataframe,
-                categorical_validation_cluster_labels=categorical_validation_cluster_labels,
-                categorical_validation_column_map=categorical_validation_column_map,
-                categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
-                columns_ignore=["C1b1"],
-            )
+    
 
     def test_repr_includes_validation_units_summary(
         self,
@@ -827,3 +813,251 @@ class TestClusterDatasetCategoricalValidation:
         # eligible for grouped C1 validation masking.
         assert not val_mask[0, c1b1_idx]
         assert not val_mask[0, c1b2_idx]
+
+    ## =========================
+    ## Added tests for activation groups
+    ## =========================
+
+    def test_activation_groups_structure(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        # Required keys
+        assert "continuous" in ag
+        assert "binary" in ag
+        assert "C1" in ag
+        assert "C2" in ag
+
+        # Categorical groups must have multiple columns
+        assert len(ag["C1"]) == 2
+        assert len(ag["C2"]) == 2
+
+    def test_activation_groups_column_indices_correct(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        # Continuous
+        cont_cols = [ds.feature_names[i] for i in ag["continuous"]]
+        assert set(cont_cols) == {"X1", "X2"}
+
+        # Binary (should NOT include categorical dummies)
+        bin_cols = [ds.feature_names[i] for i in ag["binary"]]
+        assert set(bin_cols) == {"B1", "B2"}
+
+        # Categorical
+        c1_cols = [ds.feature_names[i] for i in ag["C1"]]
+        c2_cols = [ds.feature_names[i] for i in ag["C2"]]
+
+        assert c1_cols == ["C1b1", "C1b2"]
+        assert c2_cols == ["C2b1", "C2b2"]
+
+    def test_activation_groups_no_overlap(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+    ):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        all_indices = []
+        for cols in ag.values():
+            all_indices.extend(cols)
+
+        assert len(all_indices) == len(set(all_indices))
+
+    def test_activation_groups_covers_all_columns(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        all_indices = set()
+        for cols in ag.values():
+            all_indices.update(cols)
+
+        expected = set(range(len(ds.feature_names)))
+
+        assert all_indices == expected
+
+    def test_categorical_columns_not_in_binary_group(
+    self,
+    categorical_validation_base_dataframe,
+    categorical_validation_cluster_labels,
+    categorical_validation_column_map,
+    categorical_validation_binary_feature_mask,
+):
+        ds = self._build_dataset(
+            categorical_validation_base_dataframe=categorical_validation_base_dataframe,
+            categorical_validation_cluster_labels=categorical_validation_cluster_labels,
+            categorical_validation_column_map=categorical_validation_column_map,
+            categorical_validation_binary_feature_mask=categorical_validation_binary_feature_mask,
+        )
+
+        ag = ds.activation_groups
+
+        binary_set = set(ag["binary"])
+        categorical_set = set(ag["C1"]) | set(ag["C2"])
+
+        assert binary_set.isdisjoint(categorical_set)
+
+
+class DummyModel(torch.nn.Module):
+    def __init__(self, recon):
+        super().__init__()
+        self.recon = recon
+
+    def forward(self, X, C, deterministic=True):
+        return self.recon, None, None
+
+def test_compute_val_metrics_exclude_ignored_columns():
+    """
+    Ensure ignored columns do NOT contribute to:
+    - MSE (continuous)
+    - BCE (binary)
+    - CE (categorical)
+    """
+
+    import numpy as np
+    import pandas as pd
+    import torch
+
+    # ---------------------------------------
+    # Dataset with all three types
+    # ---------------------------------------
+    df = pd.DataFrame({
+        "ignored_cont": [10.0, 20.0, 30.0, 40.0],
+        "active_cont":  [1.0,  2.0,  3.0,  4.0],
+
+        "ignored_bin":  [0, 1, 0, 1],
+        "active_bin":   [1, 0, 1, 0],
+
+        # categorical (one-hot)
+        "cat_a": [1, 0, 1, 0],
+        "cat_b": [0, 1, 0, 1],
+    })
+
+    clusters = np.zeros(len(df))
+
+    dataset = ClusterDataset(
+        data=df,
+        cluster_labels=clusters,
+        val_proportion=1.0,
+        columns_ignore=["ignored_cont", "ignored_bin"],
+        binary_feature_mask=[False, False, True, True, True, True],
+        categorical_column_map={"cat": ["cat_a", "cat_b"]},
+    )
+
+    true = dataset.val_data.clone()
+    recon = torch.zeros_like(true)
+
+    # ---------------------------------------
+    # Index mapping
+    # ---------------------------------------
+    idx = {name: dataset.feature_names.index(name) for name in df.columns}
+
+    # ---------------------------------------
+    # 1. Continuous (normalized space → already correct)
+    # ---------------------------------------
+    recon[:, idx["active_cont"]] = true[:, idx["active_cont"]]
+    recon[:, idx["ignored_cont"]] = 9999.0  # inject error
+
+    # ---------------------------------------
+    # 2. Binary (MUST be logits, not probabilities)
+    # ---------------------------------------
+    eps = 1e-6
+
+    def to_logit(x):
+        x = x.clamp(eps, 1 - eps)
+        return torch.log(x / (1 - x))
+
+    # Active binary → perfect reconstruction
+    recon[:, idx["active_bin"]] = to_logit(true[:, idx["active_bin"]])
+
+    # Ignored binary → wrong logits
+    recon[:, idx["ignored_bin"]] = -10.0  # sigmoid ≈ 0
+
+    # ---------------------------------------
+    # 3. Categorical (must be logits)
+    # ---------------------------------------
+    cat_cols = [idx["cat_a"], idx["cat_b"]]
+
+    # Perfect reconstruction → very confident logits
+    recon[:, cat_cols] = true[:, cat_cols] * 10.0  # strong separation
+
+    # ---------------------------------------
+    # Model
+    # ---------------------------------------
+    model = DummyModel(recon)
+
+    # ---------------------------------------
+    # Compute metrics
+    # ---------------------------------------
+    imputation_error, mse, bce, ce = compute_val_mse(
+        model, dataset, debug=True
+    )
+
+    # ---------------------------------------
+    # Assertions
+    # ---------------------------------------
+    assert mse < 1e-8, "Ignored continuous affected MSE"
+    assert bce < 1e-5, "Ignored binary affected BCE"
+    assert ce  < 1e-4, "Ignored categorical affected CE"
+
+
+def test_partial_ignore_categorical_raises():
+    df = pd.DataFrame({
+        "cat_a": [1, 0, 1],
+        "cat_b": [0, 1, 0],
+    })
+
+    with pytest.raises(ValueError):
+        ClusterDataset(
+            data=df,
+            cluster_labels=np.zeros(len(df)),
+            val_proportion=0.5,
+            columns_ignore=["cat_a"],  # partial ignore
+            binary_feature_mask=[True, True],
+            categorical_column_map={"cat": ["cat_a", "cat_b"]},
+        )

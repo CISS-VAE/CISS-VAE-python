@@ -6,6 +6,10 @@ from ciss_vae.training.run_cissvae import run_cissvae
 from ciss_vae.classes.vae import CISSVAE
 from ciss_vae.classes.cluster_dataset import ClusterDataset
 from ciss_vae.utils.matrix import create_missingness_prop_matrix
+from ciss_vae.utils.helpers import get_imputed_df
+
+from torch.utils.data import DataLoader
+from types import SimpleNamespace
 
 
 class TestRunCissVAE:
@@ -302,6 +306,34 @@ class TestRunCissVAE:
         assert isinstance(vae, CISSVAE)
         # History might be None or DataFrame depending on implementation
         assert isinstance(history, (pd.DataFrame, type(None)))
+
+    def test_activation_groups_present_in_dataset(self, sample_data, minimal_params):
+        result = run_cissvae(
+            sample_data,
+            return_dataset=True,
+            return_model=False,
+            return_clusters=False,
+            return_silhouettes=False,
+            return_history=False,
+            **minimal_params
+        )
+
+        imputed_dataset, dataset = result
+
+        assert isinstance(dataset, ClusterDataset)
+
+        ag = dataset.activation_groups
+
+        # structure
+        assert isinstance(ag, dict)
+        assert "continuous" in ag
+
+        # coverage
+        all_cols = set()
+        for cols in ag.values():
+            all_cols.update(cols)
+
+        assert all_cols == set(range(dataset.shape[1]))
     
     @pytest.mark.slow
     def test_full_pipeline_integration(self, large_sample_data):
@@ -340,3 +372,145 @@ class TestRunCissVAE:
         # Data integrity
         assert imputed_dataset.shape == large_sample_data.shape
         assert not imputed_dataset.isna().any().any()
+
+
+class DummyModel(torch.nn.Module):
+    """
+    Minimal model that returns its input as reconstruction.
+    This lets us control behavior without mocking.
+    """
+    def forward(self, X, C, deterministic=True):
+        return X, None, None
+
+
+def test_get_imputed_df_unscales_ignored_continuous_columns():
+    """
+    Ensure ignored continuous columns are properly unscaled in get_imputed_df.
+    """
+
+    # -------------------------
+    # Simple dataset
+    # -------------------------
+    df = pd.DataFrame({
+        "ignored_col": [10.0, 20.0, 30.0, 40.0],
+        "x1": [1.0, 2.0, 3.0, 4.0],
+    })
+
+    dataset = ClusterDataset(
+        data=df,
+        cluster_labels=np.zeros(len(df)),
+        val_proportion=0.0,
+        columns_ignore=["ignored_col"],
+        binary_feature_mask=[False, False],
+        categorical_column_map=None,
+    )
+
+    # -------------------------
+    # DataLoader
+    # -------------------------
+    loader = DataLoader(dataset, batch_size=2, shuffle=False)
+
+    # -------------------------
+    # Run imputation
+    # -------------------------
+    model = DummyModel()
+    out_df = get_imputed_df(model, loader)
+
+    # -------------------------
+    # Check both columns match original scale
+    # -------------------------
+    np.testing.assert_allclose(
+        out_df["ignored_col"].values,
+        df["ignored_col"].values,
+        atol=1e-6
+    )
+
+    np.testing.assert_allclose(
+        out_df["x1"].values,
+        df["x1"].values,
+        atol=1e-6
+    )
+
+import torch
+import numpy as np
+
+from ciss_vae.utils.loss import loss_function_nomask
+
+
+def test_loss_includes_ignored_columns():
+    """
+    Ensure ignored columns contribute to loss.
+
+    Strategy:
+    - Build simple tensors
+    - Inject error ONLY in ignored columns
+    - Verify loss > 0
+    """
+
+    # -------------------------
+    # Fake data (2 samples, 2 features)
+    # col 0 = ignored
+    # col 1 = active
+    # -------------------------
+    x = torch.tensor([
+        [10.0, 1.0],
+        [20.0, 2.0],
+    ])
+
+    recon = x.clone()
+
+    # inject error ONLY in ignored column (col 0)
+    recon[:, 0] = 9999.0
+
+    # mask = all observed
+    mask = torch.ones_like(x)
+
+    # activation groups include BOTH columns
+    activation_groups = {
+        "continuous": [0, 1]
+    }
+
+    # dummy latent variables
+    mu = torch.zeros((2, 1))
+    logvar = torch.zeros((2, 1))
+
+    loss, mse, bce, ce = loss_function_nomask(
+        cluster=None,
+        recon_x=recon,
+        x=x,
+        activation_groups=activation_groups,
+        mu=mu,
+        logvar=logvar,
+        return_components=True,
+    )
+
+    assert loss.item() > 0, "Ignored column did not contribute to loss"
+    assert mse.item() > 0, "Ignored column did not contribute to MSE"
+
+def test_loss_changes_when_ignored_column_removed():
+    x = torch.tensor([[10.0, 1.0]])
+    recon = x.clone()
+
+    # error in col 0
+    recon[:, 0] = 9999.0
+
+    mu = torch.zeros((1, 1))
+    logvar = torch.zeros((1, 1))
+
+    # case 1: include ignored column
+    groups_full = {"continuous": [0, 1]}
+
+    loss_full, *_ = loss_function_nomask(
+        None, recon, x, groups_full, mu, logvar, return_components=True
+    )
+
+    # case 2: exclude ignored column
+    groups_filtered = {"continuous": [1]}
+
+    loss_filtered, *_ = loss_function_nomask(
+        None, recon, x, groups_filtered, mu, logvar, return_components=True
+    )
+
+    assert loss_full.item() > loss_filtered.item(), (
+        "Ignored column is not contributing to loss as expected"
+    )

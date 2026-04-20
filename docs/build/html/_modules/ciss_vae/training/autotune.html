@@ -52,6 +52,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#hyperparameter-tuning-with-optuna">Hyperparameter Tuning with Optuna</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../vignette.html#saving-and-loading-models">Saving and loading models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html">Handling binary data columns</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../binary_vignette.html#handling-categorical-data-columns">Handling Categorical Data Columns</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html">Using <code class="docutils literal notranslate"><span class="pre">create_missingness_prop_matrix</span></code>: A Complete Guide</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-with-sample-clustering">Integration with sample clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../missingness_prop_vignette.html#integration-w-ciss-vae-pipeline">Integration w/ CISS-VAE pipeline</a></li>
@@ -291,12 +292,14 @@
 <span class="w">    </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Optuna-based hyperparameter search for the CISSVAE model.</span>
 <span class="sd">    </span>
 <span class="sd">    Runs initial training followed by impute-refit loops per trial, selecting the</span>
-<span class="sd">    trial with the lowest validation MSE. The best model is then retrained with</span>
+<span class="sd">trial with the lowest total imputation error (MSE + BCE + categorical CE). The best model is then retrained with</span>
 <span class="sd">    optimal hyperparameters and returned along with the imputed dataset.</span>
 <span class="sd">    </span>
 <span class="sd">    :param search_space: Hyperparameter ranges and fixed values for optimization</span>
 <span class="sd">    :type search_space: SearchSpace</span>
-<span class="sd">    :param train_dataset: Dataset containing masks, normalization, and cluster labels</span>
+<span class="sd">    :param train_dataset: Dataset containing processed inputs, validation masks,</span>
+<span class="sd">        normalization statistics, cluster labels, and ``activation_groups`` defining</span>
+<span class="sd">        feature types (continuous, binary, categorical).</span>
 <span class="sd">    :type train_dataset: ClusterDataset</span>
 <span class="sd">    :param save_model_path: Optional path to save the best model&#39;s state_dict, defaults to None</span>
 <span class="sd">    :type save_model_path: str, optional</span>
@@ -326,7 +329,9 @@
 <span class="sd">    :type max_exhaustive_orders: int, optional</span>
 <span class="sd">    :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False</span>
 <span class="sd">    :type return_history: bool, optional</span>
-<span class="sd">    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1. Note: n_jobs != 1 is not necessarily deterministic. Use at own risk.</span>
+<span class="sd">    :param n_jobs: Number of parallel Optuna jobs. Defaults to 1.</span>
+<span class="sd">        Note: Values other than 1 may result in non-deterministic behavior</span>
+<span class="sd">        despite fixed random seeds.</span>
 <span class="sd">    :type n_jobs: int, optional</span>
 <span class="sd">    :param debug: Defaults to False. Set True for informative debugging statements.</span>
 <span class="sd">    :type debug: bool, optional</span>
@@ -534,6 +539,8 @@
     <span class="c1">#  - Added set random generators</span>
     <span class="c1"># --------------------------</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">objective</span><span class="p">(</span><span class="n">trial</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Runs initial training followed by impute-refit loops per trial, selecting the</span>
+<span class="sd">        trial with the lowest total imputation error (MSE + BCE + categorical CE).&quot;&quot;&quot;</span>
         <span class="c1">## Set random generators</span>
         <span class="n">trial_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="o">*</span> <span class="mi">10_000</span> <span class="o">+</span> <span class="n">trial</span><span class="o">.</span><span class="n">number</span>
 
@@ -666,7 +673,7 @@
                 <span class="n">num_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span>
                 <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
                 <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span><span class="p">,</span>
-                <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span>
+                <span class="n">activation_groups</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">activation_groups</span><span class="p">,</span>
                 <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
             <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
             
@@ -701,13 +708,15 @@
             <span class="p">)</span>
             
             <span class="c1"># Get validation MSE</span>
-            <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+            <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span><span class="p">,</span> <span class="n">val_ce</span> <span class="o">=</span> <span class="n">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">train_loader</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">best_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">imputation_error</span> <span class="o">&lt;</span> <span class="n">best_val</span><span class="p">):</span>
                 <span class="n">best_val</span> <span class="o">=</span> <span class="n">imputation_error</span>
                 <span class="n">best_patterns</span> <span class="o">=</span> <span class="p">(</span><span class="n">enc_pat</span><span class="p">,</span> <span class="n">dec_pat</span><span class="p">)</span>
                 <span class="n">best_refit_history_df</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">training_history_</span>
                 <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_val_mse&quot;</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">)</span>
                 <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_val_bce&quot;</span><span class="p">,</span> <span class="n">val_bce</span><span class="p">)</span>
+                <span class="n">trial</span><span class="o">.</span><span class="n">set_user_attr</span><span class="p">(</span><span class="s2">&quot;best_val_ce&quot;</span><span class="p">,</span> <span class="n">val_ce</span><span class="p">)</span>
+
         
         <span class="c1"># Show completion with Rich</span>
         <span class="k">if</span> <span class="n">show_progress</span><span class="p">:</span>
@@ -850,7 +859,7 @@
         <span class="n">num_clusters</span><span class="o">=</span><span class="n">num_clusters</span><span class="p">,</span>
         <span class="n">latent_dim</span><span class="o">=</span><span class="n">latent_dim</span><span class="p">,</span>
         <span class="n">output_shared</span><span class="o">=</span><span class="n">output_shared</span><span class="p">,</span>
-        <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span>
+        <span class="n">activation_groups</span> <span class="o">=</span> <span class="n">train_dataset</span><span class="o">.</span><span class="n">activation_groups</span><span class="p">,</span>
         <span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
     <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     

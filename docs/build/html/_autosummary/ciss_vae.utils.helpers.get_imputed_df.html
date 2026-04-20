@@ -9,7 +9,7 @@
   <title>ciss_vae.utils.helpers.get_imputed_df &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
@@ -116,15 +116,15 @@ with original scaling restored and validation entries replaced with true values.
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>model</strong> (<a class="reference internal" href="ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE" title="ciss_vae.classes.vae.CISSVAE"><em>CISSVAE</em></a>) – Trained CISSVAE model (should be in eval() mode)</p></li>
-<li><p><strong>data_loader</strong> (<em>torch.utils.data.DataLoader</em>) – DataLoader for the original ClusterDataset</p></li>
-<li><p><strong>device</strong> (<em>str</em><em>, </em><em>optional</em>) – Device to run computations on, defaults to “cpu”</p></li>
+<li><p><strong>data_loader</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch v2.11)"><em>torch.utils.data.DataLoader</em></a>) – DataLoader for the original ClusterDataset</p></li>
+<li><p><strong>device</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><em>optional</em>) – Device to run computations on, defaults to “cpu”</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>DataFrame containing imputed (unscaled) data with original row ordering</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>pandas.DataFrame</p>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)">pandas.DataFrame</a></p>
 </dd>
 </dl>
 </dd></dl>

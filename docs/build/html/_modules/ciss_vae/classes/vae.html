@@ -8,7 +8,7 @@
   <title>ciss_vae.classes.vae &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -91,13 +91,16 @@
 
 <span class="sd">This module defines :class:`CISSVAE`, a VAE that can route samples through</span>
 <span class="sd">either **shared** or **cluster‑specific** (unshared) layers in the encoder and</span>
-<span class="sd">decoder, controlled by per‑layer directives. For binary features, a sigmoid activation function is applied at the end to get probabilities.</span>
+<span class="sd">decoder, controlled by per‑layer directives. For all features, the model outputs raw logits. Feature-specific activation</span>
+<span class="sd">functions (e.g., sigmoid for binary, softmax for categorical) are applied</span>
+<span class="sd">externally using ``activation_groups`` to map features to correct activation function.</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nn</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 
 <div class="viewcode-block" id="CISSVAE">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE">[docs]</a>
@@ -119,7 +122,7 @@
 <span class="sd">    :param latent_shared: If ``True``, the latent heads (``mu``, ``logvar``) are shared across clusters; otherwise one head per cluster.</span>
 <span class="sd">    :type latent_shared: bool</span>
 <span class="sd">    :param latent_dim: Dimensionality of the latent space.</span>
-<span class="sd">    :type latent_dim: int</span>
+<span class="sd">    :type latent_dim: int </span>
 <span class="sd">    :param output_shared: If ``True``, the final output layer is shared; otherwise one output layer per cluster.</span>
 <span class="sd">    :type output_shared: bool</span>
 <span class="sd">    :param num_clusters: Number of clusters present in the data.</span>
@@ -128,8 +131,8 @@
 <span class="sd">    :type debug: bool</span>
 
 <span class="sd">    :raises ValueError: If an item of ``layer_order_enc`` or ``layer_order_dec`` is not one of</span>
-<span class="sd">        ``{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}`` (case‑insensitive), or if their lengths do not match</span>
-<span class="sd">        ``len(hidden_dims)`` for the respective path.</span>
+<span class="sd">    ``{&quot;shared&quot;,&quot;unshared&quot;,&quot;s&quot;,&quot;u&quot;}`` (case‑insensitive), or if their lengths do not match</span>
+<span class="sd">    ``len(hidden_dims)`` for the respective path.</span>
 
 <span class="sd">    **Expected shapes**</span>
 <span class="sd">        * Encoder input ``x``: ``(batch, input_dim)``</span>
@@ -140,6 +143,7 @@
 <span class="sd">        * The decoder consumes ``hidden_dims[::-1]`` (reverse order).</span>
 <span class="sd">        * Unshared layers maintain per‑cluster ``ModuleList``/``ModuleDict`` replicas.</span>
 <span class="sd">        * Routing never reorders rows; masks are used to apply cluster‑specific sublayers in‑place.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="CISSVAE.__init__">
@@ -154,7 +158,7 @@
                  <span class="n">output_shared</span><span class="p">,</span>
                  <span class="n">num_clusters</span><span class="p">,</span>
                  <span class="c1"># new optional inputs to define binary features at init time -&gt; udpdate 14OCT2025</span>
-                 <span class="n">binary_feature_mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">activation_groups</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Variational Autoencoder supporting flexible shared/unshared layers across clusters.</span>
@@ -175,44 +179,83 @@
 <span class="sd">        :type output_shared: bool</span>
 <span class="sd">        :param num_clusters: Number of clusters.</span>
 <span class="sd">        :type num_clusters: int</span>
-<span class="sd">        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</span>
-<span class="sd">        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]</span>
+<span class="sd">        :param activation_groups: Dictionary mapping feature groups to column indices. Attribute of ClusterDataset object. </span>
+<span class="sd">        Expected format:</span>
+
+<span class="sd">        {</span>
+<span class="sd">            &quot;continuous&quot;: [int, ...],</span>
+<span class="sd">            &quot;binary&quot;: [int, ...],</span>
+<span class="sd">            &quot;&lt;categorical_name&gt;&quot;: [int, ...],</span>
+<span class="sd">            ...</span>
+<span class="sd">        }</span>
+
+<span class="sd">        Each key defines a feature group:</span>
+<span class="sd">        - &quot;continuous&quot;: indices of continuous-valued features</span>
+<span class="sd">        - &quot;binary&quot;: indices of binary features</span>
+<span class="sd">        - additional keys correspond to grouped categorical variables</span>
+<span class="sd">        (e.g., one-hot encoded columns belonging to the same variable)</span>
+
+<span class="sd">        This structure is used to determine loss functions and output</span>
+<span class="sd">        transformations outside the model.</span>
+
+<span class="sd">        :type activation_groups: dict[str, list[int]]</span>
 <span class="sd">        :param debug: If ``True``, print shape and routing information.</span>
 <span class="sd">        :type debug: bool</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_clusters</span> <span class="o">=</span> <span class="n">num_clusters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">latent_shared</span> <span class="o">=</span> <span class="n">latent_shared</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_enc</span> <span class="o">=</span> <span class="n">layer_order_enc</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_dec</span> <span class="o">=</span> <span class="n">layer_order_dec</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_enc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_layer_order</span><span class="p">(</span><span class="n">layer_order_enc</span><span class="p">,</span> <span class="s2">&quot;layer_order_enc&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_order_dec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_layer_order</span><span class="p">(</span><span class="n">layer_order_dec</span><span class="p">,</span> <span class="s2">&quot;layer_order_dec&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">latent_dim</span> <span class="o">=</span> <span class="n">latent_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">input_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_shared</span> <span class="o">=</span> <span class="n">output_shared</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hidden_dims</span> <span class="o">=</span> <span class="n">hidden_dims</span>
 
         <span class="c1"># -------------------------</span>
-        <span class="c1"># (NEW) Binary feature mask</span>
-        <span class="c1"># - Added 14 OCT 2025</span>
-        <span class="c1"># - Create a mask that dictates which features are binary and which are not </span>
-        <span class="c1"># - allows for sigmoid at end for binary features only</span>
+        <span class="c1"># (NEW) Activation groups metadata</span>
+        <span class="c1"># - Replaces binary_feature_mask</span>
+        <span class="c1"># - Stores feature structure for downstream use (loss, imputation, validation)</span>
         <span class="c1"># -------------------------</span>
-        <span class="c1"># We store this as a registered buffer so it follows the model to CUDA/CPU and into checkpoints.</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Accept torch.Tensor or sequence of bools; validate length</span>
-            <span class="c1">## Debug statement - Binary feature mask</span>
-            <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary Feature Mask: </span><span class="si">{</span><span class="n">binary_feature_mask</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="n">input_dim</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;binary_feature_mask must be a 1D boolean vector of length input_dim.&quot;</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># Default: if nothing provided, treat no columns as binary until user sets it.</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">activation_groups</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Activation Groups: </span><span class="si">{</span><span class="n">activation_groups</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="c1"># register as buffer to track with device / state_dict</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;binary_mask&quot;</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>  <span class="c1"># shape: (input_dim,)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation_groups</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;activation_groups must be a dictionary.&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Validate and normalize</span>
+            <span class="n">validated_groups</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;activation_groups[&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;] must be a list of column indices.&quot;</span><span class="p">)</span>
+
+                <span class="n">clean_cols</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column index &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39; in group &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is not an integer.&quot;</span><span class="p">)</span>
+                    <span class="n">c</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">c</span> <span class="o">&lt;</span> <span class="n">input_dim</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Column index </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2"> in group &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is out of bounds for input_dim=</span><span class="si">{</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">clean_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+
+                <span class="n">validated_groups</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">clean_cols</span>
+
+            <span class="c1"># Store as plain attribute (NOT a buffer)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">activation_groups</span> <span class="o">=</span> <span class="n">validated_groups</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default: treat everything as continuous if nothing provided</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No activation_groups provided; defaulting to all continuous.</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">activation_groups</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;continuous&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">input_dim</span><span class="p">))</span>
+            <span class="p">}</span>
 
         <span class="c1"># ----------------------------</span>
         <span class="c1"># Encoder: shared and unshared</span>
@@ -272,14 +315,14 @@
 
         <span class="n">in_features</span> <span class="o">=</span> <span class="n">latent_dim</span>
         <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">out_features</span><span class="p">,</span> <span class="n">layer_type</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">hidden_dims</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">layer_order_dec</span><span class="p">)):</span>
-            <span class="k">if</span> <span class="n">layer_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="n">layer_type</span> <span class="o">==</span> <span class="s2">&quot;shared&quot;</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">decoder_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
                         <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="p">,</span> <span class="n">out_features</span><span class="p">),</span>
                         <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
-            <span class="k">elif</span> <span class="n">layer_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">]:</span>
+            <span class="k">elif</span> <span class="n">layer_type</span> <span class="o">==</span> <span class="s2">&quot;unshared&quot;</span><span class="p">:</span>
                 <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_clusters</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">cluster_decoder_layers</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                         <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
@@ -315,7 +358,7 @@
 <span class="sd">        For each position ``i``:</span>
 <span class="sd">        * if ``layer_type_list[i]`` is shared → apply ``shared_layers[i_shared]`` to all rows;</span>
 <span class="sd">        * if unshared → for each cluster ``c``, apply the ``c``‑specific layer</span>
-<span class="sd">            at that depth to the subset of rows where ``cluster_labels == c``.</span>
+<span class="sd">        at that depth to the subset of rows where ``cluster_labels == c``.</span>
 
 <span class="sd">        :param x: Input activations to be routed.</span>
 <span class="sd">        :type x: torch.Tensor, shape ``(batch, d_in)``</span>
@@ -481,7 +524,7 @@
                                  <span class="n">dtype</span><span class="o">=</span><span class="n">z</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">cluster_mask</span><span class="p">,</span> <span class="n">z_out</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">:</span>
                 <span class="n">logits</span><span class="p">[</span><span class="n">cluster_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">z_out</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_output_activations</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">logits</span></div>
 
 
 <div class="viewcode-block" id="CISSVAE.forward">
@@ -569,181 +612,260 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the learning rate stored with self.set_final_lr/&quot;&quot;&quot;</span>
         <span class="k">return</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">final_lr</span><span class="p">)</span></div>
 
-
 <div class="viewcode-block" id="CISSVAE.get_imputed_valdata">
 <a class="viewcode-back" href="../../../_autosummary/ciss_vae.classes.vae.CISSVAE.html#ciss_vae.classes.vae.CISSVAE.get_imputed_valdata">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_valdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Get denormalized imputed data from the trained model.</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_imputed_valdata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compute imputed values for the validation dataset.</span>
 
-<span class="sd">        [IMPORTANT!] This function returns the imputed VALIDATION dataset. This is not the end result dataframe to use in further analyses. This is for calculating MSE per group/cluster.</span>
+<span class="sd">        Performs a forward pass through the trained VAE and reconstructs only the</span>
+<span class="sd">        validation-masked entries. Outputs are interpreted according to</span>
+<span class="sd">        `activation_groups`:</span>
 
-<span class="sd">    Performs a forward pass of the model in evaluation mode to reconstruct </span>
-<span class="sd">    validation data. The reconstructed output is then denormalized using the </span>
-<span class="sd">    dataset&#39;s feature means and standard deviations. Features with zero </span>
-<span class="sd">    standard deviation are replaced with 1.0 to ensure numerical stability.</span>
+<span class="sd">        - continuous → denormalized using mean/std</span>
+<span class="sd">        - binary → sigmoid applied</span>
+<span class="sd">        - categorical → softmax + argmax (one-hot reconstruction)</span>
 
-<span class="sd">    :param dataset: Dataset object containing normalized data, validation data, and feature statistics.</span>
-<span class="sd">        Must include:</span>
-<span class="sd">          - ``data``: Normalized input tensor of shape ``(n_samples, n_features)``</span>
-<span class="sd">          - ``val_data``: Original validation data tensor of shape ``(n_samples, n_features)``</span>
-<span class="sd">          - ``cluster_labels``: Cluster assignments for each sample, shape ``(n_samples,)``</span>
-<span class="sd">          - ``feature_means``: Per-feature means, length ``n_features``</span>
-<span class="sd">          - ``feature_stds``: Per-feature standard deviations, length ``n_features``</span>
-<span class="sd">          - ``feature_names``: List of feature names (used for zero-std warnings)</span>
-<span class="sd">    :type dataset: ClusterDataset</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        dataset : ClusterDataset</span>
+<span class="sd">            Dataset object containing:</span>
+<span class="sd">                - data : normalized tensor (N, D)</span>
+<span class="sd">                - val_data : original data with NaNs at validation positions</span>
+<span class="sd">                - cluster_labels : (N,)</span>
+<span class="sd">                - feature_means : (D,)</span>
+<span class="sd">                - feature_stds : (D,)</span>
+<span class="sd">                - feature_names : list[str]</span>
+<span class="sd">                - activation_groups : dict[str, list[int]]</span>
 
-<span class="sd">    :param device: Device to perform computations on (e.g., ``&quot;cpu&quot;`` or ``&quot;cuda&quot;``). Default is ``&quot;cpu&quot;``.</span>
-<span class="sd">    :type device: str, optional</span>
+<span class="sd">        device : str, default=&quot;cpu&quot;</span>
+<span class="sd">            Device to run computations on.</span>
 
-<span class="sd">    :param deterministic: Deterministic Evaluation of Model for Imputation (default True). </span>
-<span class="sd">    :type deterministic: bool</span>
+<span class="sd">        deterministic : bool, default=True</span>
+<span class="sd">            Whether to use deterministic forward pass.</span>
 
-<span class="sd">    :returns: Denormalized reconstructed (imputed) validation data of shape ``(n_samples, n_features)``.</span>
-<span class="sd">    :rtype: torch.Tensor</span>
-
-<span class="sd">    .. note::</span>
-<span class="sd">        - The model is evaluated using ``self.eval()`` (disables dropout, batchnorm updates, etc.).</span>
-<span class="sd">        - Features with ``std == 0`` are replaced with ``1.0`` and a warning listing affected features is printed.</span>
-<span class="sd">        - The returned tensor corresponds to the model&#39;s best reconstruction of the validation data after denormalization.</span>
-
-<span class="sd">    **Example**::</span>
-
-<span class="sd">        &gt;&gt;&gt; vae = CISSVAE(...)</span>
-<span class="sd">        &gt;&gt;&gt; dataset = ClusterDataset(...)</span>
-<span class="sd">        &gt;&gt;&gt; imputed_val = vae.get_imputed_valdata(dataset, device=&quot;cuda&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; imputed_val.shape</span>
-<span class="sd">        torch.Size([100, 20])</span>
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        torch.Tensor</span>
+<span class="sd">            Tensor of shape (N, D) containing imputed validation values.</span>
+<span class="sd">            Non-validation entries are set to NaN.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
-        <span class="c1"># Get normalized inputs and val data</span>
-        <span class="n">full_x</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                       <span class="c1"># (N, D), normalized</span>
-        <span class="n">full_cluster</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>       <span class="c1"># (N,)</span>
-        <span class="n">val_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                 <span class="c1"># (N, D), not normalized</span>
-        <span class="n">val_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>                      <span class="c1"># (N, D)</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Load data</span>
+        <span class="c1"># -------------------------</span>
+        <span class="n">full_x</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">full_cluster</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">val_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">val_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>
 
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Forward pass (logits)</span>
+        <span class="c1"># -------------------------</span>
         <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-            <span class="n">recon_x</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="n">deterministic</span><span class="p">)</span>        <span class="c1"># normalized output</span>
+            <span class="n">logits</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span>
+                <span class="n">full_x</span><span class="p">,</span> <span class="n">full_cluster</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="n">deterministic</span>
+            <span class="p">)</span>
 
-        <span class="c1"># Retrieve per-feature stats</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Feature stats</span>
+        <span class="c1"># -------------------------</span>
+        <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-            <span class="c1"># check for zero std features</span>
+        <span class="c1"># Handle zero std safely</span>
         <span class="n">zero_std_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">zero_std_idx</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">bad_feats</span> <span class="o">=</span> <span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">zero_std_idx</span><span class="o">.</span><span class="n">tolist</span><span class="p">()]</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;[Warning] </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bad_feats</span><span class="p">)</span><span class="si">}</span><span class="s2"> feature(s) have std == 0. &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;Replaced with 1.0. Features: </span><span class="si">{</span><span class="n">bad_feats</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
-            <span class="n">stds</span><span class="p">[</span><span class="n">zero_std_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>  <span class="c1"># safe replacement</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Warning] std == 0 → replaced with 1.0: </span><span class="si">{</span><span class="n">bad_feats</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">stds</span><span class="p">[</span><span class="n">zero_std_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
-        <span class="c1"># ------------------------------------------------------------------</span>
-        <span class="c1"># Identify binary vs continuous features</span>
-        <span class="c1"># ------------------------------------------------------------------</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;binary_feature_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">recon_x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span>
-                <span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span>
-            <span class="p">)</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Output container</span>
+        <span class="c1"># -------------------------</span>
+        <span class="n">recon_out</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-        <span class="n">cont_1d</span> <span class="o">=</span> <span class="o">~</span><span class="n">bin_1d</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Apply activation groups</span>
+        <span class="c1"># -------------------------</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 
-        <span class="c1"># ------------------------------------------------------------------</span>
-        <span class="c1"># Build output safely</span>
-        <span class="c1"># ------------------------------------------------------------------</span>
-        <span class="n">recon_out</span> <span class="o">=</span> <span class="n">recon_x</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="c1"># CRITICAL FIX: enforce correct dtype</span>
+            <span class="n">cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># Denormalize ONLY continuous features</span>
-        <span class="k">if</span> <span class="n">cont_1d</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">ccols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">cont_1d</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_x</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span>
+            <span class="c1"># -------------------------</span>
+            <span class="c1"># CONTINUOUS</span>
+            <span class="c1"># -------------------------</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span>
+                <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">logits</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
 
-        <span class="c1"># Blank out non-validation (observed) entries -&gt;. keep only validation reconstructions</span>
-        <span class="n">recon_out</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span> 
+            <span class="c1"># -------------------------</span>
+            <span class="c1"># BINARY</span>
+            <span class="c1"># -------------------------</span>
+            <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;binary&quot;</span><span class="p">:</span>
+                <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">])</span>
 
-        <span class="k">return</span><span class="p">(</span><span class="n">recon_out</span><span class="p">)</span></div>
+            <span class="c1"># -------------------------</span>
+            <span class="c1"># CATEGORICAL</span>
+            <span class="c1"># -------------------------</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># logits subset → (N, K)</span>
+                <span class="n">cat_logits</span> <span class="o">=</span> <span class="n">logits</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span>
 
+                <span class="c1"># probabilities</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">cat_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># -----------------------------</span>
-        <span class="c1"># NEW -&gt; handles sigmoid</span>
-        <span class="c1"># -----------------------------</span>
+                <span class="c1"># argmax per row</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_output_activations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Applies per-feature output activations:</span>
-<span class="sd">            - Binary columns (self.binary_mask == True) -&gt; sigmoid</span>
-<span class="sd">            - Continuous columns -&gt; identity (no activation)</span>
+                <span class="c1"># zero-out group</span>
+                <span class="n">recon_out</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            logits: Tensor of shape (batch, input_dim) containing final-layer outputs.</span>
+                <span class="c1"># CORRECT one-hot assignment</span>
+                <span class="n">row_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">recon_out</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+                <span class="n">recon_out</span><span class="p">[</span><span class="n">row_idx</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">cols</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># ensure clean</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">            Tensor of same shape with sigmoid applied only to binary columns.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># if(self.debug):</span>
-        <span class="c1">#         print(f&quot;From Apply Output Activations: Binary Feature Mask: {self.binary_mask}\n\n&quot;)</span>
-        <span class="k">if</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Output dim mismatch; expected last dim == input_dim.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Should not happen, but be safe</span>
-            <span class="k">return</span> <span class="n">logits</span>
+                <span class="n">recon_out</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">cols</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">torch</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">):</span>
-            <span class="c1"># No binary columns</span>
-            <span class="k">return</span> <span class="n">logits</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Keep only validation entries</span>
+        <span class="c1"># -------------------------</span>
+        <span class="n">recon_out</span><span class="p">[</span><span class="n">val_mask</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Clone only if needed; avoids extra mem if no binary cols.</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">out</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">out</span>
+        <span class="k">return</span> <span class="n">recon_out</span></div>
 
-        <span class="c1"># -----------------------------</span>
-        <span class="c1"># NEW -&gt; Add mask after initialization</span>
-        <span class="c1"># -----------------------------</span>
+        
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-    <span class="k">def</span><span class="w"> </span><span class="nf">set_binary_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                            <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                            <span class="n">feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                            <span class="n">binary_feature_names</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_activation_groups</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">activation_groups</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Update which columns are treated as binary at the output. This function should not be necessary for user to touch.</span>
+<span class="sd">        Attach feature activation structure to the model.</span>
 
-<span class="sd">        You can pass either:</span>
-<span class="sd">          - mask: 1D bool vector length `input_dim`, or</span>
-<span class="sd">          - feature_names + binary_feature_names: names → mask is computed</span>
+<span class="sd">        This method stores the resolved `activation_groups` dictionary, which defines how</span>
+<span class="sd">        each input column should be interpreted during loss computation and imputation.</span>
 
-<span class="sd">        This is safe to call after loading a model or dataset schema.</span>
+<span class="sd">        The model itself does NOT use this information during the forward pass; it is</span>
+<span class="sd">        stored purely as metadata to ensure consistency between the model, dataset,</span>
+<span class="sd">        loss functions, and imputation routines.</span>
 
-<span class="sd">        Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</span>
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        activation_groups : dict</span>
+<span class="sd">            Dictionary mapping feature types to column indices. Expected format:</span>
 
-<span class="sd">        :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</span>
-<span class="sd">        :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]</span>
-<span class="sd">        :param feature_names: List of all feature names - used with &#39;binary_feature_names&#39;.</span>
-<span class="sd">        :type feature_names: Optional[Sequence[str]]</span>
-<span class="sd">        :param binary_feature_names: List of all binary features (features must also be included in &#39;feature_names&#39;).</span>
-<span class="sd">        :type binary_feature_names: Optional[Iterable[str]]</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;continuous&quot;: [col_idx, ...],</span>
+<span class="sd">                &quot;binary&quot;: [col_idx, ...],</span>
+<span class="sd">                &quot;&lt;categorical_name&gt;&quot;: [col_idx, ...],</span>
+<span class="sd">                ...</span>
+<span class="sd">            }</span>
+
+<span class="sd">            - &quot;continuous&quot;: indices of continuous-valued features</span>
+<span class="sd">            - &quot;binary&quot;: indices of binary features</span>
+<span class="sd">            - Each additional key represents a grouped categorical variable (multiple columns corresponding to one variable)</span>
+
+<span class="sd">        Raises</span>
+<span class="sd">        ------</span>
+<span class="sd">        ValueError</span>
+<span class="sd">            If activation_groups is not a dictionary or contains invalid column indices.</span>
+
+<span class="sd">        Notes</span>
+<span class="sd">        -----</span>
+<span class="sd">        - This replaces the old `set_binary_features` functionality.</span>
+<span class="sd">        - The model outputs raw logits for all features; interpretation is handled</span>
+<span class="sd">        externally using `activation_groups`.</span>
+<span class="sd">        - This function is primarily used after loading a model to reattach dataset</span>
+<span class="sd">        structure if needed.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">ndim</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">mask</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;mask must be a 1D boolean vector of length input_dim.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>  <span class="c1"># in-place update to keep buffer reference</span>
-            <span class="k">return</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="n">feature_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">binary_feature_names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Provide either `mask` or (`feature_names` and `binary_feature_names`).&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation_groups</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;activation_groups must be a dictionary.&quot;</span><span class="p">)</span>
 
-        <span class="n">feat2idx</span> <span class="o">=</span> <span class="p">{</span><span class="n">name</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">feature_names</span><span class="p">)}</span>
-        <span class="n">newmask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">bname</span> <span class="ow">in</span> <span class="n">binary_feature_names</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">bname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">feat2idx</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Binary feature name &#39;</span><span class="si">{</span><span class="n">bname</span><span class="si">}</span><span class="s2">&#39; not found in feature_names.&quot;</span><span class="p">)</span>
-            <span class="n">newmask</span><span class="p">[</span><span class="n">feat2idx</span><span class="p">[</span><span class="n">bname</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">binary_mask</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">newmask</span><span class="p">)</span></div>
+        <span class="c1"># Validate structure</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;activation_groups[&#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;] must be a list of column indices.&quot;</span><span class="p">)</span>
 
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column index &#39;</span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&#39; in group &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is not an integer.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="nb">int</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Column index </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2"> in group &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; is out of bounds for input_dim=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">input_dim</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># Store as plain attribute (NOT buffer)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation_groups</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_layer_order</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer_order</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">layer_order</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">lt</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">] must be a string.&quot;</span><span class="p">)</span>
+
+            <span class="n">lt_clean</span> <span class="o">=</span> <span class="n">lt</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">lt_clean</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;shared&quot;</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">]:</span>
+                <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;shared&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">lt_clean</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;unshared&quot;</span><span class="p">,</span> <span class="s2">&quot;u&quot;</span><span class="p">]:</span>
+                <span class="n">normalized</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;unshared&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid value in </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">]: &#39;</span><span class="si">{</span><span class="n">lt</span><span class="si">}</span><span class="s2">&#39;. &quot;</span>
+                    <span class="s2">&quot;Must be one of {&#39;shared&#39;,&#39;unshared&#39;,&#39;s&#39;,&#39;u&#39;}.&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">normalized</span></div>
+
+        
+    <span class="c1"># @torch.no_grad()</span>
+    <span class="c1"># def set_binary_features(self,</span>
+    <span class="c1">#                         mask: Optional[Union[torch.Tensor, Sequence[bool]]] = None,</span>
+    <span class="c1">#                         feature_names: Optional[Sequence[str]] = None,</span>
+    <span class="c1">#                         binary_feature_names: Optional[Iterable[str]] = None) -&gt; None:</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     Update which columns are treated as binary at the output. This function should not be necessary for user to touch.</span>
+
+    <span class="c1">#     You can pass either:</span>
+    <span class="c1">#       - mask: 1D bool vector length `input_dim`, or</span>
+    <span class="c1">#       - feature_names + binary_feature_names: names → mask is computed</span>
+
+    <span class="c1">#     This is safe to call after loading a model or dataset schema.</span>
+
+    <span class="c1">#     Can set w/ vae.set_binary_features(mask = dataset.binary_feature_mask)</span>
+
+    <span class="c1">#     :param binary_feature_mask: Boolean vector of length p for n x p dataset. True for binary columns, False for continuous columns</span>
+    <span class="c1">#     :type binary_feature_mask: Optional[Union[torch.Tensor, Sequence[bool]]]</span>
+    <span class="c1">#     :param feature_names: List of all feature names - used with &#39;binary_feature_names&#39;.</span>
+    <span class="c1">#     :type feature_names: Optional[Sequence[str]]</span>
+    <span class="c1">#     :param binary_feature_names: List of all binary features (features must also be included in &#39;feature_names&#39;).</span>
+    <span class="c1">#     :type binary_feature_names: Optional[Iterable[str]]</span>
+    <span class="c1">#     &quot;&quot;&quot;</span>
+    <span class="c1">#     if mask is not None:</span>
+    <span class="c1">#         mask = torch.as_tensor(mask, dtype=torch.bool, device=self.binary_mask.device)</span>
+    <span class="c1">#         if mask.ndim != 1 or mask.numel() != self.input_dim:</span>
+    <span class="c1">#             raise ValueError(&quot;mask must be a 1D boolean vector of length input_dim.&quot;)</span>
+    <span class="c1">#         self.binary_mask.copy_(mask)  # in-place update to keep buffer reference</span>
+    <span class="c1">#         return</span>
+
+    <span class="c1">#     if (feature_names is None) or (binary_feature_names is None):</span>
+    <span class="c1">#         raise ValueError(&quot;Provide either `mask` or (`feature_names` and `binary_feature_names`).&quot;)</span>
+
+    <span class="c1">#     feat2idx = {name: i for i, name in enumerate(feature_names)}</span>
+    <span class="c1">#     newmask = torch.zeros(self.input_dim, dtype=torch.bool, device=self.binary_mask.device)</span>
+    <span class="c1">#     for bname in binary_feature_names:</span>
+    <span class="c1">#         if bname not in feat2idx:</span>
+    <span class="c1">#             raise ValueError(f&quot;Binary feature name &#39;{bname}&#39; not found in feature_names.&quot;)</span>
+    <span class="c1">#         newmask[feat2idx[bname]] = True</span>
+    <span class="c1">#     self.binary_mask.copy_(newmask)</span>
 
 
 

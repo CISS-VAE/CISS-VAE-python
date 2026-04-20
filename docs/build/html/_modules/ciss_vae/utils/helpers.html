@@ -8,7 +8,7 @@
   <title>ciss_vae.utils.helpers &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../../../_static/styles.css" />
 
@@ -314,95 +314,87 @@
 <span class="sd">    :return: DataFrame containing imputed (unscaled) data with original row ordering</span>
 <span class="sd">    :rtype: pandas.DataFrame</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">dataset</span>
+
     <span class="c1"># -------------------------------</span>
-    <span class="c1"># Get scaled impued data</span>
+    <span class="c1"># Get imputed (normalized space, but already converted from logits)</span>
     <span class="c1"># -------------------------------</span>
     <span class="n">imputed</span> <span class="o">=</span> <span class="n">get_imputed</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">data_loader</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
-    <span class="n">x_all</span> <span class="o">=</span> <span class="n">imputed</span><span class="o">.</span><span class="n">data</span>
-
+    <span class="n">x_all</span> <span class="o">=</span> <span class="n">imputed</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
     <span class="c1"># -------------------------------</span>
-    <span class="c1"># Unscale the imputed data (only for continuous vars)</span>
+    <span class="c1"># Prepare stats</span>
     <span class="c1"># -------------------------------</span>
-    <span class="c1"># Binary vs continuous mask</span>
-    <span class="k">if</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="n">binary_feature_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">cont_feat</span> <span class="o">=</span> <span class="o">~</span><span class="n">binary_feature_mask</span>  <span class="c1"># continuous columns are True</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># Full mean and std tensors</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">stds</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span>  <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">stds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">stds</span><span class="p">[</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
 
-        <span class="c1"># Replace zero stds with 1.0 (avoid divide-by-zero or NaN)</span>
-        <span class="n">stds</span> <span class="o">=</span> <span class="n">stds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">stds</span><span class="p">[</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="c1"># -------------------------------</span>
+    <span class="c1"># Convert + denormalize properly</span>
+    <span class="c1"># -------------------------------</span>
+    <span class="n">x_all_denorm</span> <span class="o">=</span> <span class="n">x_all</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
-        <span class="c1"># Clone imputed data (still normalized)</span>
-        <span class="n">x_all_denorm</span> <span class="o">=</span> <span class="n">x_all</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+         <span class="c1"># enforce correct dtype</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="c1"># --- Only denormalize continuous columns ---</span>
-        <span class="k">if</span> <span class="n">cont_feat</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">cont_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">cont_feat</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">x_all_denorm</span><span class="p">[:,</span> <span class="n">cont_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_all</span><span class="p">[:,</span> <span class="n">cont_idx</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">cont_idx</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">cont_idx</span><span class="p">]</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Continuous → denormalize</span>
+        <span class="c1"># -------------------------</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span>
+            <span class="n">x_all_denorm</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_all</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
 
-        <span class="c1"># --- Binary columns are already sigmoid probabilities ---</span>
-        <span class="k">if</span> <span class="n">binary_feature_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">bin_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="c1"># Clamp to [0,1] just to be safe</span>
-            <span class="n">x_all_denorm</span><span class="p">[:,</span> <span class="n">bin_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_all</span><span class="p">[:,</span> <span class="n">bin_idx</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">imputed</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="c1"># Denormalize imputed values</span>
-        <span class="n">x_all_denorm</span> <span class="o">=</span> <span class="n">x_all</span> <span class="o">*</span> <span class="n">stds</span> <span class="o">+</span> <span class="n">means</span>
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Binary → already sigmoid from get_imputed</span>
+        <span class="c1"># -------------------------</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;binary&quot;</span><span class="p">:</span>
+            <span class="n">x_all_denorm</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_all</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
-
+        <span class="c1"># -------------------------</span>
+        <span class="c1"># Categorical → already one-hot from get_imputed</span>
+        <span class="c1"># -------------------------</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_all_denorm</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_all</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span>
 
     <span class="c1"># -------------------------------------</span>
-    <span class="c1"># Replace validation-masked entries with true values</span>
+    <span class="c1"># Restore validation values</span>
     <span class="c1"># -------------------------------------</span>
-
-    <span class="c1"># Ensure val_data and val_mask are on the same device as x_all_denorm</span>
-    <span class="n">val_data_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">val_data_tensor</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
     <span class="n">val_mask_tensor</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data_tensor</span><span class="p">)</span>
 
-
     <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_data_tensor</span><span class="p">[</span><span class="n">val_mask_tensor</span><span class="p">]</span>
-    
-    <span class="c1"># NEW 11SEP2025: Set imputable positions to NaN</span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s1">&#39;imputable&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">imputable_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x_all_denorm</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="c1"># Set positions where imputable == 0 to NaN</span>
-        <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">imputable_mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">)</span>
-
-
-
-    <span class="n">x_all_denorm_np</span> <span class="o">=</span> <span class="n">x_all_denorm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>  <span class="c1"># Now safe to convert</span>
-
 
     <span class="c1"># -------------------------------------</span>
-    <span class="c1"># Create final DataFrame</span>
+    <span class="c1"># Apply imputable mask</span>
     <span class="c1"># -------------------------------------</span>
-    <span class="n">feature_names</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;feature_names&quot;</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_all</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])])</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;imputable&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">imputable_mask</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">x_all_denorm</span><span class="p">[</span><span class="n">imputable_mask</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;nan&quot;</span><span class="p">)</span>
 
-    <span class="c1"># The imputed dataset should be in the right order os this should be unecessary</span>
-    <span class="c1"># # Recover original index from dataset.indices</span>
-    <span class="c1"># if hasattr(dataset, &quot;indices&quot;):</span>
-    <span class="c1">#     base_index = dataset.indices</span>
-    <span class="c1">#     if isinstance(base_index, torch.Tensor):</span>
-    <span class="c1">#         base_index = base_index.cpu().numpy()</span>
-    <span class="c1">#     full_index = base_index[idx_all_np]</span>
-    <span class="c1"># else:</span>
-    <span class="c1">#     full_index = idx_all_np</span>
+    <span class="c1"># -------------------------------------</span>
+    <span class="c1"># Convert to numpy / DataFrame</span>
+    <span class="c1"># -------------------------------------</span>
+    <span class="n">x_all_denorm_np</span> <span class="o">=</span> <span class="n">x_all_denorm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
-    <span class="c1"># Build DataFrame and sort to match original row order</span>
-    <span class="n">df_unsorted</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">x_all_denorm_np</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">feature_names</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">())</span>
+    <span class="n">feature_names</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">,</span>
+        <span class="s2">&quot;feature_names&quot;</span><span class="p">,</span>
+        <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;V</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x_all</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+    <span class="p">)</span>
+
+    <span class="n">df_unsorted</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+        <span class="n">x_all_denorm_np</span><span class="p">,</span>
+        <span class="n">columns</span><span class="o">=</span><span class="n">feature_names</span><span class="p">,</span>
+        <span class="n">index</span><span class="o">=</span><span class="n">dataset</span><span class="o">.</span><span class="n">indices</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
+    <span class="p">)</span>
+
     <span class="n">imputed_df</span> <span class="o">=</span> <span class="n">df_unsorted</span><span class="o">.</span><span class="n">sort_index</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">imputed_df</span></div>
-
 
     
 
@@ -474,18 +466,35 @@
         <span class="n">imputable_sorted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span><span class="p">)</span>
         <span class="n">imputable_sorted</span><span class="p">[</span><span class="n">idx_all</span><span class="p">]</span> <span class="o">=</span> <span class="n">imputable_all</span>
 
-    <span class="c1"># Replace only missing values in a clone of the original data</span>
-    <span class="n">new_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-    <span class="n">missing_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">dataset</span><span class="o">.</span><span class="n">masks</span>  <span class="c1"># True where values were missing</span>
+    <span class="c1"># Convert logits → real values</span>
+    <span class="n">recon_real</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
-    <span class="c1">## NEW 11SEP2025 - imputable</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+         <span class="c1"># enforce correct dtype</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># already correct scale (still normalized)</span>
+
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;binary&quot;</span><span class="p">:</span>
+            <span class="n">recon_real</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">recon_real</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">])</span>
+
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># categorical</span>
+            <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">recon_real</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">recon_real</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">recon_real</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">recon_real</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cols</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1"># Now insert reconstructed values</span>
+    <span class="n">new_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">missing_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">dataset</span><span class="o">.</span><span class="n">masks</span>
+
     <span class="k">if</span> <span class="n">has_imputable</span><span class="p">:</span>
-        <span class="c1"># Only impute where: (1) value was missing AND (2) imputable allows it</span>
         <span class="n">can_impute_mask</span> <span class="o">=</span> <span class="n">missing_mask</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">imputable</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">new_data</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span>
+        <span class="n">new_data</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_real</span><span class="p">[</span><span class="n">can_impute_mask</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="c1"># Original behavior if no imputable mask</span>
-        <span class="n">new_data</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_sorted</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span>
+        <span class="n">new_data</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon_real</span><span class="p">[</span><span class="n">missing_mask</span><span class="p">]</span>
 
     <span class="c1"># Create new dataset object</span>
     <span class="n">new_dataset</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
@@ -495,210 +504,506 @@
     <span class="k">return</span> <span class="n">new_dataset</span></div>
 
 
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">compute_val_mse</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="n">auto_fix_binary</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compute MSE on validation-masked entries using consistent model predictions.</span>
-<span class="sd">    </span>
-<span class="sd">    Evaluates model performance by computing mean squared error between model predictions</span>
-<span class="sd">    and true values at validation-masked positions. The model output is denormalized</span>
-<span class="sd">    before comparison with the original validation data.</span>
-<span class="sd">    </span>
-<span class="sd">    :param model: Trained model in evaluation mode</span>
-<span class="sd">    :type model: nn.Module</span>
-<span class="sd">    :param dataset: Dataset containing validation masks and true values</span>
-<span class="sd">    :type dataset: ClusterDataset</span>
-<span class="sd">    :param device: Device for computations, defaults to &quot;cpu&quot;</span>
-<span class="sd">    :type device: str, optional</span>
-<span class="sd">    :return: Total Imputation Error, Validation MSE and Validation BCE on validation dataset</span>
-<span class="sd">    :rtype: tuple(float)</span>
-<span class="sd">    :raises ValueError: If no validation entries are found in the dataset</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_val_mse</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">,</span>
+    <span class="n">dataset</span><span class="p">,</span>
+    <span class="n">device</span><span class="o">=</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+    <span class="n">auto_fix_binary</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-7</span><span class="p">,</span>
+    <span class="n">debug</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
     <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
-    <span class="c1"># ------------------------</span>
-    <span class="c1"># 0) Tensors on device</span>
-    <span class="c1"># ------------------------</span>
-    <span class="n">X</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>                 <span class="c1"># (N, D) normalized</span>
-    <span class="n">C</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>       <span class="c1"># (N,)</span>
-    <span class="n">val_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>      <span class="c1"># (N, D) original scale (binary cols should be 0/1 where valid)</span>
-    <span class="n">val_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>           <span class="c1"># (N, D) bool</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="c1"># 1. Load tensors</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="n">X</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">cluster_labels</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">val_data</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">val_data</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># (D,)</span>
-    <span class="n">stds</span>  <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span>  <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>  <span class="c1"># (D,)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-        <span class="n">stds</span> <span class="o">=</span> <span class="n">stds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
-        <span class="n">stds</span><span class="p">[</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">val_mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">)</span>
 
-    <span class="c1"># Column masks</span>
-    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;binary_feature_mask&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">X</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">bin_1d</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">binary_feature_mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
-    <span class="n">cont_1d</span> <span class="o">=</span> <span class="o">~</span><span class="n">bin_1d</span>
+    <span class="n">ignore_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="s2">&quot;ignore_indices&quot;</span><span class="p">,</span> <span class="p">[]))</span>
 
-    <span class="c1"># Expand to (N, D) for weighting</span>
-    <span class="n">cont_2d</span> <span class="o">=</span> <span class="n">cont_1d</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">val_mask</span><span class="p">)</span>   <span class="c1"># (N, D)</span>
-    <span class="n">bin_2d</span>  <span class="o">=</span> <span class="n">bin_1d</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">expand_as</span><span class="p">(</span><span class="n">val_mask</span><span class="p">)</span>    <span class="c1"># (N, D)</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== VAL DATA / MASK ===&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;val_data (first 5 rows):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">val_data</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;val_mask (first 5 rows):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">val_mask</span><span class="p">[:</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">int</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ignored idx:&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">ignore_set</span><span class="p">))</span>
 
-    <span class="c1"># Masks we will use to weight losses</span>
-    <span class="n">use_c</span> <span class="o">=</span> <span class="p">(</span><span class="n">val_mask</span> <span class="o">&amp;</span> <span class="n">cont_2d</span><span class="p">)</span>                         <span class="c1"># (N, D) continuous validation entries</span>
-    <span class="n">use_b</span> <span class="o">=</span> <span class="p">(</span><span class="n">val_mask</span> <span class="o">&amp;</span> <span class="n">bin_2d</span><span class="p">)</span>                          <span class="c1"># (N, D) binary    validation entries</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ignore_set</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ignore_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ignore_set</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ignored columns all NaN?:&quot;</span><span class="p">,</span>
+                  <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">[:,</span> <span class="n">ignore_idx</span><span class="p">])</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
 
-    <span class="c1"># ------------------------</span>
-    <span class="c1"># 1) Forward pass</span>
-    <span class="c1"># ------------------------</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="c1"># 2. Load normalization stats</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_means</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">as_tensor</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">feature_stds</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">stds</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">stds</span><span class="p">[</span><span class="n">stds</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">means</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">stds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">stds</span><span class="p">,</span> <span class="n">nan</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== NORMALIZATION STATS ===&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;means:&quot;</span><span class="p">,</span> <span class="n">means</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;stds:&quot;</span><span class="p">,</span> <span class="n">stds</span><span class="p">)</span>
+
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="c1"># 3. Forward pass</span>
+    <span class="c1"># --------------------------------------------------</span>
     <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">():</span>
-        <span class="n">recon</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span>                        <span class="c1"># (N, D)</span>
+        <span class="n">recon</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="c1"># Build &quot;predictions in evaluation space&quot;:</span>
-        <span class="c1">#   - Continuous: denormalize</span>
-        <span class="c1">#   - Binary: keep probabilities; clamp to avoid log(0)</span>
-        <span class="n">pred</span> <span class="o">=</span> <span class="n">recon</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">pred</span> <span class="o">=</span> <span class="n">recon</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
 
-        <span class="k">if</span> <span class="n">cont_1d</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">ccols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">cont_1d</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">pred</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon</span><span class="p">[:,</span> <span class="n">ccols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">ccols</span><span class="p">]</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="c1"># 4. Activation groups</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">get_activation_groups</span><span class="p">(</span><span class="n">exclude_ignored</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">bin_1d</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">bcols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">bin_1d</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">pred</span><span class="p">[:,</span> <span class="n">bcols</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="n">bcols</span><span class="p">]</span><span class="o">.</span><span class="n">clamp_</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">eps</span><span class="p">)</span>  <span class="c1"># probs</span>
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== ACTIVATION GROUPS (pre-filter) ===&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-        <span class="c1"># ------------------------</span>
-        <span class="c1"># 2) Continuous: elementwise MSE, mask &amp; normalize</span>
-        <span class="c1"># ------------------------</span>
-        <span class="n">se</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span> <span class="o">-</span> <span class="n">val_data</span><span class="p">)</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>                         <span class="c1"># (N, D)</span>
-        <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;predicted_vals.csv&quot;</span><span class="p">,</span> <span class="n">pred</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;valdata.csv&quot;</span><span class="p">,</span> <span class="n">val_data</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;se.csv&quot;</span><span class="p">,</span> <span class="n">se</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="c1"># 5. Convert logits → usable values</span>
+    <span class="c1"># --------------------------------------------------</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore_set</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
 
-        
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="n">use_c</span> <span class="o">=</span> <span class="n">val_mask</span> <span class="o">&amp;</span> <span class="n">cont_2d</span>                            <span class="c1"># (N, D)</span>
-        <span class="n">mse</span> <span class="o">=</span> <span class="n">se</span><span class="p">[</span><span class="n">use_c</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">if</span> <span class="n">use_c</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
-        <span class="k">if</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Masked Error: </span><span class="si">{</span><span class="nb">min</span><span class="p">(</span><span class="n">se</span><span class="p">[</span><span class="n">use_c</span><span class="p">])</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="n">se</span><span class="p">[</span><span class="n">use_c</span><span class="p">])</span><span class="si">}</span><span class="s2"> </span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MSE: </span><span class="si">{</span><span class="n">mse</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">mse_elem</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">val_data</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;MSE_elem: min=</span><span class="si">{</span><span class="n">mse_elem</span><span class="p">[</span><span class="n">use_c</span><span class="p">]</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">, &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;max=</span><span class="si">{</span><span class="n">mse_elem</span><span class="p">[</span><span class="n">use_c</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2"> | &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;MSE_mean(masked)=</span><span class="si">{</span><span class="p">(</span><span class="n">mse_elem</span><span class="p">[</span><span class="n">use_c</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">use_c</span><span class="o">.</span><span class="n">any</span><span class="p">()</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="nb">float</span><span class="p">(</span><span class="s1">&#39;nan&#39;</span><span class="p">))</span><span class="si">:</span><span class="s2">.6g</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;continuous&quot;</span><span class="p">:</span>
+            <span class="n">pred</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">recon</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span>
 
-        <span class="c1"># ------------------------</span>
-        <span class="c1"># 3) Binary: elementwise BCE, mask &amp; normalize</span>
-        <span class="c1"># ------------------------</span>
-        <span class="k">if</span> <span class="n">bin_1d</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="c1"># For BCE validation to pass, targets must be finite and in [0,1] EVERYWHERE</span>
-            <span class="c1"># we pass to BCE. We’ll create a &quot;filled&quot; target where non-validation (or NaN)</span>
-            <span class="c1"># entries are replaced by a safe dummy in [0,1], e.g., 0.0.</span>
-            <span class="n">target_b</span> <span class="o">=</span> <span class="n">val_data</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>                            <span class="c1"># (N, D)</span>
-            <span class="c1"># Set non-binary columns to 0 (they&#39;ll be masked out anyway)</span>
-            <span class="n">target_b</span><span class="p">[:,</span> <span class="o">~</span><span class="n">bin_1d</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-            <span class="c1"># Replace NaNs with 0.0 on binary columns</span>
-            <span class="n">nan_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">target_b</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">bin_2d</span>
-            <span class="k">if</span> <span class="n">nan_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-                <span class="n">target_b</span><span class="p">[</span><span class="n">nan_mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
-
-            <span class="c1"># Optional strict check on *masked* binary entries only</span>
-            <span class="n">masked_targets</span> <span class="o">=</span> <span class="n">target_b</span><span class="p">[</span><span class="n">use_b</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">masked_targets</span><span class="o">.</span><span class="n">numel</span><span class="p">():</span>
-                <span class="n">bad</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">masked_targets</span><span class="p">))</span> <span class="o">|</span> <span class="p">(</span><span class="n">masked_targets</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">masked_targets</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">bad</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">auto_fix_binary</span><span class="p">:</span>
-                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Binary target(s) out of [0,1] under validation mask.&quot;</span><span class="p">)</span>
-                    <span class="c1"># Coerce masked offending targets to {0,1} via threshold</span>
-                    <span class="n">masked_targets</span> <span class="o">=</span> <span class="p">(</span><span class="n">masked_targets</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">masked_targets</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-                    <span class="n">target_b</span><span class="p">[</span><span class="n">use_b</span><span class="p">]</span> <span class="o">=</span> <span class="n">masked_targets</span>
-
-            <span class="c1"># Now it&#39;s safe to compute BCE elementwise over the whole matrix.</span>
-            <span class="c1"># Non-validation entries have valid targets (0.0), but we will weight them by 0.</span>
-            <span class="c1"># Use only the binary columns for BCE computation.</span>
-            <span class="n">prob_full</span>   <span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="n">bin_1d</span><span class="p">]</span>                          <span class="c1"># (N, Db)</span>
-            <span class="n">target_full</span> <span class="o">=</span> <span class="n">target_b</span><span class="p">[:,</span> <span class="n">bin_1d</span><span class="p">]</span>                      <span class="c1"># (N, Db)</span>
-            <span class="n">bce_elem</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">prob_full</span><span class="p">,</span> <span class="n">target_full</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">)</span>  <span class="c1"># (N, Db)</span>
-
-
-            <span class="c1"># Weight by validation mask on the same columns</span>
-            <span class="n">bmask_full</span> <span class="o">=</span> <span class="n">use_b</span><span class="p">[:,</span> <span class="n">bin_1d</span><span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">bce_elem</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>       <span class="c1"># (N, Db)</span>
-            <span class="n">bce_sum</span> <span class="o">=</span> <span class="p">(</span><span class="n">bce_elem</span> <span class="o">*</span> <span class="n">bmask_full</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-            <span class="n">bce_den</span> <span class="o">=</span> <span class="n">bmask_full</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
-            <span class="n">bce</span> <span class="o">=</span> <span class="n">bce_sum</span> <span class="o">/</span> <span class="n">bce_den</span>
-            <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
-                <span class="c1"># use the (N, Db) mask we already built</span>
-                <span class="n">masked_bce</span> <span class="o">=</span> <span class="n">bce_elem</span><span class="o">.</span><span class="n">masked_select</span><span class="p">(</span><span class="n">bmask_full</span><span class="o">.</span><span class="n">bool</span><span class="p">())</span>
-                <span class="k">if</span> <span class="n">masked_bce</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BCE Elems: min = </span><span class="si">{</span><span class="n">masked_bce</span><span class="o">.</span><span class="n">min</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="s2">, max = </span><span class="si">{</span><span class="n">masked_bce</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BCE Elems: (no validated binary entries)</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BCE: </span><span class="si">{</span><span class="n">bce</span><span class="o">.</span><span class="n">item</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;binary&quot;</span><span class="p">:</span>
+            <span class="n">pred</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">recon</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">])</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">eps</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">bce</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
+            <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">recon</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="k">if</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">debug</span><span class="p">):</span>
-            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BCE: bce</span><span class="si">{</span><span class="n">bce</span><span class="si">}</span><span class="se">\n\n</span><span class="s2"> MSE: </span><span class="si">{</span><span class="n">mse</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">pred</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">pred</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cols</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="mi">1</span>
 
-        <span class="c1"># ------------------------</span>
-        <span class="c1"># 4) Return combined metric</span>
-        <span class="c1"># ------------------------</span>
-        <span class="n">imputation_error</span> <span class="o">=</span> <span class="p">(</span><span class="n">mse</span> <span class="o">+</span> <span class="n">bce</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="n">val_mse</span> <span class="o">=</span> <span class="n">mse</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-        <span class="n">val_bce</span> <span class="o">=</span> <span class="n">bce</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--- </span><span class="si">{</span><span class="n">name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;cols (filtered):&quot;</span><span class="p">,</span> <span class="n">cols</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;pred (first 5):</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">pred</span><span class="p">[:</span><span class="mi">5</span><span class="p">,</span> <span class="n">cols</span><span class="p">])</span>
+
+    <span class="c1"># ==================================================</span>
+    <span class="c1"># 6. CONTINUOUS MSE</span>
+    <span class="c1"># ==================================================</span>
+    <span class="n">cont_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;continuous&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore_set</span><span class="p">]</span>
+    <span class="n">cont_cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cont_cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== CONTINUOUS MSE ===&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;cont_cols:&quot;</span><span class="p">,</span> <span class="n">cont_cols</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cont_cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">val_cont</span> <span class="o">=</span> <span class="n">val_data</span><span class="p">[:,</span> <span class="n">cont_cols</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_cont</span><span class="p">)</span>
+
+        <span class="n">val_cont</span> <span class="o">=</span> <span class="n">val_cont</span> <span class="o">*</span> <span class="n">stds</span><span class="p">[</span><span class="n">cont_cols</span><span class="p">]</span> <span class="o">+</span> <span class="n">means</span><span class="p">[</span><span class="n">cont_cols</span><span class="p">]</span>
+        <span class="n">se</span> <span class="o">=</span> <span class="p">(</span><span class="n">pred</span><span class="p">[:,</span> <span class="n">cont_cols</span><span class="p">]</span> <span class="o">-</span> <span class="n">val_cont</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
+
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;mask sum:&quot;</span><span class="p">,</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;SE contributing:&quot;</span><span class="p">,</span> <span class="n">se</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+
+        <span class="n">mse</span> <span class="o">=</span> <span class="n">se</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span> <span class="k">if</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">()</span> <span class="k">else</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mse</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
+
+    <span class="c1"># ==================================================</span>
+    <span class="c1"># 7. BINARY BCE</span>
+    <span class="c1"># ==================================================</span>
+    <span class="n">bin_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;binary&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore_set</span><span class="p">]</span>
+    <span class="n">bin_cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">bin_cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== BINARY BCE ===&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;bin_cols:&quot;</span><span class="p">,</span> <span class="n">bin_cols</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bin_cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">val_data</span><span class="p">[:,</span> <span class="n">bin_cols</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">target</span><span class="p">[</span><span class="o">~</span><span class="n">mask</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[:,</span> <span class="n">bin_cols</span><span class="p">]</span>
+
+        <span class="n">bce_elem</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">binary_cross_entropy</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
+
+        <span class="n">bmask</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">bce_elem</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">bce</span> <span class="o">=</span> <span class="p">(</span><span class="n">bce_elem</span> <span class="o">*</span> <span class="n">bmask</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">bmask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">clamp_min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BCE contributing:&quot;</span><span class="p">,</span> <span class="n">bce_elem</span><span class="p">[</span><span class="n">mask</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">bce</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
+
+    <span class="c1"># ==================================================</span>
+    <span class="c1"># 8. CATEGORICAL CE</span>
+    <span class="c1"># ==================================================</span>
+    <span class="n">ce</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(())</span>
+
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">cols</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">,</span> <span class="s2">&quot;binary&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore_set</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">torch</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">val_data</span><span class="p">[:,</span> <span class="n">cols</span><span class="p">])</span>
+        <span class="n">valid_rows</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">valid_rows</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">logits</span> <span class="o">=</span> <span class="n">recon</span><span class="p">[</span><span class="n">valid_rows</span><span class="p">][:,</span> <span class="n">cols</span><span class="p">]</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">val_data</span><span class="p">[</span><span class="n">valid_rows</span><span class="p">][:,</span> <span class="n">cols</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="n">ce</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== CATEGORICAL: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> ===&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;cols (filtered):&quot;</span><span class="p">,</span> <span class="n">cols</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;num valid:&quot;</span><span class="p">,</span> <span class="n">valid_rows</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+
+    <span class="c1"># ==================================================</span>
+    <span class="c1"># 9. Final output</span>
+    <span class="c1"># ==================================================</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="p">(</span><span class="n">mse</span> <span class="o">+</span> <span class="n">bce</span> <span class="o">+</span> <span class="n">ce</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">debug</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">=== FINAL METRICS ===&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;MSE:&quot;</span><span class="p">,</span> <span class="n">mse</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;BCE:&quot;</span><span class="p">,</span> <span class="n">bce</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CE:&quot;</span><span class="p">,</span> <span class="n">ce</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TOTAL:&quot;</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">total</span><span class="p">,</span> <span class="n">mse</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">bce</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">ce</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+
+<span class="c1"># def compute_val_mse(model, dataset, device=&quot;cpu&quot;, auto_fix_binary=False, eps: float = 1e-7, debug = False):</span>
+<span class="c1">#     model.eval()</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 0) Tensors</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     X = dataset.data.to(device)</span>
+<span class="c1">#     C = dataset.cluster_labels.to(device)</span>
+<span class="c1">#     val_data = dataset.val_data.to(device)</span>
+<span class="c1">#     val_mask = ~torch.isnan(val_data)</span>
+
+<span class="c1">#     if debug:</span>
+<span class="c1">#         print(&quot;\n=== VAL DATA / MASK ===&quot;)</span>
+<span class="c1">#         print(&quot;val_data (first 5 rows):\n&quot;, val_data[:5])</span>
+<span class="c1">#         print(&quot;val_mask (first 5 rows):\n&quot;, val_mask[:5].int())</span>
+
+<span class="c1">#         if hasattr(dataset, &quot;ignore_indices&quot;) and len(dataset.ignore_indices) &gt; 0:</span>
+<span class="c1">#             ignore_idx = torch.tensor(dataset.ignore_indices, device=device)</span>
+<span class="c1">#             print(&quot;ignored idx:&quot;, dataset.ignore_indices)</span>
+<span class="c1">#             print(&quot;ignored columns all NaN in val_data?:&quot;,</span>
+<span class="c1">#                 torch.isnan(val_data[:, ignore_idx]).all().item())</span>
+
+
+<span class="c1">#     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)</span>
+<span class="c1">#     stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)</span>
+
+<span class="c1">#     if (stds == 0).any():</span>
+<span class="c1">#         stds = stds.clone()</span>
+<span class="c1">#         stds[stds == 0] = 1.0</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 1) Forward (LOGITS)</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     with torch.no_grad():</span>
+<span class="c1">#         recon, _, _ = model.forward(X, C, deterministic=True)</span>
+
+<span class="c1">#     pred = recon.clone()</span>
+
+<span class="c1">#     groups = dataset.get_activation_groups(exclude_ignored=True)</span>
+<span class="c1">#     if debug:</span>
+<span class="c1">#         print(&quot;\n=== ACTIVATION GROUPS (filtered) ===&quot;)</span>
+<span class="c1">#         for k, v in groups.items():</span>
+<span class="c1">#             print(f&quot;{k}: {v}&quot;)</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 2) Convert logits → usable values</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():</span>
+<span class="c1">#         #  skip empty grooups</span>
+<span class="c1">#         if len(cols) == 0:</span>
+<span class="c1">#             continue</span>
+
+<span class="c1">#         # enforce correct dtype</span>
+<span class="c1">#         cols = torch.tensor(cols, dtype=torch.long, device=device)</span>
+
+<span class="c1">#         if name == &quot;continuous&quot;:</span>
+<span class="c1">#             pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]</span>
+<span class="c1">#             if debug:</span>
+<span class="c1">#                 print(f&quot;\n--- {name.upper()} GROUP ---&quot;)</span>
+<span class="c1">#                 print(&quot;cols:&quot;, cols.tolist())</span>
+<span class="c1">#                 print(&quot;pred (first 5 rows):\n&quot;, pred[:5, cols])</span>
+
+<span class="c1">#         elif name == &quot;binary&quot;:</span>
+<span class="c1">#             pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)</span>
+<span class="c1">#             if debug:</span>
+<span class="c1">#                 print(f&quot;\n--- {name.upper()} GROUP ---&quot;)</span>
+<span class="c1">#                 print(&quot;cols:&quot;, cols.tolist())</span>
+<span class="c1">#                 print(&quot;pred (first 5 rows):\n&quot;, pred[:5, cols])</span>
+
+<span class="c1">#         else:  # categorical</span>
+<span class="c1">#             probs = torch.softmax(recon[:, cols], dim=1)</span>
+<span class="c1">#             idx = torch.argmax(probs, dim=1)</span>
+
+<span class="c1">#             pred[:, cols] = 0</span>
+<span class="c1">#             pred[torch.arange(pred.shape[0]), cols[idx]] = 1</span>
+<span class="c1">#             if debug:</span>
+<span class="c1">#                 print(f&quot;\n--- {name.upper()} GROUP ---&quot;)</span>
+<span class="c1">#                 print(&quot;cols:&quot;, cols.tolist())</span>
+<span class="c1">#                 print(&quot;pred (first 5 rows):\n&quot;, pred[:5, cols])</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 3) Continuous MSE</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     cont_cols = torch.tensor(</span>
+<span class="c1">#         dataset.get_activation_groups(exclude_ignored=True).get(&quot;continuous&quot;, []),</span>
+<span class="c1">#         dtype=torch.long,</span>
+<span class="c1">#         device=device</span>
+<span class="c1">#     )</span>
+<span class="c1">#     if debug:</span>
+<span class="c1">#         print(&quot;\n=== CONTINUOUS MSE DEBUG ===&quot;)</span>
+<span class="c1">#         print(&quot;cont_cols:&quot;, cont_cols.tolist())</span>
+
+<span class="c1">#     if len(cont_cols) &gt; 0:</span>
+<span class="c1">#         val_cont = val_data[:, cont_cols]</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;val_cont (raw, first 5):\n&quot;, val_cont[:5])</span>
+<span class="c1">#         use_c = ~torch.isnan(val_cont)</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;use_c (first 5):\n&quot;, use_c[:5].int())</span>
+<span class="c1">#             print(&quot;num contributing entries:&quot;, use_c.sum().item())</span>
+
+<span class="c1">#         val_cont = val_cont * stds[cont_cols] + means[cont_cols]</span>
+<span class="c1">#         se = (pred[:, cont_cols] - val_cont) ** 2</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;se (first 5):\n&quot;, se[:5])</span>
+<span class="c1">#             print(&quot;se contributing values:&quot;, se[use_c])</span>
+
+<span class="c1">#         mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         mse = pred.new_zeros(())</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 4) Binary BCE</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     bin_cols = torch.tensor(</span>
+<span class="c1">#     dataset.get_activation_groups(exclude_ignored=True).get(&quot;binary&quot;, []),</span>
+<span class="c1">#     dtype = torch.long,</span>
+<span class="c1">#     device=device</span>
+<span class="c1">#     )</span>
+
+<span class="c1">#     if debug:</span>
+<span class="c1">#         print(&quot;\n=== BINARY BCE DEBUG ===&quot;)</span>
+<span class="c1">#         print(&quot;bin_cols:&quot;, bin_cols.tolist())</span>
+
+<span class="c1">#     if len(bin_cols) &gt; 0:</span>
+<span class="c1">#         target_b = val_data[:, bin_cols].clone()</span>
+<span class="c1">#         nan_mask = torch.isnan(target_b)</span>
+<span class="c1">#         if nan_mask.any():</span>
+<span class="c1">#             target_b[nan_mask] = 0.0</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;target_b (raw, first 5):\n&quot;, target_b[:5])</span>
+
+<span class="c1">#         use_b = ~torch.isnan(target_b)</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;use_b (first 5):\n&quot;, use_b[:5].int())</span>
+<span class="c1">#             print(&quot;num contributing entries:&quot;, use_b.sum().item())</span>
+
+<span class="c1">#         masked_targets = target_b[use_b]</span>
+<span class="c1">#         if masked_targets.numel():</span>
+<span class="c1">#             bad = (~torch.isfinite(masked_targets)) | (masked_targets &lt; 0) | (masked_targets &gt; 1)</span>
+<span class="c1">#             if bad.any():</span>
+<span class="c1">#                 if not auto_fix_binary:</span>
+<span class="c1">#                     raise RuntimeError(&quot;Binary target(s) out of [0,1].&quot;)</span>
+<span class="c1">#                 target_b[use_b] = (masked_targets &gt; 0.5).float()</span>
+
+<span class="c1">#         prob = pred[:, bin_cols]</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;prob (first 5):\n&quot;, prob[:5])</span>
+<span class="c1">#         bce_elem = F.binary_cross_entropy(prob, target_b, reduction=&quot;none&quot;)</span>
+
+<span class="c1">#         bmask = use_b.to(bce_elem.dtype)</span>
+<span class="c1">#         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)</span>
+<span class="c1">#     else:</span>
+<span class="c1">#         bce = pred.new_zeros(())</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 5) Categorical CE (NEW)</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     ce = pred.new_zeros(())</span>
+
+<span class="c1">#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():</span>
+<span class="c1">#         if name in [&quot;continuous&quot;, &quot;binary&quot;]:</span>
+<span class="c1">#             continue</span>
+
+<span class="c1">#         cols = torch.tensor(cols, dtype = torch.long, device=device)</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(f&quot;\n=== CATEGORICAL GROUP: {name} ===&quot;)</span>
+<span class="c1">#             print(&quot;cols:&quot;, cols.tolist())</span>
+
+<span class="c1">#         # valid rows: at least one observed entry in group</span>
+<span class="c1">#         mask_sub = val_mask[:, cols]</span>
+<span class="c1">#         valid_rows = mask_sub.sum(dim=1) &gt; 0</span>
+
+<span class="c1">#         if valid_rows.any():</span>
+<span class="c1">#             logits = recon[valid_rows][:, cols]</span>
+
+<span class="c1">#             # convert one-hot target → class index</span>
+<span class="c1">#             target = torch.argmax(val_data[valid_rows][:, cols], dim=1)</span>
+
+<span class="c1">#             ce_loss = F.cross_entropy(logits, target, reduction=&quot;mean&quot;)</span>
+<span class="c1">#             ce += ce_loss</span>
+<span class="c1">#         if debug:</span>
+<span class="c1">#             print(&quot;valid_rows:&quot;, valid_rows[:10])</span>
+<span class="c1">#             print(&quot;num valid rows:&quot;, valid_rows.sum().item())</span>
+
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     # 6) Final metrics</span>
+<span class="c1">#     # ------------------------</span>
+<span class="c1">#     imputation_error = (mse + bce + ce).item()</span>
+<span class="c1">#     if debug:</span>
+<span class="c1">#         print(&quot;\n=== FINAL METRICS ===&quot;)</span>
+<span class="c1">#         print(&quot;MSE:&quot;, mse.item())</span>
+<span class="c1">#         print(&quot;BCE:&quot;, bce.item())</span>
+<span class="c1">#         print(&quot;CE:&quot;, ce.item())</span>
+<span class="c1">#         print(&quot;Total:&quot;, imputation_error)</span>
+
+<span class="c1">#     return imputation_error, mse.item(), bce.item(), ce.item()</span>
     
-        <span class="k">return</span> <span class="n">imputation_error</span><span class="p">,</span> <span class="n">val_mse</span><span class="p">,</span> <span class="n">val_bce</span>
-
-    
     
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_imputation</span><span class="p">(</span><span class="n">imputed_df</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">df_missing</span><span class="p">,</span> <span class="n">activation_groups</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Test CISSVAE performance by evaluating imputed dataset vs true complete dataset. </span>
 
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.metrics</span><span class="w"> </span><span class="kn">import</span> <span class="n">mean_squared_error</span>
+<span class="sd">    Supports mixed data types:</span>
+<span class="sd">    - continuous → MSE</span>
+<span class="sd">    - binary → BCE-style squared error</span>
+<span class="sd">    - categorical → classification error</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">evaluate_imputation</span><span class="p">(</span><span class="n">imputed_df</span><span class="p">,</span> <span class="n">df_complete</span><span class="p">,</span> <span class="n">df_missing</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Compare imputed values to true values at originally missing positions.</span>
-<span class="sd">    </span>
-<span class="sd">    Calculates mean squared error between imputed and true values specifically at locations</span>
-<span class="sd">    that were originally missing, providing a detailed comparison DataFrame for analysis.</span>
-<span class="sd">    </span>
-<span class="sd">    :param imputed_df: DataFrame with imputed values (same shape as df_complete)</span>
-<span class="sd">    :type imputed_df: pandas.DataFrame</span>
-<span class="sd">    :param df_complete: DataFrame with true values (ground truth, no NaNs)</span>
-<span class="sd">    :type df_complete: pandas.DataFrame</span>
-<span class="sd">    :param df_missing: DataFrame with NaNs at original missing locations</span>
-<span class="sd">    :type df_missing: pandas.DataFrame</span>
-<span class="sd">    :return: Tuple containing MSE value and detailed comparison DataFrame</span>
-<span class="sd">    :rtype: tuple[float, pandas.DataFrame]</span>
+<span class="sd">    Returns overall error and detailed comparison dataframe.</span>
+
+<span class="sd">    :param imputed_df: An imputed version of df_missing.</span>
+<span class="sd">    :type imputed_df: pd.DataFrame()</span>
+<span class="sd">    :param df_complete: A complete dataset with no missingness. </span>
+<span class="sd">    :type df_complete: pd.DataFrame()</span>
+<span class="sd">    :param df_missing: A version of df_complete with induced missingness. </span>
+<span class="sd">    :type df_missing: pd.DataFrame()</span>
+<span class="sd">    :param activation_groups: Dictionary mapping feature types to column indices. </span>
+<span class="sd">        Expected format:</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;continuous&quot;: [int, ...],</span>
+<span class="sd">                &quot;binary&quot;: [int, ...],</span>
+<span class="sd">                &quot;&lt;categorical_name&gt;&quot;: [int, ...],</span>
+<span class="sd">                ...</span>
+<span class="sd">            }</span>
+<span class="sd">        Each key defines a feature group, and values are lists of column indices </span>
+<span class="sd">        corresponding to that group. Categorical variables must be represented as </span>
+<span class="sd">        grouped indices (e.g., one-hot encoded columns belonging to the same variable).</span>
+<span class="sd">    :type activation_groups: dict[str, list[int]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Boolean DataFrame: True where value was originally missing</span>
+
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Validation</span>
+    <span class="c1"># -------------------------</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">imputed_df</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">df_complete</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All input DataFrames must have the same shape.&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">imputed_df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">df_complete</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">==</span> <span class="nb">list</span><span class="p">(</span><span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">)):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;All DataFrames must have identical columns in the same order.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Missing mask</span>
+    <span class="c1"># -------------------------</span>
     <span class="n">missing_mask</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
 
-    <span class="c1"># Get row, col indices of missing entries</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">missing_mask</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Extract indices</span>
+    <span class="c1"># -------------------------</span>
     <span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">missing_mask</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
 
-    <span class="c1"># Lookup corresponding values</span>
     <span class="n">rows</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">row_idx</span><span class="p">]</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="n">df_missing</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">col_idx</span><span class="p">]</span>
 
     <span class="n">true_vals</span> <span class="o">=</span> <span class="n">df_complete</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span>
     <span class="n">imputed_vals</span> <span class="o">=</span> <span class="n">imputed_df</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">row_idx</span><span class="p">,</span> <span class="n">col_idx</span><span class="p">]</span>
+
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Default: MSE</span>
+    <span class="c1"># -------------------------</span>
     <span class="n">errors</span> <span class="o">=</span> <span class="p">(</span><span class="n">true_vals</span> <span class="o">-</span> <span class="n">imputed_vals</span><span class="p">)</span> <span class="o">**</span> <span class="mi">2</span>
 
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># If activation_groups provided → fix per type</span>
+    <span class="c1"># -------------------------</span>
+    <span class="k">if</span> <span class="n">activation_groups</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">col_to_type</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">indices</span> <span class="ow">in</span> <span class="n">activation_groups</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">:</span>
+                <span class="n">col_to_type</span><span class="p">[</span><span class="n">df_complete</span><span class="o">.</span><span class="n">columns</span><span class="p">[</span><span class="n">idx</span><span class="p">]]</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cols</span><span class="p">):</span>
+            <span class="n">col_type</span> <span class="o">=</span> <span class="n">col_to_type</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="s2">&quot;continuous&quot;</span><span class="p">)</span>
+
+            <span class="c1"># -----------------</span>
+            <span class="c1"># Binary → keep squared error (OK)</span>
+            <span class="c1"># -----------------</span>
+            <span class="k">if</span> <span class="n">col_type</span> <span class="o">==</span> <span class="s2">&quot;binary&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># -----------------</span>
+            <span class="c1"># Categorical → classification error</span>
+            <span class="c1"># -----------------</span>
+            <span class="k">elif</span> <span class="n">col_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;continuous&quot;</span><span class="p">,</span> <span class="s2">&quot;binary&quot;</span><span class="p">]:</span>
+                <span class="n">errors</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">true_vals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="n">imputed_vals</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Build comparison df</span>
+    <span class="c1"># -------------------------</span>
     <span class="n">comparison_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span>
         <span class="s2">&quot;row&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
         <span class="s2">&quot;col&quot;</span><span class="p">:</span> <span class="n">cols</span><span class="p">,</span>
         <span class="s2">&quot;true&quot;</span><span class="p">:</span> <span class="n">true_vals</span><span class="p">,</span>
         <span class="s2">&quot;imputed&quot;</span><span class="p">:</span> <span class="n">imputed_vals</span><span class="p">,</span>
-        <span class="s2">&quot;squared_error&quot;</span><span class="p">:</span> <span class="n">errors</span>
+        <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">errors</span>
     <span class="p">})</span>
 
+    <span class="c1"># -------------------------</span>
+    <span class="c1"># Aggregate metrics</span>
+    <span class="c1"># -------------------------</span>
     <span class="n">mse</span> <span class="o">=</span> <span class="n">errors</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] MSE on originally missing entries: </span><span class="si">{</span><span class="n">mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[INFO] Imputation error on missing entries: </span><span class="si">{</span><span class="n">mse</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">mse</span><span class="p">,</span> <span class="n">comparison_df</span>
 
 

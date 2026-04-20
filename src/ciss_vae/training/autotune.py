@@ -190,12 +190,14 @@ def autotune(
     r"""Optuna-based hyperparameter search for the CISSVAE model.
     
     Runs initial training followed by impute-refit loops per trial, selecting the
-    trial with the lowest validation MSE. The best model is then retrained with
+trial with the lowest total imputation error (MSE + BCE + categorical CE). The best model is then retrained with
     optimal hyperparameters and returned along with the imputed dataset.
     
     :param search_space: Hyperparameter ranges and fixed values for optimization
     :type search_space: SearchSpace
-    :param train_dataset: Dataset containing masks, normalization, and cluster labels
+    :param train_dataset: Dataset containing processed inputs, validation masks,
+        normalization statistics, cluster labels, and ``activation_groups`` defining
+        feature types (continuous, binary, categorical).
     :type train_dataset: ClusterDataset
     :param save_model_path: Optional path to save the best model's state_dict, defaults to None
     :type save_model_path: str, optional
@@ -225,7 +227,9 @@ def autotune(
     :type max_exhaustive_orders: int, optional
     :param return_history: Whether to return MSE training history dataframe of the best model, defaults to False
     :type return_history: bool, optional
-    :param n_jobs: Number of jobs to run for autotuning (passed to optuna). Defaults to 1. Note: n_jobs != 1 is not necessarily deterministic. Use at own risk.
+    :param n_jobs: Number of parallel Optuna jobs. Defaults to 1.
+        Note: Values other than 1 may result in non-deterministic behavior
+        despite fixed random seeds.
     :type n_jobs: int, optional
     :param debug: Defaults to False. Set True for informative debugging statements.
     :type debug: bool, optional
@@ -433,6 +437,8 @@ def autotune(
     #  - Added set random generators
     # --------------------------
     def objective(trial):
+        """Runs initial training followed by impute-refit loops per trial, selecting the
+        trial with the lowest total imputation error (MSE + BCE + categorical CE)."""
         ## Set random generators
         trial_seed = seed * 10_000 + trial.number
 
@@ -565,7 +571,7 @@ def autotune(
                 num_clusters=num_clusters,
                 latent_dim=latent_dim,
                 output_shared=output_shared,
-                binary_feature_mask = train_dataset.binary_feature_mask,
+                activation_groups = train_dataset.activation_groups,
                 debug = debug
             ).to(device)
             
@@ -600,13 +606,15 @@ def autotune(
             )
             
             # Get validation MSE
-            imputation_error, val_mse, val_bce = compute_val_mse(model, train_loader.dataset, device)
+            imputation_error, val_mse, val_bce, val_ce = compute_val_mse(model, train_loader.dataset, device)
             if (best_val is None) or (imputation_error < best_val):
                 best_val = imputation_error
                 best_patterns = (enc_pat, dec_pat)
                 best_refit_history_df = model.training_history_
                 trial.set_user_attr("best_val_mse", val_mse)
                 trial.set_user_attr("best_val_bce", val_bce)
+                trial.set_user_attr("best_val_ce", val_ce)
+
         
         # Show completion with Rich
         if show_progress:
@@ -749,7 +757,7 @@ def autotune(
         num_clusters=num_clusters,
         latent_dim=latent_dim,
         output_shared=output_shared,
-        binary_feature_mask = train_dataset.binary_feature_mask,
+        activation_groups = train_dataset.activation_groups,
         debug = debug
     ).to(device)
     

@@ -221,95 +221,87 @@ def get_imputed_df(model: CISSVAE, data_loader, device = "cpu"):
     :return: DataFrame containing imputed (unscaled) data with original row ordering
     :rtype: pandas.DataFrame
     """
+
     model.eval()
     dataset = data_loader.dataset
+
     # -------------------------------
-    # Get scaled impued data
+    # Get imputed (normalized space, but already converted from logits)
     # -------------------------------
     imputed = get_imputed(model, data_loader, device)
-    x_all = imputed.data
-
+    x_all = imputed.data.to(device)
 
     # -------------------------------
-    # Unscale the imputed data (only for continuous vars)
+    # Prepare stats
     # -------------------------------
-    # Binary vs continuous mask
-    if(dataset.binary_feature_mask is not None):
-        binary_feature_mask = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
-        cont_feat = ~binary_feature_mask  # continuous columns are True
+    means = torch.as_tensor(imputed.feature_means, dtype=torch.float32, device=device)
+    stds = torch.as_tensor(imputed.feature_stds, dtype=torch.float32, device=device)
 
-        # Full mean and std tensors
-        means = torch.as_tensor(imputed.feature_means, dtype=torch.float32, device=device)
-        stds  = torch.as_tensor(imputed.feature_stds,  dtype=torch.float32, device=device)
+    stds = stds.clone()
+    stds[stds == 0] = 1.0
 
-        # Replace zero stds with 1.0 (avoid divide-by-zero or NaN)
-        stds = stds.clone()
-        stds[stds == 0] = 1.0
+    # -------------------------------
+    # Convert + denormalize properly
+    # -------------------------------
+    x_all_denorm = x_all.clone()
 
-        # Clone imputed data (still normalized)
-        x_all_denorm = x_all.clone()
+    for name, cols in dataset.activation_groups.items():
+         # enforce correct dtype
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
 
-        # --- Only denormalize continuous columns ---
-        if cont_feat.any():
-            cont_idx = torch.nonzero(cont_feat, as_tuple=False).squeeze(1)
-            x_all_denorm[:, cont_idx] = x_all[:, cont_idx] * stds[cont_idx] + means[cont_idx]
+        # -------------------------
+        # Continuous → denormalize
+        # -------------------------
+        if name == "continuous":
+            x_all_denorm[:, cols] = x_all[:, cols] * stds[cols] + means[cols]
 
-        # --- Binary columns are already sigmoid probabilities ---
-        if binary_feature_mask.any():
-            bin_idx = torch.nonzero(binary_feature_mask, as_tuple=False).squeeze(1)
-            # Clamp to [0,1] just to be safe
-            x_all_denorm[:, bin_idx] = x_all[:, bin_idx]
-    else:
-        means = torch.tensor(imputed.feature_means, dtype=torch.float32)
-        stds = torch.tensor(imputed.feature_stds, dtype=torch.float32)
-        # Denormalize imputed values
-        x_all_denorm = x_all * stds + means
+        # -------------------------
+        # Binary → already sigmoid from get_imputed
+        # -------------------------
+        elif name == "binary":
+            x_all_denorm[:, cols] = x_all[:, cols].clamp(0.0, 1.0)
 
-
+        # -------------------------
+        # Categorical → already one-hot from get_imputed
+        # -------------------------
+        else:
+            x_all_denorm[:, cols] = x_all[:, cols]
 
     # -------------------------------------
-    # Replace validation-masked entries with true values
+    # Restore validation values
     # -------------------------------------
-
-    # Ensure val_data and val_mask are on the same device as x_all_denorm
-    val_data_tensor = dataset.val_data.to(x_all_denorm.device)
+    val_data_tensor = dataset.val_data.to(device)
     val_mask_tensor = ~torch.isnan(val_data_tensor)
 
-
     x_all_denorm[val_mask_tensor] = val_data_tensor[val_mask_tensor]
-    
-    # NEW 11SEP2025: Set imputable positions to NaN
-    if hasattr(dataset, 'imputable') and dataset.imputable is not None:
-        imputable_mask = dataset.imputable.to(x_all_denorm.device)
-        # Set positions where imputable == 0 to NaN
-        x_all_denorm[imputable_mask == 0] = float('nan')
-
-
-
-    x_all_denorm_np = x_all_denorm.detach().cpu().numpy()  # Now safe to convert
-
 
     # -------------------------------------
-    # Create final DataFrame
+    # Apply imputable mask
     # -------------------------------------
-    feature_names = getattr(dataset, "feature_names", [f"V{i}" for i in range(x_all.shape[1])])
+    if hasattr(dataset, "imputable") and dataset.imputable is not None:
+        imputable_mask = dataset.imputable.to(device)
+        x_all_denorm[imputable_mask == 0] = float("nan")
 
-    # The imputed dataset should be in the right order os this should be unecessary
-    # # Recover original index from dataset.indices
-    # if hasattr(dataset, "indices"):
-    #     base_index = dataset.indices
-    #     if isinstance(base_index, torch.Tensor):
-    #         base_index = base_index.cpu().numpy()
-    #     full_index = base_index[idx_all_np]
-    # else:
-    #     full_index = idx_all_np
+    # -------------------------------------
+    # Convert to numpy / DataFrame
+    # -------------------------------------
+    x_all_denorm_np = x_all_denorm.detach().cpu().numpy()
 
-    # Build DataFrame and sort to match original row order
-    df_unsorted = pd.DataFrame(x_all_denorm_np, columns=feature_names, index=dataset.indices.cpu().numpy())
+    feature_names = getattr(
+        dataset,
+        "feature_names",
+        [f"V{i}" for i in range(x_all.shape[1])]
+    )
+
+    df_unsorted = pd.DataFrame(
+        x_all_denorm_np,
+        columns=feature_names,
+        index=dataset.indices.cpu().numpy(),
+    )
+
     imputed_df = df_unsorted.sort_index()
 
     return imputed_df
-
     
 
 def get_imputed(model, data_loader, device="cpu"):
@@ -378,18 +370,35 @@ def get_imputed(model, data_loader, device="cpu"):
         imputable_sorted = torch.zeros_like(dataset.imputable)
         imputable_sorted[idx_all] = imputable_all
 
-    # Replace only missing values in a clone of the original data
-    new_data = dataset.data.clone()
-    missing_mask = ~dataset.masks  # True where values were missing
+    # Convert logits → real values
+    recon_real = recon_sorted.clone()
 
-    ## NEW 11SEP2025 - imputable
+    for name, cols in dataset.activation_groups.items():
+         # enforce correct dtype
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+        if name == "continuous":
+            pass  # already correct scale (still normalized)
+
+        elif name == "binary":
+            recon_real[:, cols] = torch.sigmoid(recon_real[:, cols])
+
+        else:  # categorical
+            probs = torch.softmax(recon_real[:, cols], dim=1)
+            idx = torch.argmax(probs, dim=1)
+
+            recon_real[:, cols] = 0
+            recon_real[torch.arange(recon_real.shape[0]), cols[idx]] = 1
+
+    # Now insert reconstructed values
+    new_data = dataset.data.clone()
+    missing_mask = ~dataset.masks
+
     if has_imputable:
-        # Only impute where: (1) value was missing AND (2) imputable allows it
         can_impute_mask = missing_mask & (dataset.imputable == 1)
-        new_data[can_impute_mask] = recon_sorted[can_impute_mask]
+        new_data[can_impute_mask] = recon_real[can_impute_mask]
     else:
-        # Original behavior if no imputable mask
-        new_data[missing_mask] = recon_sorted[missing_mask]
+        new_data[missing_mask] = recon_real[missing_mask]
 
     # Create new dataset object
     new_dataset = copy.deepcopy(dataset)
@@ -398,210 +407,506 @@ def get_imputed(model, data_loader, device="cpu"):
 
     return new_dataset
 
-
-
-
-def compute_val_mse(model, dataset, device="cpu", auto_fix_binary = False, eps: float = 1e-7):
-    """Compute MSE on validation-masked entries using consistent model predictions.
-    
-    Evaluates model performance by computing mean squared error between model predictions
-    and true values at validation-masked positions. The model output is denormalized
-    before comparison with the original validation data.
-    
-    :param model: Trained model in evaluation mode
-    :type model: nn.Module
-    :param dataset: Dataset containing validation masks and true values
-    :type dataset: ClusterDataset
-    :param device: Device for computations, defaults to "cpu"
-    :type device: str, optional
-    :return: Total Imputation Error, Validation MSE and Validation BCE on validation dataset
-    :rtype: tuple(float)
-    :raises ValueError: If no validation entries are found in the dataset
-    """
+def compute_val_mse(
+    model,
+    dataset,
+    device="cpu",
+    auto_fix_binary=False,
+    eps: float = 1e-7,
+    debug: bool = False,
+):
     model.eval()
 
-    # ------------------------
-    # 0) Tensors on device
-    # ------------------------
-    X = dataset.data.to(device)                 # (N, D) normalized
-    C = dataset.cluster_labels.to(device)       # (N,)
-    val_data = dataset.val_data.to(device)      # (N, D) original scale (binary cols should be 0/1 where valid)
-    val_mask = ~torch.isnan(val_data)           # (N, D) bool
+    # --------------------------------------------------
+    # 1. Load tensors
+    # --------------------------------------------------
+    X = dataset.data.to(device)
+    C = dataset.cluster_labels.to(device)
+    val_data = dataset.val_data.to(device)
 
-    means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)  # (D,)
-    stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)  # (D,)
-    if (stds == 0).any():
-        stds = stds.clone()
-        stds[stds == 0] = 1.0
+    val_mask = ~torch.isnan(val_data)
 
-    # Column masks
-    if getattr(dataset, "binary_feature_mask", None) is None:
-        bin_1d = torch.zeros(X.shape[1], dtype=torch.bool, device=device)
-    else:
-        bin_1d = torch.as_tensor(dataset.binary_feature_mask, dtype=torch.bool, device=device)
-    cont_1d = ~bin_1d
+    ignore_set = set(getattr(dataset, "ignore_indices", []))
 
-    # Expand to (N, D) for weighting
-    cont_2d = cont_1d.unsqueeze(0).expand_as(val_mask)   # (N, D)
-    bin_2d  = bin_1d.unsqueeze(0).expand_as(val_mask)    # (N, D)
+    if debug:
+        print("\n=== VAL DATA / MASK ===")
+        print("val_data (first 5 rows):\n", val_data[:5])
+        print("val_mask (first 5 rows):\n", val_mask[:5].int())
+        print("ignored idx:", list(ignore_set))
 
-    # Masks we will use to weight losses
-    use_c = (val_mask & cont_2d)                         # (N, D) continuous validation entries
-    use_b = (val_mask & bin_2d)                          # (N, D) binary    validation entries
+        if len(ignore_set) > 0:
+            ignore_idx = torch.tensor(list(ignore_set), device=device)
+            print("ignored columns all NaN?:",
+                  torch.isnan(val_data[:, ignore_idx]).all().item())
 
-    # ------------------------
-    # 1) Forward pass
-    # ------------------------
+    # --------------------------------------------------
+    # 2. Load normalization stats
+    # --------------------------------------------------
+    means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
+    stds = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+
+    stds = stds.clone()
+    stds[stds == 0] = 1.0
+
+    means = torch.nan_to_num(means, nan=0.0)
+    stds = torch.nan_to_num(stds, nan=1.0)
+
+    if debug:
+        print("\n=== NORMALIZATION STATS ===")
+        print("means:", means)
+        print("stds:", stds)
+
+    # --------------------------------------------------
+    # 3. Forward pass
+    # --------------------------------------------------
     with torch.no_grad():
-        recon, _, _ = model.forward(X, C, deterministic = True)                        # (N, D)
+        recon, _, _ = model.forward(X, C, deterministic=True)
 
-        # Build "predictions in evaluation space":
-        #   - Continuous: denormalize
-        #   - Binary: keep probabilities; clamp to avoid log(0)
-        pred = recon.clone()
+    pred = recon.clone()
 
-        if cont_1d.any():
-            ccols = torch.nonzero(cont_1d, as_tuple=False).squeeze(1)
-            pred[:, ccols] = recon[:, ccols] * stds[ccols] + means[ccols]
+    # --------------------------------------------------
+    # 4. Activation groups
+    # --------------------------------------------------
+    groups = dataset.get_activation_groups(exclude_ignored=True)
 
-        if bin_1d.any():
-            bcols = torch.nonzero(bin_1d, as_tuple=False).squeeze(1)
-            pred[:, bcols] = pred[:, bcols].clamp_(eps, 1 - eps)  # probs
+    if debug:
+        print("\n=== ACTIVATION GROUPS (pre-filter) ===")
+        for k, v in groups.items():
+            print(k, v)
 
-        # ------------------------
-        # 2) Continuous: elementwise MSE, mask & normalize
-        # ------------------------
-        se = (pred - val_data).pow(2)                         # (N, D)
-        if model.debug:
-            np.savetxt("predicted_vals.csv", pred.numpy(), delimiter=",")
-            np.savetxt("valdata.csv", val_data.numpy(), delimiter=",")
-            np.savetxt("se.csv", se.numpy(), delimiter=",")
+    # --------------------------------------------------
+    # 5. Convert logits → usable values
+    # --------------------------------------------------
+    for name, cols in groups.items():
+        cols = [c for c in cols if c not in ignore_set]
+        if len(cols) == 0:
+            continue
 
-        
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
 
-        use_c = val_mask & cont_2d                            # (N, D)
-        mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
-        if(model.debug):
-            print(f"Masked Error: {min(se[use_c])}, {max(se[use_c])} \n")
-            print(f"MSE: {mse}\n\n")
-            mse_elem = F.mse_loss(pred, val_data, reduction="none")
-            print(
-                f"MSE_elem: min={mse_elem[use_c].min().item():.6g}, "
-                f"max={mse_elem[use_c].max().item():.6g} | "
-                f"MSE_mean(masked)={(mse_elem[use_c].mean().item() if use_c.any() else float('nan')):.6g}"
-            )
+        if name == "continuous":
+            pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]
 
-        # ------------------------
-        # 3) Binary: elementwise BCE, mask & normalize
-        # ------------------------
-        if bin_1d.any():
-            # For BCE validation to pass, targets must be finite and in [0,1] EVERYWHERE
-            # we pass to BCE. We’ll create a "filled" target where non-validation (or NaN)
-            # entries are replaced by a safe dummy in [0,1], e.g., 0.0.
-            target_b = val_data.clone()                            # (N, D)
-            # Set non-binary columns to 0 (they'll be masked out anyway)
-            target_b[:, ~bin_1d] = 0.0
-            # Replace NaNs with 0.0 on binary columns
-            nan_mask = torch.isnan(target_b) & bin_2d
-            if nan_mask.any():
-                target_b[nan_mask] = 0.0
-
-            # Optional strict check on *masked* binary entries only
-            masked_targets = target_b[use_b]
-            if masked_targets.numel():
-                bad = (~torch.isfinite(masked_targets)) | (masked_targets < 0) | (masked_targets > 1)
-                if bad.any():
-                    if not auto_fix_binary:
-                        raise RuntimeError("Binary target(s) out of [0,1] under validation mask.")
-                    # Coerce masked offending targets to {0,1} via threshold
-                    masked_targets = (masked_targets > 0.5).to(masked_targets.dtype)
-                    target_b[use_b] = masked_targets
-
-            # Now it's safe to compute BCE elementwise over the whole matrix.
-            # Non-validation entries have valid targets (0.0), but we will weight them by 0.
-            # Use only the binary columns for BCE computation.
-            prob_full   = pred[:, bin_1d]                          # (N, Db)
-            target_full = target_b[:, bin_1d]                      # (N, Db)
-            bce_elem = F.binary_cross_entropy(prob_full, target_full, reduction='none')  # (N, Db)
-
-
-            # Weight by validation mask on the same columns
-            bmask_full = use_b[:, bin_1d].to(bce_elem.dtype)       # (N, Db)
-            bce_sum = (bce_elem * bmask_full).sum()
-            bce_den = bmask_full.sum().clamp_min(1.0)
-            bce = bce_sum / bce_den
-            if model.debug:
-                # use the (N, Db) mask we already built
-                masked_bce = bce_elem.masked_select(bmask_full.bool())
-                if masked_bce.numel() > 0:
-                    print(f"BCE Elems: min = {masked_bce.min().item()}, max = {masked_bce.max().item()}\n")
-                else:
-                    print("BCE Elems: (no validated binary entries)\n")
-                print(f"BCE: {bce.item()}\n")
+        elif name == "binary":
+            pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
 
         else:
-            bce = pred.new_zeros(())
+            probs = torch.softmax(recon[:, cols], dim=1)
+            idx = torch.argmax(probs, dim=1)
 
-        if(model.debug):
-            print(f"BCE: bce{bce}\n\n MSE: {mse}\n\n")
+            pred[:, cols] = 0
+            pred[torch.arange(pred.shape[0]), cols[idx]] = 1
 
-        # ------------------------
-        # 4) Return combined metric
-        # ------------------------
-        imputation_error = (mse + bce).item()
-        val_mse = mse.item()
-        val_bce = bce.item()
+        if debug:
+            print(f"\n--- {name.upper()} ---")
+            print("cols (filtered):", cols.tolist())
+            print("pred (first 5):\n", pred[:5, cols])
+
+    # ==================================================
+    # 6. CONTINUOUS MSE
+    # ==================================================
+    cont_cols = [c for c in groups.get("continuous", []) if c not in ignore_set]
+    cont_cols = torch.tensor(cont_cols, dtype=torch.long, device=device)
+
+    if debug:
+        print("\n=== CONTINUOUS MSE ===")
+        print("cont_cols:", cont_cols.tolist())
+
+    if len(cont_cols) > 0:
+        val_cont = val_data[:, cont_cols]
+        mask = ~torch.isnan(val_cont)
+
+        val_cont = val_cont * stds[cont_cols] + means[cont_cols]
+        se = (pred[:, cont_cols] - val_cont) ** 2
+
+        if debug:
+            print("mask sum:", mask.sum().item())
+            print("SE contributing:", se[mask])
+
+        mse = se[mask].mean() if mask.any() else pred.new_zeros(())
+    else:
+        mse = pred.new_zeros(())
+
+    # ==================================================
+    # 7. BINARY BCE
+    # ==================================================
+    bin_cols = [c for c in groups.get("binary", []) if c not in ignore_set]
+    bin_cols = torch.tensor(bin_cols, dtype=torch.long, device=device)
+
+    if debug:
+        print("\n=== BINARY BCE ===")
+        print("bin_cols:", bin_cols.tolist())
+
+    if len(bin_cols) > 0:
+        target = val_data[:, bin_cols]
+        mask = ~torch.isnan(target)
+
+        target = target.clone()
+        target[~mask] = 0.0
+
+        prob = pred[:, bin_cols]
+
+        bce_elem = F.binary_cross_entropy(prob, target, reduction="none")
+
+        bmask = mask.to(bce_elem.dtype)
+        bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
+
+        if debug:
+            print("BCE contributing:", bce_elem[mask])
+    else:
+        bce = pred.new_zeros(())
+
+    # ==================================================
+    # 8. CATEGORICAL CE
+    # ==================================================
+    ce = pred.new_zeros(())
+
+    for name, cols in groups.items():
+        if name in ["continuous", "binary"]:
+            continue
+
+        cols = [c for c in cols if c not in ignore_set]
+        if len(cols) == 0:
+            continue
+
+        cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+        mask = ~torch.isnan(val_data[:, cols])
+        valid_rows = mask.any(dim=1)
+
+        if valid_rows.any():
+            logits = recon[valid_rows][:, cols]
+            target = torch.argmax(val_data[valid_rows][:, cols], dim=1)
+
+            ce += F.cross_entropy(logits, target, reduction="mean")
+
+            if debug:
+                print(f"\n=== CATEGORICAL: {name} ===")
+                print("cols (filtered):", cols.tolist())
+                print("num valid:", valid_rows.sum().item())
+
+    # ==================================================
+    # 9. Final output
+    # ==================================================
+    total = (mse + bce + ce).item()
+
+    if debug:
+        print("\n=== FINAL METRICS ===")
+        print("MSE:", mse.item())
+        print("BCE:", bce.item())
+        print("CE:", ce.item())
+        print("TOTAL:", total)
+
+    return total, mse.item(), bce.item(), ce.item()
+
+# def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: float = 1e-7, debug = False):
+#     model.eval()
+
+#     # ------------------------
+#     # 0) Tensors
+#     # ------------------------
+#     X = dataset.data.to(device)
+#     C = dataset.cluster_labels.to(device)
+#     val_data = dataset.val_data.to(device)
+#     val_mask = ~torch.isnan(val_data)
+
+#     if debug:
+#         print("\n=== VAL DATA / MASK ===")
+#         print("val_data (first 5 rows):\n", val_data[:5])
+#         print("val_mask (first 5 rows):\n", val_mask[:5].int())
+
+#         if hasattr(dataset, "ignore_indices") and len(dataset.ignore_indices) > 0:
+#             ignore_idx = torch.tensor(dataset.ignore_indices, device=device)
+#             print("ignored idx:", dataset.ignore_indices)
+#             print("ignored columns all NaN in val_data?:",
+#                 torch.isnan(val_data[:, ignore_idx]).all().item())
+
+
+#     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
+#     stds  = torch.as_tensor(dataset.feature_stds,  dtype=torch.float32, device=device)
+
+#     if (stds == 0).any():
+#         stds = stds.clone()
+#         stds[stds == 0] = 1.0
+
+#     # ------------------------
+#     # 1) Forward (LOGITS)
+#     # ------------------------
+#     with torch.no_grad():
+#         recon, _, _ = model.forward(X, C, deterministic=True)
+
+#     pred = recon.clone()
+
+#     groups = dataset.get_activation_groups(exclude_ignored=True)
+#     if debug:
+#         print("\n=== ACTIVATION GROUPS (filtered) ===")
+#         for k, v in groups.items():
+#             print(f"{k}: {v}")
+
+#     # ------------------------
+#     # 2) Convert logits → usable values
+#     # ------------------------
+#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():
+#         #  skip empty grooups
+#         if len(cols) == 0:
+#             continue
+
+#         # enforce correct dtype
+#         cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+#         if name == "continuous":
+#             pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#         elif name == "binary":
+#             pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#         else:  # categorical
+#             probs = torch.softmax(recon[:, cols], dim=1)
+#             idx = torch.argmax(probs, dim=1)
+
+#             pred[:, cols] = 0
+#             pred[torch.arange(pred.shape[0]), cols[idx]] = 1
+#             if debug:
+#                 print(f"\n--- {name.upper()} GROUP ---")
+#                 print("cols:", cols.tolist())
+#                 print("pred (first 5 rows):\n", pred[:5, cols])
+
+#     # ------------------------
+#     # 3) Continuous MSE
+#     # ------------------------
+#     cont_cols = torch.tensor(
+#         dataset.get_activation_groups(exclude_ignored=True).get("continuous", []),
+#         dtype=torch.long,
+#         device=device
+#     )
+#     if debug:
+#         print("\n=== CONTINUOUS MSE DEBUG ===")
+#         print("cont_cols:", cont_cols.tolist())
+
+#     if len(cont_cols) > 0:
+#         val_cont = val_data[:, cont_cols]
+#         if debug:
+#             print("val_cont (raw, first 5):\n", val_cont[:5])
+#         use_c = ~torch.isnan(val_cont)
+#         if debug:
+#             print("use_c (first 5):\n", use_c[:5].int())
+#             print("num contributing entries:", use_c.sum().item())
+
+#         val_cont = val_cont * stds[cont_cols] + means[cont_cols]
+#         se = (pred[:, cont_cols] - val_cont) ** 2
+#         if debug:
+#             print("se (first 5):\n", se[:5])
+#             print("se contributing values:", se[use_c])
+
+#         mse = se[use_c].mean() if use_c.any() else pred.new_zeros(())
+#     else:
+#         mse = pred.new_zeros(())
+
+#     # ------------------------
+#     # 4) Binary BCE
+#     # ------------------------
+#     bin_cols = torch.tensor(
+#     dataset.get_activation_groups(exclude_ignored=True).get("binary", []),
+#     dtype = torch.long,
+#     device=device
+#     )
+
+#     if debug:
+#         print("\n=== BINARY BCE DEBUG ===")
+#         print("bin_cols:", bin_cols.tolist())
+
+#     if len(bin_cols) > 0:
+#         target_b = val_data[:, bin_cols].clone()
+#         nan_mask = torch.isnan(target_b)
+#         if nan_mask.any():
+#             target_b[nan_mask] = 0.0
+#         if debug:
+#             print("target_b (raw, first 5):\n", target_b[:5])
+
+#         use_b = ~torch.isnan(target_b)
+#         if debug:
+#             print("use_b (first 5):\n", use_b[:5].int())
+#             print("num contributing entries:", use_b.sum().item())
+
+#         masked_targets = target_b[use_b]
+#         if masked_targets.numel():
+#             bad = (~torch.isfinite(masked_targets)) | (masked_targets < 0) | (masked_targets > 1)
+#             if bad.any():
+#                 if not auto_fix_binary:
+#                     raise RuntimeError("Binary target(s) out of [0,1].")
+#                 target_b[use_b] = (masked_targets > 0.5).float()
+
+#         prob = pred[:, bin_cols]
+#         if debug:
+#             print("prob (first 5):\n", prob[:5])
+#         bce_elem = F.binary_cross_entropy(prob, target_b, reduction="none")
+
+#         bmask = use_b.to(bce_elem.dtype)
+#         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
+#     else:
+#         bce = pred.new_zeros(())
+
+#     # ------------------------
+#     # 5) Categorical CE (NEW)
+#     # ------------------------
+#     ce = pred.new_zeros(())
+
+#     for name, cols in dataset.get_activation_groups(exclude_ignored=True).items():
+#         if name in ["continuous", "binary"]:
+#             continue
+
+#         cols = torch.tensor(cols, dtype = torch.long, device=device)
+#         if debug:
+#             print(f"\n=== CATEGORICAL GROUP: {name} ===")
+#             print("cols:", cols.tolist())
+
+#         # valid rows: at least one observed entry in group
+#         mask_sub = val_mask[:, cols]
+#         valid_rows = mask_sub.sum(dim=1) > 0
+
+#         if valid_rows.any():
+#             logits = recon[valid_rows][:, cols]
+
+#             # convert one-hot target → class index
+#             target = torch.argmax(val_data[valid_rows][:, cols], dim=1)
+
+#             ce_loss = F.cross_entropy(logits, target, reduction="mean")
+#             ce += ce_loss
+#         if debug:
+#             print("valid_rows:", valid_rows[:10])
+#             print("num valid rows:", valid_rows.sum().item())
+
+#     # ------------------------
+#     # 6) Final metrics
+#     # ------------------------
+#     imputation_error = (mse + bce + ce).item()
+#     if debug:
+#         print("\n=== FINAL METRICS ===")
+#         print("MSE:", mse.item())
+#         print("BCE:", bce.item())
+#         print("CE:", ce.item())
+#         print("Total:", imputation_error)
+
+#     return imputation_error, mse.item(), bce.item(), ce.item()
     
-        return imputation_error, val_mse, val_bce
-
-    
     
 
 
-
-import numpy as np
-import pandas as pd
-from sklearn.metrics import mean_squared_error
-
-def evaluate_imputation(imputed_df, df_complete, df_missing):
-    """Compare imputed values to true values at originally missing positions.
-    
-    Calculates mean squared error between imputed and true values specifically at locations
-    that were originally missing, providing a detailed comparison DataFrame for analysis.
-    
-    :param imputed_df: DataFrame with imputed values (same shape as df_complete)
-    :type imputed_df: pandas.DataFrame
-    :param df_complete: DataFrame with true values (ground truth, no NaNs)
-    :type df_complete: pandas.DataFrame
-    :param df_missing: DataFrame with NaNs at original missing locations
-    :type df_missing: pandas.DataFrame
-    :return: Tuple containing MSE value and detailed comparison DataFrame
-    :rtype: tuple[float, pandas.DataFrame]
+def evaluate_imputation(imputed_df, df_complete, df_missing, activation_groups=None):
     """
-    # Boolean DataFrame: True where value was originally missing
+    Test CISSVAE performance by evaluating imputed dataset vs true complete dataset. 
+
+    Supports mixed data types:
+    - continuous → MSE
+    - binary → BCE-style squared error
+    - categorical → classification error
+
+    Returns overall error and detailed comparison dataframe.
+
+    :param imputed_df: An imputed version of df_missing.
+    :type imputed_df: pd.DataFrame()
+    :param df_complete: A complete dataset with no missingness. 
+    :type df_complete: pd.DataFrame()
+    :param df_missing: A version of df_complete with induced missingness. 
+    :type df_missing: pd.DataFrame()
+    :param activation_groups: Dictionary mapping feature types to column indices. 
+        Expected format:
+            {
+                "continuous": [int, ...],
+                "binary": [int, ...],
+                "<categorical_name>": [int, ...],
+                ...
+            }
+        Each key defines a feature group, and values are lists of column indices 
+        corresponding to that group. Categorical variables must be represented as 
+        grouped indices (e.g., one-hot encoded columns belonging to the same variable).
+    :type activation_groups: dict[str, list[int]]
+    """
+
+    # -------------------------
+    # Validation
+    # -------------------------
+    if not (imputed_df.shape == df_complete.shape == df_missing.shape):
+        raise ValueError("All input DataFrames must have the same shape.")
+
+    if not (list(imputed_df.columns) == list(df_complete.columns) == list(df_missing.columns)):
+        raise ValueError("All DataFrames must have identical columns in the same order.")
+
+    # -------------------------
+    # Missing mask
+    # -------------------------
     missing_mask = df_missing.isna()
 
-    # Get row, col indices of missing entries
+    if not missing_mask.values.any():
+        return 0.0, pd.DataFrame()
+
+    # -------------------------
+    # Extract indices
+    # -------------------------
     row_idx, col_idx = np.where(missing_mask.values)
 
-    # Lookup corresponding values
     rows = df_missing.index[row_idx]
     cols = df_missing.columns[col_idx]
 
     true_vals = df_complete.values[row_idx, col_idx]
     imputed_vals = imputed_df.values[row_idx, col_idx]
+
+    # -------------------------
+    # Default: MSE
+    # -------------------------
     errors = (true_vals - imputed_vals) ** 2
 
+    # -------------------------
+    # If activation_groups provided → fix per type
+    # -------------------------
+    if activation_groups is not None:
+        col_to_type = {}
+
+        for name, indices in activation_groups.items():
+            for idx in indices:
+                col_to_type[df_complete.columns[idx]] = name
+
+        for i, col in enumerate(cols):
+            col_type = col_to_type.get(col, "continuous")
+
+            # -----------------
+            # Binary → keep squared error (OK)
+            # -----------------
+            if col_type == "binary":
+                continue
+
+            # -----------------
+            # Categorical → classification error
+            # -----------------
+            elif col_type not in ["continuous", "binary"]:
+                errors[i] = float(true_vals[i] != imputed_vals[i])
+
+    # -------------------------
+    # Build comparison df
+    # -------------------------
     comparison_df = pd.DataFrame({
         "row": rows,
         "col": cols,
         "true": true_vals,
         "imputed": imputed_vals,
-        "squared_error": errors
+        "error": errors
     })
 
+    # -------------------------
+    # Aggregate metrics
+    # -------------------------
     mse = errors.mean()
-    print(f"[INFO] MSE on originally missing entries: {mse:.6f}")
+
+    print(f"[INFO] Imputation error on missing entries: {mse:.6f}")
+
     return mse, comparison_df
 
 

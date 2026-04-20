@@ -9,7 +9,7 @@
   <title>ciss_vae.utils.matrix.create_missingness_prop_matrix &mdash; CISS-VAE 1.0.18 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../_static/mystnb.11b39860a7a0cbfd473a3ad8a317855267ff0bd372690045ca344a6b62be495e.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/mystnb.8ecb98da25f57f5357bf6f572d296f466b2cfe2517ffebfabe82451661e28f02.css?v=6644e6bb" />
       <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
       <link rel="stylesheet" type="text/css" href="../_static/styles.css" />
 
@@ -117,18 +117,18 @@ Can also accept an explicit <code class="docutils literal notranslate"><span cla
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>data</strong> (<em>pandas.DataFrame</em><em> or </em><em>numpy.ndarray</em>) – Input dataset (coercible to DataFrame).</p></li>
-<li><p><strong>index_col</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional column to use as sample index in the output metadata (not scored).</p></li>
-<li><p><strong>cols_ignore</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Columns to exclude from scoring (e.g., IDs, non-features).</p></li>
-<li><p><strong>na_values</strong> (<em>list</em><em>[</em><em>Any</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Extra values to treat as missing (in addition to NaN/None/±Inf).</p></li>
-<li><p><strong>repeat_feature_names</strong> (<em>list</em><em>[</em><em>str</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Base feature names that have repeated timepoints to be aggregated.
+<li><p><strong>data</strong> (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.2)"><em>pandas.DataFrame</em></a><em> or </em><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><em>numpy.ndarray</em></a>) – Input dataset (coercible to DataFrame).</p></li>
+<li><p><strong>index_col</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional column to use as sample index in the output metadata (not scored).</p></li>
+<li><p><strong>cols_ignore</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Columns to exclude from scoring (e.g., IDs, non-features).</p></li>
+<li><p><strong>na_values</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><em>Any</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Extra values to treat as missing (in addition to NaN/None/±Inf).</p></li>
+<li><p><strong>repeat_feature_names</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Base feature names that have repeated timepoints to be aggregated.
 Columns matched by regex pattern:
 - if <code class="docutils literal notranslate"><span class="pre">timepoint_prefix</span></code> is provided: <code class="docutils literal notranslate"><span class="pre">^&lt;feat&gt;_&lt;prefix&gt;\d+$</span></code>
 - else: <code class="docutils literal notranslate"><span class="pre">^&lt;feat&gt;_\d+$</span></code></p></li>
-<li><p><strong>timepoint_prefix</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional prefix that appears before the timepoint integer, e.g., <code class="docutils literal notranslate"><span class="pre">t</span></code> to match <code class="docutils literal notranslate"><span class="pre">feat_t1</span></code>.</p></li>
-<li><p><strong>nonint_timepoint</strong> (<em>bool</em><em>, </em><em>optional</em>) – If true, any text after ‘_’ will count as timepoint (eg Baseline).</p></li>
-<li><p><strong>column_mapping</strong> (<em>dict</em><em>[</em><em>str</em><em>, </em><em>list</em><em>[</em><em>str</em><em>]</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Explicit mapping { base_feature: [col1, col2, …] } to aggregate. Takes precedence.</p></li>
-<li><p><strong>loose</strong> (<em>bool</em>) – If true, will match any text starting with the base feature names in <cite>repeat_feature_names</cite>.</p></li>
+<li><p><strong>timepoint_prefix</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em> or </em><em>None</em><em>, </em><em>optional</em>) – Optional prefix that appears before the timepoint integer, e.g., <code class="docutils literal notranslate"><span class="pre">t</span></code> to match <code class="docutils literal notranslate"><span class="pre">feat_t1</span></code>.</p></li>
+<li><p><strong>nonint_timepoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a><em>, </em><em>optional</em>) – If true, any text after ‘_’ will count as timepoint (eg Baseline).</p></li>
+<li><p><strong>column_mapping</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><em>dict</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><em>list</em></a><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a><em>]</em><em>] or </em><em>None</em><em>, </em><em>optional</em>) – Explicit mapping { base_feature: [col1, col2, …] } to aggregate. Takes precedence.</p></li>
+<li><p><strong>loose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If true, will match any text starting with the base feature names in <cite>repeat_feature_names</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
