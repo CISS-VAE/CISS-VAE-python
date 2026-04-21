@@ -1061,3 +1061,357 @@ def test_partial_ignore_categorical_raises():
             binary_feature_mask=[True, True],
             categorical_column_map={"cat": ["cat_a", "cat_b"]},
         )
+
+from ciss_vae.training.train_refit import impute_and_refit_loop
+from ciss_vae.utils.helpers import compute_val_mse
+
+
+def add_missing(df, n=20, seed=123):
+    rng = np.random.default_rng(seed)
+    df = df.copy()
+
+    total = df.size
+    idx = rng.choice(total, size=min(n, total), replace=False)
+
+    flat = df.values.flatten()
+    flat[idx] = np.nan
+    df[:] = flat.reshape(df.shape)
+
+    return df
+
+
+def get_last_non_nan(x):
+    x = np.asarray(x)
+    x = x[~np.isnan(x)]
+    if len(x) == 0:
+        return np.nan
+    return x[-1]
+
+def test_ignored_columns_all_types_behavior_run_cissvae():
+    import numpy as np
+    import pandas as pd
+
+    from ciss_vae.training.run_cissvae import run_cissvae
+
+    np.random.seed(123)
+
+    # --------------------------------------------------
+    # Dataset with ALL types
+    # --------------------------------------------------
+    n = 80
+
+    df = pd.DataFrame({
+        # continuous
+        "ignored_cont": np.random.normal(0, 1000, n),
+        "active_cont":  np.random.normal(0, 1, n),
+
+        # binary
+        "ignored_bin": np.random.binomial(1, 0.1, n),
+        "active_bin":  np.random.binomial(1, 0.5, n),
+
+        # categorical (one-hot)
+        "cat_a": np.tile([1,0,0], n // 3 + 1)[:n],
+        "cat_b": np.tile([0,1,0], n // 3 + 1)[:n],
+        "cat_c": np.tile([0,0,1], n // 3 + 1)[:n],
+    })
+
+    # inject missingness
+    mask = np.random.choice(df.size, size=40, replace=False)
+    df.values.flat[mask] = np.nan
+
+    clusters = np.random.randint(0, 2, size=n)
+
+    categorical_map = {"cat": ["cat_a", "cat_b", "cat_c"]}
+
+    binary_mask = [
+        False, False,   # continuous
+        True, True,     # binary
+        True, True, True  # categorical dummy cols
+    ]
+
+    # --------------------------------------------------
+    # RUN WITH ignored columns
+    # --------------------------------------------------
+    imputed_ignore, model_ignore, dataset_ignore, history_ignore = run_cissvae(
+        data=df,
+        clusters=clusters,
+        columns_ignore=["ignored_cont", "ignored_bin"],
+        binary_feature_mask=binary_mask,
+        categorical_column_map=categorical_map,
+        epochs=2,
+        max_loops=1,
+        epochs_per_loop=1,
+        return_dataset=True,
+        return_history=True,
+        verbose=False
+    )
+
+    # --------------------------------------------------
+    # RUN WITHOUT ignoring
+    # --------------------------------------------------
+    imputed_full, model_full, dataset_full, history_full = run_cissvae(
+        data=df,
+        clusters=clusters,
+        columns_ignore=None,
+        binary_feature_mask=binary_mask,
+        categorical_column_map=categorical_map,
+        epochs=2,
+        max_loops=1,
+        epochs_per_loop=1,
+        return_dataset=True,
+        return_history=True,
+        verbose=False
+    )
+
+    # --------------------------------------------------
+    # TRAIN LOSS (ignore NA rows)
+    # --------------------------------------------------
+    def get_last_non_nan(x):
+        x = np.asarray(x)
+        x = x[~np.isnan(x)]
+        return x[-1] if len(x) else np.nan
+
+    train_ignore = get_last_non_nan(history_ignore["train_loss"])
+    train_full   = get_last_non_nan(history_full["train_loss"])
+
+    train_mse_ignore = get_last_non_nan(history_ignore["train_mse"])
+    train_mse_full   = get_last_non_nan(history_full["train_mse"])
+
+    train_bce_ignore = get_last_non_nan(history_ignore["train_bce"])
+    train_bce_full   = get_last_non_nan(history_full["train_bce"])
+
+    print("\n===== TRAIN LOSS DEBUG =====")
+    print("ignore:", train_ignore)
+    print("full:", train_full)
+    print("train_mse_ignore:", train_mse_ignore)
+    print("train_mse_full", train_mse_full)
+
+    print("train_bce_ignore:", train_bce_ignore)
+    print("train_bce_full", train_bce_full)
+
+    assert np.isfinite(train_ignore)
+    assert np.isfinite(train_full)
+
+    # ✔ Training loss NOT differ
+    assert abs(train_ignore - train_full) < 0.1
+    assert abs(train_mse_ignore - train_mse_full) < 10
+    assert abs(train_bce_ignore - train_bce_full) < 1
+
+    # --------------------------------------------------
+    # IMPUTATION ERROR
+    # --------------------------------------------------
+    imp_ignore = get_last_non_nan(history_ignore["imputation_error"])
+    imp_full   = get_last_non_nan(history_full["imputation_error"])
+
+    mse_ignore = get_last_non_nan(history_ignore["val_mse"])
+    mse_full = get_last_non_nan(history_full["val_mse"])
+
+    bce_ignore = get_last_non_nan(history_ignore["val_bce"])
+    bce_full = get_last_non_nan(history_full["val_bce"])
+
+    print("\n===== IMPUTATION ERROR DEBUG =====")
+    print("ignore:", imp_ignore)
+    print("full:", imp_full)
+
+    print("mse_ignore:", mse_ignore)
+    print("mse_full:", mse_full)
+
+    print("bce_ignore:", bce_ignore)
+    print("bce_full:", bce_full)
+
+    assert np.isfinite(imp_ignore)
+    assert np.isfinite(imp_full)
+
+    # ✔ Imputation error SHOULD NOT be identical
+    assert abs(imp_ignore - imp_full) > 0.1
+    assert abs(mse_ignore - mse_full) > 0.1
+    assert abs(bce_ignore - bce_full) > 0.01
+
+
+def test_ignored_categorical_group_behavior_run_cissvae():
+    import numpy as np
+    import pandas as pd
+    from ciss_vae.training.run_cissvae import run_cissvae
+
+    np.random.seed(123)
+
+    n = 90
+
+    # --------------------------------------------------
+    # Build dataset
+    # --------------------------------------------------
+    df = pd.DataFrame({
+        # continuous
+        "ignored_cont": np.random.normal(0, 100, n),
+        "active_cont":  np.random.normal(0, 1, n),
+
+        # binary
+        "ignored_bin": np.random.binomial(1, 0.5, n),
+        "active_bin":  np.random.binomial(1, 0.5, n),
+
+        # categorical GROUP 1 (WILL BE IGNORED)
+        "cat_ign_a": np.tile([1,0,0], n // 3 + 1)[:n],
+        "cat_ign_b": np.tile([0,1,0], n // 3 + 1)[:n],
+        "cat_ign_c": np.tile([0,0,1], n // 3 + 1)[:n],
+
+        # categorical GROUP 2 (ACTIVE)
+        "cat_act_a": np.tile([1,0], n // 2 + 1)[:n],
+        "cat_act_b": np.tile([0,1], n // 2 + 1)[:n],
+    })
+
+    # inject missingness
+    mask = np.random.choice(df.size, size=60, replace=False)
+    df.values.flat[mask] = np.nan
+
+    clusters = np.random.randint(0, 2, size=n)
+
+    # --------------------------------------------------
+    # categorical groups
+    # --------------------------------------------------
+    categorical_map = {
+        "ignored_cat": ["cat_ign_a", "cat_ign_b", "cat_ign_c"],
+        "active_cat": ["cat_act_a", "cat_act_b"],
+    }
+
+    # --------------------------------------------------
+    # binary mask
+    # (categorical dummy columns must be TRUE)
+    # --------------------------------------------------
+    binary_mask = [
+        False, False,   # continuous
+        True, True,     # binary
+        True, True, True,   # ignored categorical
+        True, True           # active categorical
+    ]
+
+    # --------------------------------------------------
+    # IMPORTANT: ignore ALL columns of the categorical group
+    # --------------------------------------------------
+    ignored_cols = [
+        "ignored_cont",
+        "ignored_bin",
+        "cat_ign_a", "cat_ign_b", "cat_ign_c"
+    ]
+
+    # --------------------------------------------------
+    # RUN WITH ignored categorical group
+    # --------------------------------------------------
+    imputed_ignore, model_ignore, dataset_ignore, history_ignore = run_cissvae(
+        data=df,
+        clusters=clusters,
+        columns_ignore=ignored_cols,
+        binary_feature_mask=binary_mask,
+        categorical_column_map=categorical_map,
+        epochs=2,
+        max_loops=1,
+        epochs_per_loop=1,
+        return_dataset=True,
+        return_history=True,
+        verbose=False
+    )
+
+    # --------------------------------------------------
+    # RUN WITHOUT ignoring
+    # --------------------------------------------------
+    imputed_full, model_full, dataset_full, history_full = run_cissvae(
+        data=df,
+        clusters=clusters,
+        columns_ignore=None,
+        binary_feature_mask=binary_mask,
+        categorical_column_map=categorical_map,
+        epochs=2,
+        max_loops=1,
+        epochs_per_loop=1,
+        return_dataset=True,
+        return_history=True,
+        verbose=False
+    )
+
+    # --------------------------------------------------
+    # helper
+    # --------------------------------------------------
+    def get_last_non_nan(x):
+        x = np.asarray(x)
+        x = x[~np.isnan(x)]
+        return x[-1] if len(x) else np.nan
+
+    # --------------------------------------------------
+    # TRAIN LOSS
+    # --------------------------------------------------
+    train_ignore = get_last_non_nan(history_ignore["train_loss"])
+    train_full   = get_last_non_nan(history_full["train_loss"])
+
+    print("\n===== TRAIN LOSS DEBUG =====")
+    print("ignore:", train_ignore)
+    print("full:", train_full)
+
+    assert np.isfinite(train_ignore)
+    assert np.isfinite(train_full)
+
+    # Must be identical
+    assert abs(train_ignore - train_full) < 0.1
+
+    
+    train_mse_ignore = get_last_non_nan(history_ignore["train_mse"])
+    train_mse_full   = get_last_non_nan(history_full["train_mse"])
+
+    train_bce_ignore = get_last_non_nan(history_ignore["train_bce"])
+    train_bce_full   = get_last_non_nan(history_full["train_bce"])
+
+    train_ce_ignore = get_last_non_nan(history_ignore["train_ce"])
+    train_ce_full   = get_last_non_nan(history_full["train_ce"])
+
+    print("\n===== TRAIN LOSS DEBUG =====")
+    print("train_mse_ignore:", train_mse_ignore)
+    print("train_mse_full", train_mse_full)
+
+    print("train_bce_ignore:", train_bce_ignore)
+    print("train_bce_full", train_bce_full)
+    print("train_ce_ignore:", train_ce_ignore)
+    print("train_ce_full", train_ce_full)
+
+    assert np.isfinite(train_ignore)
+    assert np.isfinite(train_full)
+
+    # ✔ Training loss NOT differ
+    assert abs(train_mse_ignore - train_mse_full) < 10
+    assert abs(train_bce_ignore - train_bce_full) < 10
+    assert abs(train_ce_ignore - train_ce_full) < 10
+
+
+    # --------------------------------------------------
+    # IMPUTATION ERROR
+    # --------------------------------------------------
+    imp_ignore = get_last_non_nan(history_ignore["imputation_error"])
+    imp_full   = get_last_non_nan(history_full["imputation_error"])
+
+    mse_ignore = get_last_non_nan(history_ignore["val_mse"])
+    mse_full = get_last_non_nan(history_full["val_mse"])
+
+    bce_ignore = get_last_non_nan(history_ignore["val_bce"])
+    bce_full = get_last_non_nan(history_full["val_bce"])
+
+    ce_ignore = get_last_non_nan(history_ignore["val_ce"])
+    ce_full = get_last_non_nan(history_full["val_ce"])
+
+    print("\n===== IMPUTATION ERROR DEBUG =====")
+    print("ignore:", imp_ignore)
+    print("full:", imp_full)
+
+    print("mse_ignore:", mse_ignore)
+    print("mse_full:", mse_full)
+
+    print("bce_ignore:", bce_ignore)
+    print("bce_full:", bce_full)
+
+    print("ce_ignore:", ce_ignore)
+    print("ce_full:", ce_full)
+
+    assert np.isfinite(imp_ignore)
+    assert np.isfinite(imp_full)
+
+    # ✔ Imputation error SHOULD NOT be identical
+    assert abs(imp_ignore - imp_full) > 0.1
+    assert abs(mse_ignore - mse_full) > 0.1
+    assert abs(bce_ignore - bce_full) > 0.1
+    assert abs(ce_ignore - ce_full) > 0.1
