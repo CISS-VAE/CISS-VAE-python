@@ -530,12 +530,8 @@ def compute_val_mse(
     # ==================================================
     # 7. BINARY BCE
     # ==================================================
-    bin_cols = [c for c in groups.get("binary", []) if c not in ignore_set]
+    bin_cols = groups.get("binary", [])
     bin_cols = torch.tensor(bin_cols, dtype=torch.long, device=device)
-
-    if debug:
-        print("\n=== BINARY BCE ===")
-        print("bin_cols:", bin_cols.tolist())
 
     if len(bin_cols) > 0:
         target = val_data[:, bin_cols]
@@ -544,15 +540,13 @@ def compute_val_mse(
         target = target.clone()
         target[~mask] = 0.0
 
-        prob = pred[:, bin_cols]
+        # FIX: compute from logits, not pred
+        prob = torch.sigmoid(recon[:, bin_cols]).clamp(eps, 1 - eps)
 
         bce_elem = F.binary_cross_entropy(prob, target, reduction="none")
 
         bmask = mask.to(bce_elem.dtype)
         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
-
-        if debug:
-            print("BCE contributing:", bce_elem[mask])
     else:
         bce = pred.new_zeros(())
 
