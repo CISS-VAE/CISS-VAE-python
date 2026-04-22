@@ -417,150 +417,92 @@ def compute_val_mse(
 ):
     model.eval()
 
-    # --------------------------------------------------
+    # -----------------------------
     # 1. Load tensors
-    # --------------------------------------------------
+    # -----------------------------
     X = dataset.data.to(device)
     C = dataset.cluster_labels.to(device)
     val_data = dataset.val_data.to(device)
 
     val_mask = ~torch.isnan(val_data)
 
-    ignore_set = set(getattr(dataset, "ignore_indices", []))
-
-    if debug:
-        print("\n=== VAL DATA / MASK ===")
-        print("val_data (first 5 rows):\n", val_data[:5])
-        print("val_mask (first 5 rows):\n", val_mask[:5].int())
-        print("ignored idx:", list(ignore_set))
-
-        if len(ignore_set) > 0:
-            ignore_idx = torch.tensor(list(ignore_set), device=device)
-            print("ignored columns all NaN?:",
-                  torch.isnan(val_data[:, ignore_idx]).all().item())
-
-    # --------------------------------------------------
-    # 2. Load normalization stats
-    # --------------------------------------------------
     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
-    stds = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+    stds  = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
 
-    stds = stds.clone()
-    stds[stds == 0] = 1.0
+    stds = torch.where(stds == 0, torch.ones_like(stds), stds)
 
-    means = torch.nan_to_num(means, nan=0.0)
-    stds = torch.nan_to_num(stds, nan=1.0)
-
-    if debug:
-        print("\n=== NORMALIZATION STATS ===")
-        print("means:", means)
-        print("stds:", stds)
-
-    # --------------------------------------------------
-    # 3. Forward pass
-    # --------------------------------------------------
+    # -----------------------------
+    # 2. Forward (LOGITS ONLY)
+    # -----------------------------
     with torch.no_grad():
         recon, _, _ = model.forward(X, C, deterministic=True)
 
-    pred = recon.clone()
-
-    # --------------------------------------------------
-    # 4. Activation groups
-    # --------------------------------------------------
+    # -----------------------------
+    # 3. Activation groups (clean)
+    # -----------------------------
     groups = dataset.get_activation_groups(exclude_ignored=True)
+    ignore_set = set(getattr(dataset, "ignore_indices", []))
 
-    if debug:
-        print("\n=== ACTIVATION GROUPS (pre-filter) ===")
-        for k, v in groups.items():
-            print(k, v)
-
-    # --------------------------------------------------
-    # 5. Convert logits → usable values
-    # --------------------------------------------------
+    # -----------------------------
+    # SAFETY CHECK: no ignored cols in groups
+    # -----------------------------
     for name, cols in groups.items():
-        cols = [c for c in cols if c not in ignore_set]
-        if len(cols) == 0:
-            continue
+        overlap = [c for c in cols if c in ignore_set]
+        if len(overlap) > 0:
+            raise RuntimeError(
+                f"Activation group '{name}' contains ignored columns: {overlap}. "
+                "This should never happen when exclude_ignored=True."
+        )
 
-        cols = torch.tensor(cols, dtype=torch.long, device=device)
-
-        if name == "continuous":
-            pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]
-
-        elif name == "binary":
-            pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
-
-        else:
-            probs = torch.softmax(recon[:, cols], dim=1)
-            idx = torch.argmax(probs, dim=1)
-
-            pred[:, cols] = 0
-            pred[torch.arange(pred.shape[0]), cols[idx]] = 1
-
-        if debug:
-            print(f"\n--- {name.upper()} ---")
-            print("cols (filtered):", cols.tolist())
-            print("pred (first 5):\n", pred[:5, cols])
-
-    # ==================================================
-    # 6. CONTINUOUS MSE
-    # ==================================================
-    cont_cols = [c for c in groups.get("continuous", []) if c not in ignore_set]
+    # -----------------------------
+    # 4. CONTINUOUS → MSE
+    # -----------------------------
+    cont_cols = groups.get("continuous", [])
     cont_cols = torch.tensor(cont_cols, dtype=torch.long, device=device)
 
-    if debug:
-        print("\n=== CONTINUOUS MSE ===")
-        print("cont_cols:", cont_cols.tolist())
-
     if len(cont_cols) > 0:
-        val_cont = val_data[:, cont_cols]
-        mask = ~torch.isnan(val_cont)
+        pred_cont = recon[:, cont_cols] * stds[cont_cols] + means[cont_cols]
+        true_cont = val_data[:, cont_cols] 
 
-        val_cont = val_cont * stds[cont_cols] + means[cont_cols]
-        se = (pred[:, cont_cols] - val_cont) ** 2
+        mask = ~torch.isnan(true_cont)
 
-        if debug:
-            print("mask sum:", mask.sum().item())
-            print("SE contributing:", se[mask])
-
-        mse = se[mask].mean() if mask.any() else pred.new_zeros(())
+        se = (pred_cont - true_cont) ** 2
+        mse = se[mask].mean() if mask.any() else torch.tensor(0.0, device=device)
     else:
-        mse = pred.new_zeros(())
+        mse = torch.tensor(0.0, device=device)
 
-    # ==================================================
-    # 7. BINARY BCE
-    # ==================================================
+    # -----------------------------
+    # 5. BINARY → BCE (LOGITS)
+    # -----------------------------
     bin_cols = groups.get("binary", [])
     bin_cols = torch.tensor(bin_cols, dtype=torch.long, device=device)
 
     if len(bin_cols) > 0:
+        logits = recon[:, bin_cols]
         target = val_data[:, bin_cols]
+
         mask = ~torch.isnan(target)
 
         target = target.clone()
         target[~mask] = 0.0
 
-        # FIX: compute from logits, not pred
-        prob = torch.sigmoid(recon[:, bin_cols]).clamp(eps, 1 - eps)
-
-        bce_elem = F.binary_cross_entropy(prob, target, reduction="none")
+        # stable + correct
+        bce_elem = F.binary_cross_entropy_with_logits(
+            logits, target, reduction="none"
+        )
 
         bmask = mask.to(bce_elem.dtype)
         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
     else:
-        bce = pred.new_zeros(())
+        bce = torch.tensor(0.0, device=device)
 
-    # ==================================================
-    # 8. CATEGORICAL CE
-    # ==================================================
-    ce = pred.new_zeros(())
+    # -----------------------------
+    # 6. CATEGORICAL → CE (LOGITS)
+    # -----------------------------
+    ce = torch.tensor(0.0, device=device)
 
     for name, cols in groups.items():
         if name in ["continuous", "binary"]:
-            continue
-
-        cols = [c for c in cols if c not in ignore_set]
-        if len(cols) == 0:
             continue
 
         cols = torch.tensor(cols, dtype=torch.long, device=device)
@@ -574,24 +516,198 @@ def compute_val_mse(
 
             ce += F.cross_entropy(logits, target, reduction="mean")
 
-            if debug:
-                print(f"\n=== CATEGORICAL: {name} ===")
-                print("cols (filtered):", cols.tolist())
-                print("num valid:", valid_rows.sum().item())
+    # -----------------------------
+    # 7. Final
+    # -----------------------------
+    total = mse + bce + ce
 
-    # ==================================================
-    # 9. Final output
-    # ==================================================
-    total = (mse + bce + ce).item()
+    return total.item(), mse.item(), bce.item(), ce.item()
 
-    if debug:
-        print("\n=== FINAL METRICS ===")
-        print("MSE:", mse.item())
-        print("BCE:", bce.item())
-        print("CE:", ce.item())
-        print("TOTAL:", total)
+# def compute_val_mse(
+#     model,
+#     dataset,
+#     device="cpu",
+#     auto_fix_binary=False,
+#     eps: float = 1e-7,
+#     debug: bool = False,
+# ):
+#     model.eval()
 
-    return total, mse.item(), bce.item(), ce.item()
+#     # --------------------------------------------------
+#     # 1. Load tensors
+#     # --------------------------------------------------
+#     X = dataset.data.to(device)
+#     C = dataset.cluster_labels.to(device)
+#     val_data = dataset.val_data.to(device)
+
+#     val_mask = ~torch.isnan(val_data)
+
+#     ignore_set = set(getattr(dataset, "ignore_indices", []))
+
+#     if debug:
+#         print("\n=== VAL DATA / MASK ===")
+#         print("val_data (first 5 rows):\n", val_data[:5])
+#         print("val_mask (first 5 rows):\n", val_mask[:5].int())
+#         print("ignored idx:", list(ignore_set))
+
+#         if len(ignore_set) > 0:
+#             ignore_idx = torch.tensor(list(ignore_set), device=device)
+#             print("ignored columns all NaN?:",
+#                   torch.isnan(val_data[:, ignore_idx]).all().item())
+
+#     # --------------------------------------------------
+#     # 2. Load normalization stats
+#     # --------------------------------------------------
+#     means = torch.as_tensor(dataset.feature_means, dtype=torch.float32, device=device)
+#     stds = torch.as_tensor(dataset.feature_stds, dtype=torch.float32, device=device)
+
+#     stds = stds.clone()
+#     stds[stds == 0] = 1.0
+
+#     means = torch.nan_to_num(means, nan=0.0)
+#     stds = torch.nan_to_num(stds, nan=1.0)
+
+#     if debug:
+#         print("\n=== NORMALIZATION STATS ===")
+#         print("means:", means)
+#         print("stds:", stds)
+
+#     # --------------------------------------------------
+#     # 3. Forward pass
+#     # --------------------------------------------------
+#     with torch.no_grad():
+#         recon, _, _ = model.forward(X, C, deterministic=True)
+
+#     pred = recon.clone()
+
+#     # --------------------------------------------------
+#     # 4. Activation groups
+#     # --------------------------------------------------
+#     groups = dataset.get_activation_groups(exclude_ignored=True)
+
+#     if debug:
+#         print("\n=== ACTIVATION GROUPS (pre-filter) ===")
+#         for k, v in groups.items():
+#             print(k, v)
+
+#     # --------------------------------------------------
+#     # 5. Convert logits → usable values
+#     # --------------------------------------------------
+#     for name, cols in groups.items():
+#         cols = [c for c in cols if c not in ignore_set]
+#         if len(cols) == 0:
+#             continue
+
+#         cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+#         if name == "continuous":
+#             pred[:, cols] = recon[:, cols] * stds[cols] + means[cols]
+
+#         elif name == "binary":
+#             pred[:, cols] = torch.sigmoid(recon[:, cols]).clamp(eps, 1 - eps)
+
+#         else:
+#             probs = torch.softmax(recon[:, cols], dim=1)
+#             idx = torch.argmax(probs, dim=1)
+
+#             pred[:, cols] = 0
+#             pred[torch.arange(pred.shape[0]), cols[idx]] = 1
+
+#         if debug:
+#             print(f"\n--- {name.upper()} ---")
+#             print("cols (filtered):", cols.tolist())
+#             print("pred (first 5):\n", pred[:5, cols])
+
+#     # ==================================================
+#     # 6. CONTINUOUS MSE
+#     # ==================================================
+#     cont_cols = [c for c in groups.get("continuous", []) if c not in ignore_set]
+#     cont_cols = torch.tensor(cont_cols, dtype=torch.long, device=device)
+
+#     if debug:
+#         print("\n=== CONTINUOUS MSE ===")
+#         print("cont_cols:", cont_cols.tolist())
+
+#     if len(cont_cols) > 0:
+#         val_cont = val_data[:, cont_cols]
+#         mask = ~torch.isnan(val_cont)
+
+#         val_cont = val_cont * stds[cont_cols] + means[cont_cols]
+#         se = (pred[:, cont_cols] - val_cont) ** 2
+
+#         if debug:
+#             print("mask sum:", mask.sum().item())
+#             print("SE contributing:", se[mask])
+
+#         mse = se[mask].mean() if mask.any() else pred.new_zeros(())
+#     else:
+#         mse = pred.new_zeros(())
+
+#     # ==================================================
+#     # 7. BINARY BCE
+#     # ==================================================
+#     bin_cols = groups.get("binary", [])
+#     bin_cols = torch.tensor(bin_cols, dtype=torch.long, device=device)
+
+#     if len(bin_cols) > 0:
+#         target = val_data[:, bin_cols]
+#         mask = ~torch.isnan(target)
+
+#         target = target.clone()
+#         target[~mask] = 0.0
+
+#         # FIX: compute from logits, not pred
+#         prob = torch.sigmoid(recon[:, bin_cols]).clamp(eps, 1 - eps)
+
+#         bce_elem = F.binary_cross_entropy(prob, target, reduction="none")
+
+#         bmask = mask.to(bce_elem.dtype)
+#         bce = (bce_elem * bmask).sum() / bmask.sum().clamp_min(1.0)
+#     else:
+#         bce = pred.new_zeros(())
+
+#     # ==================================================
+#     # 8. CATEGORICAL CE
+#     # ==================================================
+#     ce = pred.new_zeros(())
+
+#     for name, cols in groups.items():
+#         if name in ["continuous", "binary"]:
+#             continue
+
+#         cols = [c for c in cols if c not in ignore_set]
+#         if len(cols) == 0:
+#             continue
+
+#         cols = torch.tensor(cols, dtype=torch.long, device=device)
+
+#         mask = ~torch.isnan(val_data[:, cols])
+#         valid_rows = mask.any(dim=1)
+
+#         if valid_rows.any():
+#             logits = recon[valid_rows][:, cols]
+#             target = torch.argmax(val_data[valid_rows][:, cols], dim=1)
+
+#             ce += F.cross_entropy(logits, target, reduction="mean")
+
+#             if debug:
+#                 print(f"\n=== CATEGORICAL: {name} ===")
+#                 print("cols (filtered):", cols.tolist())
+#                 print("num valid:", valid_rows.sum().item())
+
+#     # ==================================================
+#     # 9. Final output
+#     # ==================================================
+#     total = (mse + bce + ce).item()
+
+#     if debug:
+#         print("\n=== FINAL METRICS ===")
+#         print("MSE:", mse.item())
+#         print("BCE:", bce.item())
+#         print("CE:", ce.item())
+#         print("TOTAL:", total)
+
+#     return total, mse.item(), bce.item(), ce.item()
 
 # def compute_val_mse(model, dataset, device="cpu", auto_fix_binary=False, eps: float = 1e-7, debug = False):
 #     model.eval()
